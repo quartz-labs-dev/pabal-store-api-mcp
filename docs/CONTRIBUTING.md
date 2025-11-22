@@ -98,3 +98,4 @@ npm test -- tests/mcp-tools/my-new-tool.test.ts
 - `auth-app-store`: App Store 인증 상태 확인
 - `auth-play-store`: Play Store 인증 상태 확인
 
+

@@ -9,6 +9,28 @@ App Store / Play Store ASO 작업을 MCP 툴로 제공하기 위한 프로젝트
 - 실행: `npm run dev:mcp`
   - MCP 클라이언트(예: Claude Desktop, MCP Inspector)에서 stdio 서버로 연결한 뒤 `ping`을 호출해 `pong` 응답이 나오면 기본 동작 확인 완료.
 
+## 데이터 저장 경로 설정 (MCP)
+
+- MCP 도구가 파일을 남길 때 기본 경로는 레포 루트입니다.
+- 환경 변수 `PABAL_MCP_DATA_DIR`로 저장 경로를 바꿀 수 있습니다(절대·상대 경로 모두 지원, 상대 경로는 레포 기준).
+- 로컬 실행 예시: `PABAL_MCP_DATA_DIR=/Users/user-name/Desktop/projects/terms npm run dev:mcp`
+- Claude Desktop 설정 예시(`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "pabal-mcp": {
+      "command": "npm",
+      "args": ["run", "dev:mcp"],
+      "cwd": "/Users/user-name/Desktop/projects/pabal-mcp",
+      "env": {
+        "PABAL_MCP_DATA_DIR": "/Users/user-name/Desktop/projects/terms"
+      }
+    }
+  }
+}
+```
+
 ## 테스트
 
 - 모든 테스트 실행: `npm test`

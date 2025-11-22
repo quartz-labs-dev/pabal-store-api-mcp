@@ -1,12 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { ConfigError } from "./errors";
 
+export const DATA_DIR_ENV_KEY = "PABAL_MCP_DATA_DIR";
+
 // 프로젝트 루트 경로 찾기
 // packages/core/config.ts 기준으로 상위 2단계가 프로젝트 루트
-const getProjectRoot = (): string => {
+export const getProjectRoot = (): string => {
   try {
     // ES module인 경우
     if (typeof import.meta !== "undefined" && import.meta.url) {
@@ -19,6 +21,20 @@ const getProjectRoot = (): string => {
   // fallback: process.cwd() 사용
   return process.cwd();
 };
+
+export function getDataDir(): string {
+  const projectRoot = getProjectRoot();
+  const override = process.env[DATA_DIR_ENV_KEY];
+
+  if (override && override.trim()) {
+    const normalized = override.trim();
+    return isAbsolute(normalized)
+      ? normalized
+      : resolve(projectRoot, normalized);
+  }
+
+  return projectRoot;
+}
 
 const appStoreSchema = z.object({
   keyId: z.string().min(1),
