@@ -9,6 +9,13 @@ App Store / Play Store ASO 작업을 MCP 툴로 제공하기 위한 프로젝트
 - 실행: `npm run dev:mcp`
   - MCP 클라이언트(예: Claude Desktop, MCP Inspector)에서 stdio 서버로 연결한 뒤 `ping`을 호출해 `pong` 응답이 나오면 기본 동작 확인 완료.
 
+## 테스트
+
+- 모든 테스트 실행: `npm test`
+- 각 MCP 도구는 `tests/mcp-tools/` 폴더에 테스트 파일이 있습니다.
+- 새로운 도구를 추가할 때는 반드시 테스트 파일도 함께 추가해야 합니다.
+- 자세한 내용은 [CONTRIBUTING.md](./docs/CONTRIBUTING.md)를 참고하세요.
+
 ## 자격 증명 설정 (secrets/는 gitignore)
 
 - `secrets/` 디렉터리 아래에 키/설정 파일을 둡니다. 레포에 커밋하지 마세요.

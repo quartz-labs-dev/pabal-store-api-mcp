@@ -6,12 +6,10 @@
   "type": "module",
   "scripts": {
     "dev:mcp": "tsx servers/mcp/index.ts",
-    "test:ping": "tsx scripts/test-ping.ts",
-    "test:auth-app-store": "tsx scripts/test-auth-app-store.ts",
-    "test:auth-play-store": "tsx scripts/test-auth-play-store.ts",
-    "test": "tsx --test tests",
+    "test": "tsx --test tests/**/*.test.ts",
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "husky"
   },
   "keywords": [
     "mcp",
@@ -27,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "husky": "^9.1.7",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
