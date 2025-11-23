@@ -1,4 +1,4 @@
-import { createSign } from "node:crypto";
+import { SignJWT, importPKCS8 } from "jose";
 import type { AppStoreConfig } from "../core/config";
 
 type JwtOptions = {
@@ -10,40 +10,36 @@ const AUDIENCE = "appstoreconnect-v1";
 const MAX_EXP_SECONDS = 60 * 20;
 const DEFAULT_EXP_SECONDS = 60 * 10;
 
-export function createAppStoreJWT(
+export async function createAppStoreJWT(
   config: AppStoreConfig,
-  options: JwtOptions = {},
-): string {
+  options: JwtOptions = {}
+): Promise<string> {
   const nowSeconds = options.now ?? Math.floor(Date.now() / 1000);
   const expSeconds = Math.min(
     options.expirationSeconds ?? DEFAULT_EXP_SECONDS,
-    MAX_EXP_SECONDS,
+    MAX_EXP_SECONDS
   );
 
-  const header = {
-    alg: "ES256",
-    kid: config.keyId,
-    typ: "JWT",
-  };
+  // Private key 정규화
+  const normalizedKey = config.privateKey.replace(/\\n/g, "\n").trim();
 
-  const payload = {
+  // PKCS8 형식의 private key를 import
+  const privateKey = await importPKCS8(normalizedKey, "ES256");
+
+  // JWT 생성 (App Store Connect API는 iat를 요구하지 않음)
+  const jwt = await new SignJWT({
     iss: config.issuerId,
     aud: AUDIENCE,
-    exp: nowSeconds + expSeconds,
-  };
+  })
+    .setProtectedHeader({
+      alg: "ES256",
+      kid: config.keyId,
+      typ: "JWT",
+    })
+    .setExpirationTime(nowSeconds + expSeconds)
+    .sign(privateKey);
 
-  const encodedHeader = base64url(JSON.stringify(header));
-  const encodedPayload = base64url(JSON.stringify(payload));
-  const signingInput = `${encodedHeader}.${encodedPayload}`;
-
-  const signer = createSign("SHA256");
-  signer.update(signingInput);
-  signer.end();
-
-  const signature = signer.sign(config.privateKey);
-  const encodedSignature = base64url(signature);
-
-  return `${signingInput}.${encodedSignature}`;
+  return jwt;
 }
 
 export function decodeJwt(token: string): {

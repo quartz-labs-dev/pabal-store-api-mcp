@@ -1,5 +1,5 @@
 export * from "./ping";
-export * from "./auth-app-store";
-export * from "./auth-play-store";
-
-
+export * from "./auth";
+export * from "./apps";
+export * from "./aso";
+export * from "./release";

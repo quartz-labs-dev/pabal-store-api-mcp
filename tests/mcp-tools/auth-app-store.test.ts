@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { handleAuthAppStore } from "../../servers/mcp/tools/auth-app-store";
+import { handleAuthAppStore } from "../../servers/mcp/tools/auth/app-store";
 
 describe("MCP Tool: auth-app-store", () => {
   it("인증 설정이 있으면 성공 응답을 반환해야 한다", async () => {
@@ -27,5 +27,7 @@ describe("MCP Tool: auth-app-store", () => {
     }
   });
 });
+
+
 
 

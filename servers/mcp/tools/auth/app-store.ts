@@ -1,10 +1,10 @@
-import { verifyAppStoreAuth } from "../../../packages/app-store";
+import { verifyAppStoreAuth } from "../../../../packages/app-store";
 
 /**
  * App Store 인증 상태 확인 도구
  */
 export async function handleAuthAppStore() {
-  const result = verifyAppStoreAuth({ expirationSeconds: 300 });
+  const result = await verifyAppStoreAuth({ expirationSeconds: 300 });
   if (result.success && result.data) {
     return {
       content: [

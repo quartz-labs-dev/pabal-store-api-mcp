@@ -52,7 +52,7 @@ App Store / Play Store ASO 작업을 MCP 툴로 제공하기 위한 프로젝트
 
 ### App Store Connect
 
-1. Users and Access → Integrations → App Store Connect API → 키 생성.
+1. Users and Access → Integrations → App Store Connect API → 어드민 권한 키 생성.
 2. Issuer ID, Key ID 기록. 키 파일(`.p8`)은 `secrets/app-store-key.p8`에 저장.
 
 ### 공통 설정 파일 (`secrets/aso-config.json`)

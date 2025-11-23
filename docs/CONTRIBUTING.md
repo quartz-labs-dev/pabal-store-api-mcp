@@ -99,3 +99,5 @@ npm test -- tests/mcp-tools/my-new-tool.test.ts
 - `auth-play-store`: Play Store 인증 상태 확인
 
 
+
+

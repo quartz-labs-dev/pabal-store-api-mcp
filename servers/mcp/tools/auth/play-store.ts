@@ -1,4 +1,4 @@
-import { verifyPlayStoreAuth } from "../../../packages/play-store";
+import { verifyPlayStoreAuth } from "../../../../packages/play-store";
 
 /**
  * Google Play 인증 상태 확인 도구

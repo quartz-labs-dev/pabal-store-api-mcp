@@ -15,11 +15,11 @@ export interface VerifyAppStoreAuthResult {
  * @param expirationSeconds JWT 토큰 만료 시간 (초). 기본값: 300초
  * @returns 인증 확인 결과
  */
-export function verifyAppStoreAuth({
+export async function verifyAppStoreAuth({
   expirationSeconds = 300,
 }: {
   expirationSeconds?: number;
-} = {}): VerifyAppStoreAuthResult {
+} = {}): Promise<VerifyAppStoreAuthResult> {
   try {
     const cfg = loadConfig().appStore;
     if (!cfg) {
@@ -29,7 +29,7 @@ export function verifyAppStoreAuth({
       };
     }
 
-    const token = createAppStoreJWT(cfg, { expirationSeconds });
+    const token = await createAppStoreJWT(cfg, { expirationSeconds });
     const decoded = decodeJwt(token);
 
     return {
@@ -47,5 +47,3 @@ export function verifyAppStoreAuth({
     };
   }
 }
-
-
