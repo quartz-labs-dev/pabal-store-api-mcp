@@ -23,32 +23,54 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
   const { app, store = "both", dryRun = false } = options;
   let { packageName, bundleId } = options;
 
-  // app slug로 앱 정보 조회
-  if (app) {
-    const registeredApp = findApp(app);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ 앱 "${app}"을 찾을 수 없습니다. aso-list-apps로 등록된 앱을 확인하세요.`,
-          },
-        ],
-      };
-    }
+  // slug 결정
+  let slug: string;
+  let registeredApp = app ? findApp(app) : undefined;
+
+  if (app && registeredApp) {
+    // app slug로 앱 정보 조회 성공
+    slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
     }
     if (!bundleId && registeredApp.appStore) {
       bundleId = registeredApp.appStore.bundleId;
     }
+  } else if (packageName || bundleId) {
+    // bundleId나 packageName으로 앱 찾기
+    const identifier = packageName || bundleId || "";
+    registeredApp = findApp(identifier);
+    if (!registeredApp) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+          },
+        ],
+      };
+    }
+    slug = registeredApp.slug;
+    if (!packageName && registeredApp.googlePlay) {
+      packageName = registeredApp.googlePlay.packageName;
+    }
+    if (!bundleId && registeredApp.appStore) {
+      bundleId = registeredApp.appStore.bundleId;
+    }
+  } else {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+        },
+      ],
+    };
   }
-
-  const identifier = packageName || bundleId || "unknown";
 
   console.log(`\n📥 Pulling release notes`);
   console.log(`   Store: ${store}`);
-  if (app) console.log(`   App: ${app}`);
+  console.log(`   App: ${slug}`);
   if (packageName) console.log(`   Package Name: ${packageName}`);
   if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
   console.log(`   Mode: ${dryRun ? "Dry run" : "Actual fetch"}\n`);
@@ -131,7 +153,7 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
   }
 
   // Save to cache
-  const cacheDir = join(getCacheDir(), "pullData", "products", identifier, "store");
+  const cacheDir = join(getCacheDir(), "pullData", "products", slug, "store");
 
   if (releaseNotes.googlePlay) {
     const googlePlayDir = join(cacheDir, "google-play");

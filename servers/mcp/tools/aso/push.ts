@@ -20,39 +20,60 @@ interface AsoPushOptions {
   store?: StoreType;
   uploadImages?: boolean;
   dryRun?: boolean;
-  cacheKey?: string; // 캐시에서 데이터를 가져올 키 (기본값: packageName 또는 bundleId)
 }
 
 export async function handleAsoPush(options: AsoPushOptions) {
-  const { app, store = "both", uploadImages = false, dryRun = false, cacheKey } = options;
+  const { app, store = "both", uploadImages = false, dryRun = false } = options;
   let { packageName, bundleId } = options;
 
-  // app slug로 앱 정보 조회
-  if (app) {
-    const registeredApp = findApp(app);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ 앱 "${app}"을 찾을 수 없습니다. aso-list-apps로 등록된 앱을 확인하세요.`,
-          },
-        ],
-      };
-    }
+  // slug 결정
+  let slug: string;
+  let registeredApp = app ? findApp(app) : undefined;
+
+  if (app && registeredApp) {
+    // app slug로 앱 정보 조회 성공
+    slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
     }
     if (!bundleId && registeredApp.appStore) {
       bundleId = registeredApp.appStore.bundleId;
     }
+  } else if (packageName || bundleId) {
+    // bundleId나 packageName으로 앱 찾기
+    const identifier = packageName || bundleId || "";
+    registeredApp = findApp(identifier);
+    if (!registeredApp) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+          },
+        ],
+      };
+    }
+    slug = registeredApp.slug;
+    if (!packageName && registeredApp.googlePlay) {
+      packageName = registeredApp.googlePlay.packageName;
+    }
+    if (!bundleId && registeredApp.appStore) {
+      bundleId = registeredApp.appStore.bundleId;
+    }
+  } else {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+        },
+      ],
+    };
   }
-
-  const identifier = cacheKey || packageName || bundleId || "unknown";
 
   console.log(`\n📤 Pushing ASO data`);
   console.log(`   Store: ${store}`);
-  if (app) console.log(`   App: ${app}`);
+  console.log(`   App: ${slug}`);
   if (packageName) console.log(`   Package Name: ${packageName}`);
   if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
   console.log(`   Upload Images: ${uploadImages ? "Yes" : "No"}`);
@@ -61,21 +82,21 @@ export async function handleAsoPush(options: AsoPushOptions) {
   const config = loadConfig();
 
   // Load local data from cache
-  const configData = loadAsoFromCache(identifier);
+  const configData = loadAsoFromCache(slug);
 
   if (!configData.googlePlay && !configData.appStore) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ No ASO data found in cache for ${identifier}. Run aso:prepare first.`,
+          text: `❌ No ASO data found in cache for ${slug}. Run aso-pull first.`,
         },
       ],
     };
   }
 
   // Prepare data for push
-  const localAsoData = prepareAsoDataForPush(identifier, configData);
+  const localAsoData = prepareAsoDataForPush(slug, configData);
 
   if (dryRun) {
     return {
@@ -90,7 +111,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
   // Save to cache before pushing
   if (localAsoData.googlePlay || localAsoData.appStore) {
-    saveAsoToCache(identifier, localAsoData);
+    saveAsoToCache(slug, localAsoData);
   }
 
   const results: string[] = [];

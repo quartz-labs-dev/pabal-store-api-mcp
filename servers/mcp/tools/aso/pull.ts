@@ -25,29 +25,40 @@ interface AsoPullOptions {
 }
 
 async function downloadScreenshotsToCache(
-  identifier: string,
+  slug: string,
   asoData: AsoData,
   cacheDir: string
 ): Promise<void> {
-  const productStoreRoot = join(cacheDir, "products", identifier, "store");
+  const productStoreRoot = join(cacheDir, "products", slug, "store");
 
   if (asoData.googlePlay) {
     const googlePlayData = isGooglePlayMultilingual(asoData.googlePlay)
       ? asoData.googlePlay
-      : convertToMultilingual(asoData.googlePlay, asoData.googlePlay.defaultLanguage);
+      : convertToMultilingual(
+          asoData.googlePlay,
+          asoData.googlePlay.defaultLanguage
+        );
 
     const languages = Object.keys(googlePlayData.locales);
     const defaultLanguage = googlePlayData.defaultLocale;
     const targetLanguage =
-      (defaultLanguage && googlePlayData.locales[defaultLanguage] ? defaultLanguage : languages[0]) ||
-      null;
+      (defaultLanguage && googlePlayData.locales[defaultLanguage]
+        ? defaultLanguage
+        : languages[0]) || null;
 
     if (targetLanguage) {
       const localeData = googlePlayData.locales[targetLanguage];
-      const screenshotDir = join(productStoreRoot, "google-play", "screenshots", targetLanguage);
+      const screenshotDir = join(
+        productStoreRoot,
+        "google-play",
+        "screenshots",
+        targetLanguage
+      );
 
       if (localeData.screenshots.phone?.length > 0) {
-        console.log(`📥 Downloading ${localeData.screenshots.phone.length} Google Play phone screenshots...`);
+        console.log(
+          `📥 Downloading ${localeData.screenshots.phone.length} Google Play phone screenshots...`
+        );
         for (let i = 0; i < localeData.screenshots.phone.length; i++) {
           const url = localeData.screenshots.phone[i];
           const outputPath = join(screenshotDir, `phone-${i + 1}.png`);
@@ -81,22 +92,27 @@ async function downloadScreenshotsToCache(
     const locales = Object.keys(appStoreData.locales);
     const defaultLocale = appStoreData.defaultLocale;
     const targetLocale =
-      (defaultLocale && appStoreData.locales[defaultLocale] ? defaultLocale : locales[0]) || null;
+      (defaultLocale && appStoreData.locales[defaultLocale]
+        ? defaultLocale
+        : locales[0]) || null;
 
     if (targetLocale) {
       const localeData = appStoreData.locales[targetLocale];
-      const screenshotDir = join(productStoreRoot, "app-store", "screenshots", targetLocale);
+      const screenshotDir = join(
+        productStoreRoot,
+        "app-store",
+        "screenshots",
+        targetLocale
+      );
 
-      const screenshotTypes = [
-        "iphone65",
-        "iphone61",
-        "ipadPro129",
-      ] as const;
+      const screenshotTypes = ["iphone65", "iphone61", "ipadPro129"] as const;
 
       for (const type of screenshotTypes) {
         const screenshots = localeData.screenshots[type];
         if (screenshots && screenshots.length > 0) {
-          console.log(`📥 Downloading ${screenshots.length} App Store ${type} screenshots...`);
+          console.log(
+            `📥 Downloading ${screenshots.length} App Store ${type} screenshots...`
+          );
           for (let i = 0; i < screenshots.length; i++) {
             let url = screenshots[i];
             const outputPath = join(screenshotDir, `${type}-${i + 1}.png`);
@@ -121,41 +137,66 @@ export async function handleAsoPull(options: AsoPullOptions) {
   const { app, store = "both", dryRun = false } = options;
   let { packageName, bundleId } = options;
 
-  // app slug로 앱 정보 조회
-  if (app) {
-    const registeredApp = findApp(app);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ 앱 "${app}"을 찾을 수 없습니다. aso-list-apps로 등록된 앱을 확인하세요.`,
-          },
-        ],
-      };
-    }
+  // slug 결정
+  let slug: string;
+  let registeredApp = app ? findApp(app) : undefined;
+
+  if (app && registeredApp) {
+    // app slug로 앱 정보 조회 성공
+    slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
     }
     if (!bundleId && registeredApp.appStore) {
       bundleId = registeredApp.appStore.bundleId;
     }
+  } else if (packageName || bundleId) {
+    // bundleId나 packageName으로 앱 찾기
+    const identifier = packageName || bundleId || "";
+    registeredApp = findApp(identifier);
+    if (!registeredApp) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+          },
+        ],
+      };
+    }
+    slug = registeredApp.slug;
+    if (!packageName && registeredApp.googlePlay) {
+      packageName = registeredApp.googlePlay.packageName;
+    }
+    if (!bundleId && registeredApp.appStore) {
+      bundleId = registeredApp.appStore.bundleId;
+    }
+  } else {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+        },
+      ],
+    };
   }
 
   console.log(`\n📥 Pulling ASO data`);
   console.log(`   Store: ${store}`);
-  if (app) console.log(`   App: ${app}`);
+  console.log(`   App: ${slug}`);
   if (packageName) console.log(`   Package Name: ${packageName}`);
   if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
   console.log(`   Mode: ${dryRun ? "Dry run" : "Actual fetch"}\n`);
 
   const config = loadConfig();
   const syncedData: AsoData = {};
-  const identifier = packageName || bundleId || "unknown";
 
   if (store === "googlePlay" || store === "both") {
     if (!config.playStore) {
-      console.log(`⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`);
+      console.log(
+        `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
+      );
     } else if (!packageName) {
       console.log(`⏭️  Skipping Google Play (no packageName provided)`);
     } else {
@@ -178,7 +219,9 @@ export async function handleAsoPull(options: AsoPullOptions) {
 
   if (store === "appStore" || store === "both") {
     if (!config.appStore) {
-      console.log(`⏭️  Skipping App Store (not configured in secrets/aso-config.json)`);
+      console.log(
+        `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
+      );
     } else if (!bundleId) {
       console.log(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
@@ -205,21 +248,30 @@ export async function handleAsoPull(options: AsoPullOptions) {
       content: [
         {
           type: "text" as const,
-          text: `📋 Dry run - Data that would be saved:\n${JSON.stringify(syncedData, null, 2)}`,
+          text: `📋 Dry run - Data that would be saved:\n${JSON.stringify(
+            syncedData,
+            null,
+            2
+          )}`,
         },
       ],
     };
   }
 
   const cacheDir = join(getCacheDir(), "pullData");
-  saveAsoToCache(identifier, syncedData, { cacheDir });
-  await downloadScreenshotsToCache(identifier, syncedData, join(getDataDir(), ".cache", "pullData"));
+  saveAsoToCache(slug, syncedData, { cacheDir });
+  await downloadScreenshotsToCache(
+    slug,
+    syncedData,
+    join(getDataDir(), ".cache", "pullData")
+  );
 
   return {
     content: [
       {
         type: "text" as const,
-        text: `✅ ASO data pulled\n` +
+        text:
+          `✅ ASO data pulled\n` +
           `   Google Play: ${syncedData.googlePlay ? "✓" : "✗"}\n` +
           `   App Store: ${syncedData.appStore ? "✓" : "✗"}`,
       },

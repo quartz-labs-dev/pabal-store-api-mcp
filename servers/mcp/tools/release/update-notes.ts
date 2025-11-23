@@ -19,34 +19,48 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   const { app, versionId, whatsNew, store = "both" } = options;
   let { bundleId, packageName } = options;
 
-  // app slug로 앱 정보 조회
-  if (app) {
-    const { findApp } = await import("../../../../packages/core");
-    const registeredApp = findApp(app);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ 앱 "${app}"을 찾을 수 없습니다. apps:init으로 등록된 앱을 확인하세요.`,
-          },
-        ],
-      };
-    }
+  const { findApp, loadConfig } = await import("../../../../packages/core");
+
+  // slug 결정
+  let slug: string;
+  let registeredApp = app ? findApp(app) : undefined;
+
+  if (app && registeredApp) {
+    // app slug로 앱 정보 조회 성공
+    slug = app;
     if (!bundleId && registeredApp.appStore) {
       bundleId = registeredApp.appStore.bundleId;
     }
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
     }
-  }
-
-  if (!bundleId && !packageName) {
+  } else if (packageName || bundleId) {
+    // bundleId나 packageName으로 앱 찾기
+    const identifier = packageName || bundleId || "";
+    registeredApp = findApp(identifier);
+    if (!registeredApp) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+          },
+        ],
+      };
+    }
+    slug = registeredApp.slug;
+    if (!bundleId && registeredApp.appStore) {
+      bundleId = registeredApp.appStore.bundleId;
+    }
+    if (!packageName && registeredApp.googlePlay) {
+      packageName = registeredApp.googlePlay.packageName;
+    }
+  } else {
     return {
       content: [
         {
           type: "text" as const,
-          text: "❌ bundleId, packageName 또는 app이 필요합니다.",
+          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
         },
       ],
     };
@@ -63,8 +77,15 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
     };
   }
 
-  const { loadConfig } = await import("../../../../packages/core");
   const config = loadConfig();
+
+  console.log(`\n📝 Updating release notes`);
+  console.log(`   Store: ${store}`);
+  console.log(`   App: ${slug}`);
+  if (packageName) console.log(`   Package Name: ${packageName}`);
+  if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
+  if (versionId) console.log(`   Version ID: ${versionId}`);
+  console.log();
 
   const results: string[] = [];
   const appStoreResults: string[] = [];

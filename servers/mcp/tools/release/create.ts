@@ -16,30 +16,54 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
   const { app, version, store = "both", versionCodes } = options;
   let { packageName, bundleId } = options;
 
-  // app slug로 앱 정보 조회
-  if (app) {
-    const registeredApp = findApp(app);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ 앱 "${app}"을 찾을 수 없습니다. aso-list-apps로 등록된 앱을 확인하세요.`,
-          },
-        ],
-      };
-    }
+  // slug 결정
+  let slug: string;
+  let registeredApp = app ? findApp(app) : undefined;
+
+  if (app && registeredApp) {
+    // app slug로 앱 정보 조회 성공
+    slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
     }
     if (!bundleId && registeredApp.appStore) {
       bundleId = registeredApp.appStore.bundleId;
     }
+  } else if (packageName || bundleId) {
+    // bundleId나 packageName으로 앱 찾기
+    const identifier = packageName || bundleId || "";
+    registeredApp = findApp(identifier);
+    if (!registeredApp) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+          },
+        ],
+      };
+    }
+    slug = registeredApp.slug;
+    if (!packageName && registeredApp.googlePlay) {
+      packageName = registeredApp.googlePlay.packageName;
+    }
+    if (!bundleId && registeredApp.appStore) {
+      bundleId = registeredApp.appStore.bundleId;
+    }
+  } else {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+        },
+      ],
+    };
   }
 
   console.log(`\n📦 Creating version: ${version}`);
   console.log(`   Store: ${store}`);
-  if (app) console.log(`   App: ${app}`);
+  console.log(`   App: ${slug}`);
   if (packageName) console.log(`   Package Name: ${packageName}`);
   if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
   if (versionCodes) {
