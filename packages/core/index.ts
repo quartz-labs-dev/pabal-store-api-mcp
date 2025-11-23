@@ -3,5 +3,3 @@ export * from "./errors";
 export * from "./registered-apps";
 export * from "./check-latest-versions";
 export * from "./types";
-export * from "./app-info";
-export * from "./translate-release-notes";

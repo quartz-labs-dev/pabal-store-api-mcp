@@ -10,6 +10,10 @@ import {
   findApp,
   loadRegisteredApps,
   saveRegisteredApps,
+  fetchAppStoreAppInfo,
+  fetchGooglePlayAppInfo,
+  toRegisteredAppStoreInfo,
+  toRegisteredGooglePlayInfo,
   type RegisteredApp,
 } from "@packages/shared";
 
@@ -19,19 +23,27 @@ interface SetupAppsOptions {
 }
 
 /**
- * Check Play Store access
+ * Check Play Store access (기존 호환성을 위한 래퍼)
  */
 async function checkPlayStoreAccess(
   packageName: string,
   serviceAccountKey: object
-): Promise<{ accessible: boolean; title?: string }> {
+): Promise<{
+  accessible: boolean;
+  title?: string;
+  supportedLocales?: string[];
+}> {
   try {
     const client = new GooglePlayClient({
       packageName,
       serviceAccountKey,
     });
     const appInfo = await client.verifyAppAccess();
-    return { accessible: true, title: appInfo.title };
+    return {
+      accessible: true,
+      title: appInfo.title,
+      supportedLocales: appInfo.supportedLocales,
+    };
   } catch {
     return { accessible: false };
   }
@@ -62,6 +74,12 @@ export async function handleSetupApps(options: SetupAppsOptions) {
 
       const apps = await client.listAllApps({ onlyReleased: true });
 
+      // 모든 앱의 언어 정보를 미리 가져오기 위한 클라이언트 인스턴스
+      const appInfoClient = getAppStoreClient({
+        ...config.appStore,
+        bundleId: "dummy",
+      });
+
       if (apps.length === 0) {
         return {
           content: [
@@ -81,7 +99,12 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         : null;
 
       // Auto-register
-      const registered: string[] = [];
+      const registered: Array<{
+        name: string;
+        slug: string;
+        appStoreLocales?: string[];
+        googlePlayLocales?: string[];
+      }> = [];
       const skipped: string[] = [];
       const playStoreFound: string[] = [];
       const playStoreNotFound: string[] = [];
@@ -94,33 +117,80 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         // Check if already registered (findApp searches by slug, bundleId, packageName)
         const existing = findApp(app.bundleId);
         if (existing) {
-          // If existing app and both mode, try to update Play Store info
-          if (playStoreEnabled && !existing.googlePlay) {
-            const playResult = await checkPlayStoreAccess(
-              app.bundleId,
-              serviceAccountKey
-            );
-            if (playResult.accessible) {
-              // Add googlePlay info to existing app
-              const appsConfig = loadRegisteredApps();
-              const appIndex = appsConfig.apps.findIndex(
-                (a) => a.slug === existing.slug
-              );
-              if (appIndex >= 0) {
-                appsConfig.apps[appIndex].googlePlay = {
-                  packageName: app.bundleId,
-                  name: playResult.title,
-                };
-                saveRegisteredApps(appsConfig);
-                playStoreFound.push(`${app.name} → Play Store info added`);
+          // Update language info for existing apps
+          const appsConfig = loadRegisteredApps();
+          const appIndex = appsConfig.apps.findIndex(
+            (a) => a.slug === existing.slug
+          );
+
+          if (appIndex >= 0) {
+            let updated = false;
+
+            // Update App Store language info
+            if (existing.appStore) {
+              const appStoreInfo = await fetchAppStoreAppInfo({
+                bundleId: app.bundleId,
+                client: appInfoClient,
+              });
+
+              if (appStoreInfo.found && appStoreInfo.supportedLocales) {
+                if (!appsConfig.apps[appIndex].appStore) {
+                  appsConfig.apps[appIndex].appStore = {
+                    bundleId: app.bundleId,
+                    appId: app.id,
+                    name: app.name,
+                  };
+                }
+                appsConfig.apps[appIndex].appStore!.supportedLocales =
+                  appStoreInfo.supportedLocales;
+                updated = true;
               }
-            } else {
-              playStoreNotFound.push(app.name);
             }
+
+            // Update Google Play info (when in both mode)
+            if (playStoreEnabled) {
+              const playResult = await checkPlayStoreAccess(
+                app.bundleId,
+                serviceAccountKey
+              );
+              if (playResult.accessible) {
+                if (!appsConfig.apps[appIndex].googlePlay) {
+                  appsConfig.apps[appIndex].googlePlay = {
+                    packageName: app.bundleId,
+                    name: playResult.title,
+                  };
+                }
+                appsConfig.apps[appIndex].googlePlay!.supportedLocales =
+                  playResult.supportedLocales;
+                appsConfig.apps[appIndex].googlePlay!.name = playResult.title;
+                updated = true;
+                playStoreFound.push(app.name);
+              } else {
+                playStoreNotFound.push(app.name);
+              }
+            }
+
+            if (updated) {
+              saveRegisteredApps(appsConfig);
+              skipped.push(
+                `${app.name} (${app.bundleId}) - language info updated`
+              );
+            } else {
+              skipped.push(
+                `${app.name} (${app.bundleId}) - already registered`
+              );
+            }
+          } else {
+            skipped.push(`${app.name} (${app.bundleId}) - already registered`);
           }
-          skipped.push(`${app.name} (${app.bundleId}) - already registered`);
           continue;
         }
+
+        // App Store 정보 가져오기 (언어 정보 포함)
+        const appStoreInfo = await fetchAppStoreAppInfo({
+          bundleId: app.bundleId,
+          client: appInfoClient,
+        });
 
         // Check Play Store (when in both mode)
         let googlePlayInfo: RegisteredApp["googlePlay"] = undefined;
@@ -133,6 +203,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
             googlePlayInfo = {
               packageName: app.bundleId,
               name: playResult.title,
+              supportedLocales: playResult.supportedLocales,
             };
             playStoreFound.push(app.name);
           } else {
@@ -141,19 +212,29 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         }
 
         try {
+          const registeredAppStoreInfo = toRegisteredAppStoreInfo({
+            bundleId: app.bundleId,
+            appInfo: appStoreInfo,
+          }) || {
+            bundleId: app.bundleId,
+            appId: app.id,
+            name: app.name,
+          };
+
           registerApp({
             slug,
             name: app.name,
-            appStore: {
-              bundleId: app.bundleId,
-              appId: app.id,
-              name: app.name,
-            },
+            appStore: registeredAppStoreInfo,
             googlePlay: googlePlayInfo,
           });
 
           const storeInfo = googlePlayInfo ? " (🍎+🤖)" : " (🍎)";
-          registered.push(`${app.name}${storeInfo} → slug: "${slug}"`);
+          registered.push({
+            name: app.name,
+            slug,
+            appStoreLocales: registeredAppStoreInfo.supportedLocales,
+            googlePlayLocales: googlePlayInfo?.supportedLocales,
+          });
         } catch (error) {
           skipped.push(`${app.name} (${app.bundleId}) - registration failed`);
         }
@@ -164,7 +245,19 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       if (registered.length > 0) {
         lines.push(`✅ **Registered** (${registered.length}):`);
         for (const r of registered) {
-          lines.push(`  • ${r}`);
+          const storeInfo = r.googlePlayLocales ? " (🍎+🤖)" : " (🍎)";
+          let localeInfo = "";
+          if (r.appStoreLocales && r.appStoreLocales.length > 0) {
+            localeInfo += `\n    🍎 App Store: ${r.appStoreLocales.join(", ")}`;
+          }
+          if (r.googlePlayLocales && r.googlePlayLocales.length > 0) {
+            localeInfo += `\n    🤖 Google Play: ${r.googlePlayLocales.join(
+              ", "
+            )}`;
+          }
+          lines.push(
+            `  • ${r.name}${storeInfo} → slug: "${r.slug}"${localeInfo}`
+          );
         }
         lines.push("");
       }
@@ -195,7 +288,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       }
 
       lines.push(
-        "You can now reference apps in other tools using the `app: \"slug\"` parameter."
+        'You can now reference apps in other tools using the `app: "slug"` parameter.'
       );
 
       return {
@@ -256,7 +349,15 @@ Provide packageName to verify and register that app:
         serviceAccountKey: serviceAccount,
       });
 
-      const appInfo = await client.verifyAppAccess();
+      // Google Play 정보 가져오기 (언어 정보 포함)
+      const googlePlayInfo = await fetchGooglePlayAppInfo({
+        packageName,
+        config: config.playStore,
+      });
+
+      if (!googlePlayInfo.found) {
+        throw new Error("Failed to access Google Play app");
+      }
 
       // Use only last part of packageName as slug (com.quartz.postblackbelt -> postblackbelt)
       const parts = packageName.split(".");
@@ -277,14 +378,24 @@ Provide packageName to verify and register that app:
       }
 
       // Register
+      const registeredGooglePlayInfo = toRegisteredGooglePlayInfo({
+        packageName,
+        appInfo: googlePlayInfo,
+      });
+
       const newApp = registerApp({
         slug,
-        name: appInfo.title || packageName,
-        googlePlay: {
-          packageName,
-          name: appInfo.title,
-        },
+        name: googlePlayInfo.name || packageName,
+        googlePlay: registeredGooglePlayInfo,
       });
+
+      const localeInfo =
+        registeredGooglePlayInfo?.supportedLocales &&
+        registeredGooglePlayInfo.supportedLocales.length > 0
+          ? `\n• Supported Languages: ${registeredGooglePlayInfo.supportedLocales.join(
+              ", "
+            )}`
+          : "";
 
       return {
         content: [
@@ -294,7 +405,7 @@ Provide packageName to verify and register that app:
 
 • Package Name: \`${packageName}\`
 • Slug: \`${slug}\`
-• Name: ${newApp.name}
+• Name: ${newApp.name}${localeInfo}
 
 You can now reference this app in other tools using the \`app: "${slug}"\` parameter.`,
           },

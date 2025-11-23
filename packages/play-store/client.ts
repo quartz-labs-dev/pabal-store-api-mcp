@@ -53,7 +53,12 @@ export class GooglePlayClient {
    * Verify app access (returns app information)
    * Google Play API does not support listing apps, so only verifies access by package name
    */
-  async verifyAppAccess(): Promise<{ packageName: string; title?: string; defaultLanguage?: string }> {
+  async verifyAppAccess(): Promise<{ 
+    packageName: string; 
+    title?: string; 
+    defaultLanguage?: string;
+    supportedLocales?: string[];
+  }> {
     const authClient = await this.auth.getClient();
 
     const appResponse = await this.androidPublisher.edits.insert({
@@ -71,7 +76,7 @@ export class GooglePlayClient {
         editId,
       });
 
-      // Get default language listing
+      // Get all language listings
       const listingsResponse = await this.androidPublisher.edits.listings.list({
         auth: authClient,
         packageName: this.packageName,
@@ -80,11 +85,16 @@ export class GooglePlayClient {
 
       const listings = listingsResponse.data.listings || [];
       const defaultListing = listings[0];
+      const supportedLocales = listings
+        .map((l: any) => l.language)
+        .filter((lang: string | undefined): lang is string => !!lang)
+        .sort();
 
       return {
         packageName: this.packageName,
         title: defaultListing?.title ?? undefined,
         defaultLanguage: appDetails.data.defaultLanguage ?? undefined,
+        supportedLocales,
       };
     } finally {
       // Delete edit (exit without changes)

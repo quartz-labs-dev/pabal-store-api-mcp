@@ -12,7 +12,6 @@ import {
   handleSearchApps,
   handleAsoPull,
   handleAsoPush,
-  handleAsoTranslate,
   handleAsoCreateVersion,
   handleAsoPullReleaseNotes,
   handleUpdateNotes,
@@ -242,32 +241,6 @@ registerToolWithInfo(
   "ASO Data Sync"
 );
 
-registerToolWithInfo(
-  "aso-translate",
-  {
-    description:
-      "Returns text that needs translation and target locale list. LLM should perform translation directly and pass results to release-update-notes.",
-    inputSchema: z.object({
-      text: z.string().describe("Source text to translate"),
-      sourceLocale: z
-        .string()
-        .optional()
-        .describe("Source locale (default: en-US)"),
-      targetLocales: z
-        .array(z.string())
-        .optional()
-        .describe(
-          "Target locale array (uses store default locales if not specified)"
-        ),
-      store: storeSchema.describe(
-        "Target store (used to determine locale list)"
-      ),
-    }),
-  },
-  handleAsoTranslate,
-  "ASO Data Sync"
-);
-
 // ============================================================================
 // Release Management (release-*)
 // ============================================================================
@@ -352,9 +325,18 @@ registerToolWithInfo(
         ),
       whatsNew: z
         .record(z.string(), z.string())
+        .optional()
         .describe(
           'Release notes by locale (e.g., { "en-US": "Bug fixes", "ko": "Bug fixes" })'
         ),
+      text: z
+        .string()
+        .optional()
+        .describe("Source text to translate to all supported languages"),
+      sourceLocale: z
+        .string()
+        .optional()
+        .describe("Source locale (default: en-US)"),
     }),
   },
   handleUpdateNotes,

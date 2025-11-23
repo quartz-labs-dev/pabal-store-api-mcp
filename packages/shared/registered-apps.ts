@@ -15,11 +15,13 @@ export interface RegisteredAppStoreInfo {
   bundleId: string;
   appId?: string;
   name?: string;
+  supportedLocales?: string[];
 }
 
 export interface RegisteredGooglePlayInfo {
   packageName: string;
   name?: string;
+  supportedLocales?: string[];
 }
 
 export interface RegisteredApp {

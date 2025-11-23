@@ -290,6 +290,36 @@ export class AppStoreClient {
     }
   }
 
+  /**
+   * Get supported locales for an app
+   */
+  async getSupportedLocales(appId: string): Promise<string[]> {
+    try {
+      // Get localization information from app info via appInfos
+      const appInfosResponse = await this.apiRequest<
+        ApiResponse<Array<{ id: string }>>
+      >(`/apps/${appId}/appInfos?limit=1`);
+
+      const appInfo = appInfosResponse.data?.[0];
+      if (!appInfo) return [];
+
+      // Get all localizations
+      const localizationsResponse = await this.apiRequest<
+        ApiResponse<
+          Array<{ id: string; attributes: { locale: string; name?: string } }>
+        >
+      >(`/appInfos/${appInfo.id}/appInfoLocalizations`);
+
+      const localizations = localizationsResponse.data || [];
+      return localizations
+        .map((l) => l.attributes.locale)
+        .filter((locale): locale is string => !!locale)
+        .sort();
+    } catch {
+      return [];
+    }
+  }
+
   private async findAppId(): Promise<string> {
     const response = await this.apiRequest<ApiResponse<AppStoreApp[]>>(
       `/apps?filter[bundleId]=${this.bundleId}`

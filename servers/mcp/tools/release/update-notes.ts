@@ -2,9 +2,21 @@
  * Release notes update tool
  *
  * Supports both App Store and Google Play.
+ * Automatically translates to all supported languages if text is provided.
  */
 
 import { type StoreType } from "@packages/shared/types";
+import {
+  createTranslationRequests,
+  separateTranslationsByStore,
+  collectSupportedLocales,
+} from "@packages/shared/translate-release-notes";
+import {
+  fetchAppStoreAppInfo,
+  fetchGooglePlayAppInfo,
+} from "@packages/shared/app-info";
+import { updateAppStoreReleaseNotes } from "@packages/app-store/update-release-notes";
+import { updateGooglePlayReleaseNotes } from "@packages/play-store/update-release-notes";
 
 interface UpdateNotesOptions {
   app?: string;
@@ -12,11 +24,20 @@ interface UpdateNotesOptions {
   packageName?: string;
   store?: StoreType;
   versionId?: string;
-  whatsNew: Record<string, string>;
+  whatsNew?: Record<string, string>;
+  text?: string; // Source text to translate
+  sourceLocale?: string; // Source locale (default: "en-US")
 }
 
 export async function handleUpdateNotes(options: UpdateNotesOptions) {
-  const { app, versionId, whatsNew, store = "both" } = options;
+  const {
+    app,
+    versionId,
+    whatsNew,
+    text,
+    sourceLocale = "en-US",
+    store = "both",
+  } = options;
   let { bundleId, packageName } = options;
 
   const { findApp, loadConfig } = await import("@packages/shared");
@@ -66,12 +87,220 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
     };
   }
 
-  if (!whatsNew || Object.keys(whatsNew).length === 0) {
+  if (!registeredApp) {
     return {
       content: [
         {
           type: "text" as const,
-          text: '❌ whatsNew data is required. Format: { "en-US": "text", "ko": "text" }',
+          text: `❌ App information not found.`,
+        },
+      ],
+    };
+  }
+
+  // Determine what to update
+  let finalWhatsNew: Record<string, string> = {};
+
+  if (whatsNew && Object.keys(whatsNew).length > 0) {
+    // Use provided whatsNew directly
+    finalWhatsNew = whatsNew;
+  } else if (text) {
+    // Step 1: Get supported locales for the app (from registered app or fetch from API)
+    const config = loadConfig();
+    let appStoreLocales: string[] = [];
+    let googlePlayLocales: string[] = [];
+
+    // Check if locales are already in registered app
+    const {
+      appStore: existingAppStoreLocales,
+      googlePlay: existingGooglePlayLocales,
+    } = collectSupportedLocales({ app: registeredApp, store });
+
+    // If locales are missing, fetch from API
+    if ((store === "both" || store === "appStore") && bundleId) {
+      if (existingAppStoreLocales.length > 0) {
+        appStoreLocales = existingAppStoreLocales;
+      } else if (config.appStore) {
+        // Fetch from App Store API
+        try {
+          const { getAppStoreClient } = await import("@packages/app-store");
+          const client = getAppStoreClient({
+            bundleId,
+            issuerId: config.appStore.issuerId,
+            keyId: config.appStore.keyId,
+            privateKey: config.appStore.privateKey,
+          });
+
+          const appInfo = await fetchAppStoreAppInfo({
+            bundleId,
+            client,
+          });
+
+          if (appInfo.found && appInfo.supportedLocales) {
+            appStoreLocales = appInfo.supportedLocales;
+            // Update registered app with fetched locales
+            if (registeredApp.appStore) {
+              registeredApp.appStore.supportedLocales =
+                appInfo.supportedLocales;
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `⚠️ Failed to fetch App Store locales: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+      }
+    }
+
+    if ((store === "both" || store === "googlePlay") && packageName) {
+      if (existingGooglePlayLocales.length > 0) {
+        googlePlayLocales = existingGooglePlayLocales;
+      } else if (config.playStore?.serviceAccountJson) {
+        // Fetch from Google Play API
+        try {
+          const appInfo = await fetchGooglePlayAppInfo({
+            packageName,
+            config: config.playStore,
+          });
+
+          if (appInfo.found && appInfo.supportedLocales) {
+            googlePlayLocales = appInfo.supportedLocales;
+            // Update registered app with fetched locales
+            if (registeredApp.googlePlay) {
+              registeredApp.googlePlay.supportedLocales =
+                appInfo.supportedLocales;
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `⚠️ Failed to fetch Google Play locales: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+      }
+    }
+
+    // Collect all unique locales that need translation
+    const allLocales = new Set<string>();
+    if (appStoreLocales.length > 0) {
+      appStoreLocales.forEach((locale) => allLocales.add(locale));
+    }
+    if (googlePlayLocales.length > 0) {
+      googlePlayLocales.forEach((locale) => allLocales.add(locale));
+    }
+
+    // If no locales found, return error
+    if (allLocales.size === 0) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ No supported locales found for the app. Please ensure the app is registered and has supported locales configured, or check authentication settings.`,
+          },
+        ],
+      };
+    }
+
+    // Add source locale if not already in the set
+    allLocales.add(sourceLocale);
+
+    const targetLocales = Array.from(allLocales).filter(
+      (locale) => locale !== sourceLocale
+    );
+
+    // Step 2: Return translation request
+    // The calling LLM should perform the translation and call this function again with whatsNew
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `🌐 Translation Required
+
+**Source Text** (${sourceLocale}):
+${text}
+
+**App Store Supported Locales** (${appStoreLocales.length}):
+${appStoreLocales.length > 0 ? appStoreLocales.join(", ") : "N/A"}
+
+**Google Play Supported Locales** (${googlePlayLocales.length}):
+${googlePlayLocales.length > 0 ? googlePlayLocales.join(", ") : "N/A"}
+
+**All Target Locales to Translate** (${targetLocales.length}):
+${targetLocales.join(", ")}
+
+**Instructions**:
+Please translate the text to all target locales and call this function again with the \`whatsNew\` parameter containing all translations.
+
+Example:
+\`\`\`json
+{
+  "app": "${slug}",
+  "store": "${store}",
+  "whatsNew": {
+    "${sourceLocale}": "${text}",
+    "ko": "번역된 텍스트",
+    "ko-KR": "번역된 텍스트",
+    "en-US": "Translated text",
+    ...
+  }
+}
+\`\`\`
+
+Note: App Store and Google Play may use different locale formats (e.g., "ko" vs "ko-KR"). Please provide translations for all supported locales.`,
+        },
+      ],
+      _meta: {
+        translationRequests: {
+          appStore:
+            appStoreLocales.length > 0
+              ? {
+                  sourceText: text,
+                  sourceLocale,
+                  targetLocales: appStoreLocales.filter(
+                    (l) => l !== sourceLocale
+                  ),
+                  store: "appStore" as const,
+                }
+              : undefined,
+          googlePlay:
+            googlePlayLocales.length > 0
+              ? {
+                  sourceText: text,
+                  sourceLocale,
+                  targetLocales: googlePlayLocales.filter(
+                    (l) => l !== sourceLocale
+                  ),
+                  store: "googlePlay" as const,
+                }
+              : undefined,
+        },
+        registeredApp,
+        slug,
+        store,
+        versionId,
+      },
+    };
+  } else {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: "❌ Either whatsNew or text is required. Provide whatsNew directly or text to translate to all supported languages.",
+        },
+      ],
+    };
+  }
+
+  // Continue with update logic only if finalWhatsNew is set
+  if (Object.keys(finalWhatsNew).length === 0) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: "❌ No release notes to update.",
         },
       ],
     };
@@ -91,48 +320,45 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   const appStoreResults: string[] = [];
   const googlePlayResults: string[] = [];
 
+  // Separate translations by store
+  const { appStore: appStoreTranslations, googlePlay: googlePlayTranslations } =
+    separateTranslationsByStore({
+      translations: finalWhatsNew,
+      app: registeredApp,
+      sourceLocale,
+      store,
+    });
+
   // App Store update
   if ((store === "both" || store === "appStore") && bundleId) {
     if (!config.appStore) {
       appStoreResults.push("❌ App Store authentication not configured.");
+    } else if (Object.keys(appStoreTranslations).length === 0) {
+      appStoreResults.push(
+        "⚠️ No translations available for App Store locales."
+      );
     } else {
       try {
-        const { AppStoreClient } = await import("@packages/app-store");
-        const client = new AppStoreClient({
+        const { getAppStoreClient } = await import("@packages/app-store");
+        const client = getAppStoreClient({
           bundleId,
           issuerId: config.appStore.issuerId,
           keyId: config.appStore.keyId,
           privateKey: config.appStore.privateKey,
         });
 
-        let targetVersionId = versionId;
-        if (!targetVersionId) {
-          const versions = await client.getAllVersions();
-          const editableVersion = versions.find(
-            (v) => v.attributes.appStoreState === "PREPARE_FOR_SUBMISSION"
-          );
-          if (!editableVersion) {
-            appStoreResults.push("❌ No editable version found.");
-          } else {
-            targetVersionId = editableVersion.id;
-          }
-        }
+        const updateResult = await updateAppStoreReleaseNotes({
+          client,
+          releaseNotes: appStoreTranslations,
+          versionId,
+          supportedLocales: registeredApp.appStore?.supportedLocales,
+        });
 
-        if (targetVersionId) {
-          for (const [locale, text] of Object.entries(whatsNew)) {
-            try {
-              await client.updateWhatsNew({
-                versionId: targetVersionId,
-                locale,
-                whatsNew: text,
-              });
-              appStoreResults.push(`✅ ${locale}`);
-            } catch (error) {
-              const msg =
-                error instanceof Error ? error.message : String(error);
-              appStoreResults.push(`❌ ${locale}: ${msg}`);
-            }
-          }
+        for (const locale of updateResult.updated) {
+          appStoreResults.push(`✅ ${locale}`);
+        }
+        for (const fail of updateResult.failed) {
+          appStoreResults.push(`❌ ${fail.locale}: ${fail.error}`);
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -145,6 +371,10 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   if ((store === "both" || store === "googlePlay") && packageName) {
     if (!config.playStore?.serviceAccountJson) {
       googlePlayResults.push("❌ Google Play authentication not configured.");
+    } else if (Object.keys(googlePlayTranslations).length === 0) {
+      googlePlayResults.push(
+        "⚠️ No translations available for Google Play locales."
+      );
     } else {
       try {
         const { GooglePlayClient } = await import("@packages/play-store");
@@ -154,15 +384,17 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
           serviceAccountKey: serviceAccount,
         });
 
-        const result = await client.updateReleaseNotes({
-          releaseNotes: whatsNew,
+        const updateResult = await updateGooglePlayReleaseNotes({
+          client,
+          releaseNotes: googlePlayTranslations,
           track: "production",
+          supportedLocales: registeredApp.googlePlay?.supportedLocales,
         });
 
-        if (result.updated.length > 0) {
-          googlePlayResults.push(`✅ ${result.updated.join(", ")}`);
+        for (const locale of updateResult.updated) {
+          googlePlayResults.push(`✅ ${locale}`);
         }
-        for (const fail of result.failed) {
+        for (const fail of updateResult.failed) {
           googlePlayResults.push(`❌ ${fail.locale}: ${fail.error}`);
         }
       } catch (error) {
