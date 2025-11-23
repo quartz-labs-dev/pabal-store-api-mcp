@@ -6,8 +6,8 @@ import {
   type AppStoreMultilingualAsoData,
   isGooglePlayMultilingual,
   isAppStoreMultilingual,
-  loadAsoFromCache,
-  saveAsoToCache,
+  loadAsoData,
+  saveAsoData,
   prepareAsoDataForPush,
   convertToMultilingual,
 } from "../../../../packages/aso-core";
@@ -82,16 +82,16 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
   const config = loadConfig();
 
-  // Load local data from cache
-  const cacheDir = join(getDataDir(), ".cache", "pushData");
-  const configData = loadAsoFromCache(slug, { cacheDir });
+  // Load local data from ASO directory
+  const asoDir = join(getDataDir(), ".aso", "pushData");
+  const configData = loadAsoData(slug, { asoDir });
 
   if (!configData.googlePlay && !configData.appStore) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ No ASO data found in cache for ${slug}. Run aso-pull first.`,
+          text: `❌ No ASO data found for ${slug}. Run aso-pull first.`,
         },
       ],
     };
@@ -111,9 +111,9 @@ export async function handleAsoPush(options: AsoPushOptions) {
     };
   }
 
-  // Save to cache before pushing
+  // Save to ASO directory before pushing
   if (localAsoData.googlePlay || localAsoData.appStore) {
-    saveAsoToCache(slug, localAsoData, { cacheDir });
+    saveAsoData(slug, localAsoData, { asoDir });
   }
 
   const results: string[] = [];
@@ -124,7 +124,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
     } else if (!packageName) {
       results.push(`⏭️  Skipping Google Play (no packageName provided)`);
     } else if (!localAsoData.googlePlay) {
-      results.push(`⏭️  Skipping Google Play (no data in cache)`);
+      results.push(`⏭️  Skipping Google Play (no data found)`);
     } else {
       try {
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
@@ -164,7 +164,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
     } else if (!bundleId) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else if (!localAsoData.appStore) {
-      results.push(`⏭️  Skipping App Store (no data in cache)`);
+      results.push(`⏭️  Skipping App Store (no data found)`);
     } else {
       try {
         const client = new AppStoreClient({

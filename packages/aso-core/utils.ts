@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  copyFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { getDataDir } from "../core/config";
 import {
@@ -11,15 +17,15 @@ import {
 } from "./types";
 
 // ============================================================================
-// 캐시 경로 유틸리티
+// ASO 디렉토리 경로 유틸리티
 // ============================================================================
 
-export function getCacheDir(): string {
-  return join(getDataDir(), ".cache");
+export function getAsoDir(): string {
+  return join(getDataDir(), ".aso");
 }
 
-export function getProductCacheDir(slug: string): string {
-  return join(getCacheDir(), "products", slug, "store");
+export function getProductAsoDir(slug: string): string {
+  return join(getAsoDir(), "products", slug, "store");
 }
 
 export function ensureDir(dirPath: string): void {
@@ -52,7 +58,10 @@ export function prepareAsoDataForPush(
   options?: { baseUrl?: string }
 ): Partial<AsoData> {
   const storeData: Partial<AsoData> = {};
-  const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://labs.quartz.best";
+  const baseUrl =
+    options?.baseUrl ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://labs.quartz.best";
   const detailPageUrl = `${baseUrl}/${slug}`;
 
   if (configData.googlePlay) {
@@ -114,22 +123,25 @@ export function prepareAsoDataForPush(
 }
 
 // ============================================================================
-// 캐시 저장/로딩
+// ASO 데이터 저장/로딩
 // ============================================================================
 
-export function saveAsoToCache(
+export function saveAsoData(
   slug: string,
   asoData: Partial<AsoData>,
-  options?: { cacheDir?: string }
+  options?: { asoDir?: string }
 ): void {
-  const baseDir = options?.cacheDir ?? getCacheDir();
+  const baseDir = options?.asoDir ?? getAsoDir();
   const productStoreDir = join(baseDir, "products", slug, "store");
 
   if (asoData.googlePlay) {
     const googlePlayDir = join(productStoreDir, "google-play");
     ensureDir(googlePlayDir);
     const filePath = join(googlePlayDir, "aso-data.json");
-    writeFileSync(filePath, JSON.stringify({ googlePlay: asoData.googlePlay }, null, 2));
+    writeFileSync(
+      filePath,
+      JSON.stringify({ googlePlay: asoData.googlePlay }, null, 2)
+    );
     console.log(`💾 Google Play data saved to ${filePath}`);
   }
 
@@ -137,19 +149,29 @@ export function saveAsoToCache(
     const appStoreDir = join(productStoreDir, "app-store");
     ensureDir(appStoreDir);
     const filePath = join(appStoreDir, "aso-data.json");
-    writeFileSync(filePath, JSON.stringify({ appStore: asoData.appStore }, null, 2));
+    writeFileSync(
+      filePath,
+      JSON.stringify({ appStore: asoData.appStore }, null, 2)
+    );
     console.log(`💾 App Store data saved to ${filePath}`);
   }
 }
 
-export function loadAsoFromCache(
+export function loadAsoData(
   slug: string,
-  options?: { cacheDir?: string }
+  options?: { asoDir?: string }
 ): AsoData {
-  const baseDir = options?.cacheDir ?? getCacheDir();
+  const baseDir = options?.asoDir ?? getAsoDir();
   const asoData: AsoData = {};
 
-  const googlePlayPath = join(baseDir, "products", slug, "store", "google-play", "aso-data.json");
+  const googlePlayPath = join(
+    baseDir,
+    "products",
+    slug,
+    "store",
+    "google-play",
+    "aso-data.json"
+  );
   if (existsSync(googlePlayPath)) {
     try {
       const content = readFileSync(googlePlayPath, "utf-8");
@@ -157,14 +179,24 @@ export function loadAsoFromCache(
       if (data.googlePlay) {
         asoData.googlePlay = isGooglePlayMultilingual(data.googlePlay)
           ? data.googlePlay
-          : convertToMultilingual(data.googlePlay, data.googlePlay.defaultLanguage);
+          : convertToMultilingual(
+              data.googlePlay,
+              data.googlePlay.defaultLanguage
+            );
       }
     } catch (error) {
-      console.error(`❌ Failed to read Google Play cache:`, error);
+      console.error(`❌ Failed to read Google Play data:`, error);
     }
   }
 
-  const appStorePath = join(baseDir, "products", slug, "store", "app-store", "aso-data.json");
+  const appStorePath = join(
+    baseDir,
+    "products",
+    slug,
+    "store",
+    "app-store",
+    "aso-data.json"
+  );
   if (existsSync(appStorePath)) {
     try {
       const content = readFileSync(appStorePath, "utf-8");
@@ -175,7 +207,7 @@ export function loadAsoFromCache(
           : convertToMultilingual(data.appStore, data.appStore.locale);
       }
     } catch (error) {
-      console.error(`❌ Failed to read App Store cache:`, error);
+      console.error(`❌ Failed to read App Store data:`, error);
     }
   }
 
@@ -205,11 +237,16 @@ export function resolveAppStoreImageUrl(templateUrl: string): string {
     .replace("{f}", format);
 }
 
-export async function downloadImage(url: string, outputPath: string): Promise<void> {
+export async function downloadImage(
+  url: string,
+  outputPath: string
+): Promise<void> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Image download failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Image download failed: ${response.status} ${response.statusText}`
+      );
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -223,7 +260,7 @@ export async function downloadImage(url: string, outputPath: string): Promise<vo
   }
 }
 
-export function copyLocalAssetToCache(
+export function copyLocalAssetToAso(
   assetPath: string,
   outputPath: string,
   options?: { publicDir?: string }

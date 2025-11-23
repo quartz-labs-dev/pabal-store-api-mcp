@@ -5,7 +5,7 @@ import {
   type GooglePlayReleaseNote,
   type AppStoreReleaseNote,
   ensureDir,
-  getCacheDir,
+  getAsoDir,
 } from "../../../../packages/aso-core";
 import { loadConfig, findApp } from "../../../../packages/core";
 import { join } from "node:path";
@@ -152,11 +152,11 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
     };
   }
 
-  // Save to cache
-  const cacheDir = join(getCacheDir(), "pullData", "products", slug, "store");
+  // Save to ASO directory
+  const asoDir = join(getAsoDir(), "pullData", "products", slug, "store");
 
   if (releaseNotes.googlePlay) {
-    const googlePlayDir = join(cacheDir, "google-play");
+    const googlePlayDir = join(asoDir, "google-play");
     ensureDir(googlePlayDir);
     const filePath = join(googlePlayDir, "release-notes.json");
     writeFileSync(filePath, JSON.stringify(releaseNotes.googlePlay, null, 2));
@@ -164,7 +164,7 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
   }
 
   if (releaseNotes.appStore) {
-    const appStoreDir = join(cacheDir, "app-store");
+    const appStoreDir = join(asoDir, "app-store");
     ensureDir(appStoreDir);
     const filePath = join(appStoreDir, "release-notes.json");
     writeFileSync(filePath, JSON.stringify(releaseNotes.appStore, null, 2));

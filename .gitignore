@@ -15,4 +15,4 @@ scripts/run-mcp.sh
 .vscode/
 .idea/
 secrets
-.cache/
+.aso/

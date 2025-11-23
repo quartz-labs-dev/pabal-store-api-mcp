@@ -5,10 +5,10 @@ import {
   type StoreType,
   isGooglePlayMultilingual,
   isAppStoreMultilingual,
-  saveAsoToCache,
-  getCacheDir,
+  saveAsoData,
+  getAsoDir,
   downloadImage,
-  copyLocalAssetToCache,
+  copyLocalAssetToAso,
   isLocalAssetPath,
   resolveAppStoreImageUrl,
   convertToMultilingual,
@@ -24,12 +24,12 @@ interface AsoPullOptions {
   dryRun?: boolean;
 }
 
-async function downloadScreenshotsToCache(
+async function downloadScreenshotsToAso(
   slug: string,
   asoData: AsoData,
-  cacheDir: string
+  asoDir: string
 ): Promise<void> {
-  const productStoreRoot = join(cacheDir, "products", slug, "store");
+  const productStoreRoot = join(asoDir, "products", slug, "store");
 
   if (asoData.googlePlay) {
     const googlePlayData = isGooglePlayMultilingual(asoData.googlePlay)
@@ -63,7 +63,7 @@ async function downloadScreenshotsToCache(
           const url = localeData.screenshots.phone[i];
           const outputPath = join(screenshotDir, `phone-${i + 1}.png`);
           if (isLocalAssetPath(url)) {
-            copyLocalAssetToCache(url, outputPath);
+            copyLocalAssetToAso(url, outputPath);
           } else {
             await downloadImage(url, outputPath);
           }
@@ -75,7 +75,7 @@ async function downloadScreenshotsToCache(
         console.log(`📥 Downloading Feature Graphic...`);
         const outputPath = join(screenshotDir, "feature-graphic.png");
         if (isLocalAssetPath(localeData.featureGraphic)) {
-          copyLocalAssetToCache(localeData.featureGraphic, outputPath);
+          copyLocalAssetToAso(localeData.featureGraphic, outputPath);
         } else {
           await downloadImage(localeData.featureGraphic, outputPath);
         }
@@ -118,7 +118,7 @@ async function downloadScreenshotsToCache(
             const outputPath = join(screenshotDir, `${type}-${i + 1}.png`);
 
             if (isLocalAssetPath(url)) {
-              copyLocalAssetToCache(url, outputPath);
+              copyLocalAssetToAso(url, outputPath);
             } else {
               if (url.includes("{w}") || url.includes("{h}")) {
                 url = resolveAppStoreImageUrl(url);
@@ -258,12 +258,12 @@ export async function handleAsoPull(options: AsoPullOptions) {
     };
   }
 
-  const cacheDir = join(getCacheDir(), "pullData");
-  saveAsoToCache(slug, syncedData, { cacheDir });
-  await downloadScreenshotsToCache(
+  const asoDir = join(getAsoDir(), "pullData");
+  saveAsoData(slug, syncedData, { asoDir });
+  await downloadScreenshotsToAso(
     slug,
     syncedData,
-    join(getDataDir(), ".cache", "pullData")
+    join(getDataDir(), ".aso", "pullData")
   );
 
   return {
