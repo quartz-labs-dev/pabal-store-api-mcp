@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepare": "husky",
-    "list-tools": "tsx scripts/list-mcp-tools.ts"
+    "tools": "tsx scripts/list-mcp-tools.ts"
   },
   "keywords": [
     "mcp",
