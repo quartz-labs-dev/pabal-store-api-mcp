@@ -1,5 +1,5 @@
 /**
- * 간단한 헬스체크용 도구
+ * Simple health check tool
  */
 export async function handlePing() {
   return {

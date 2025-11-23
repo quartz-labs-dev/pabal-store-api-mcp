@@ -1,9 +1,9 @@
 /**
- * setup-apps: 스토어에서 앱 조회 후 자동 등록
+ * setup-apps: Query apps from store and auto-register
  */
 
-import { getAppStoreClient } from "../../../../packages/app-store";
-import { GooglePlayClient } from "../../../../packages/play-store";
+import { getAppStoreClient } from "@packages/app-store";
+import { GooglePlayClient } from "@packages/play-store";
 import {
   loadConfig,
   registerApp,
@@ -11,15 +11,15 @@ import {
   loadRegisteredApps,
   saveRegisteredApps,
   type RegisteredApp,
-} from "../../../../packages/core";
+} from "@packages/core";
 
 interface SetupAppsOptions {
   store?: "appStore" | "googlePlay" | "both";
-  packageName?: string; // Google Play용 - 목록 조회 불가하므로 특정 앱 확인용
+  packageName?: string; // For Google Play - list query not supported, so used for specific app verification
 }
 
 /**
- * Play Store 접근 가능 여부 확인
+ * Check Play Store access
  */
 async function checkPlayStoreAccess(
   packageName: string,
@@ -41,14 +41,14 @@ export async function handleSetupApps(options: SetupAppsOptions) {
   const { store = "both", packageName } = options;
   const config = loadConfig();
 
-  // both: App Store 앱 조회 후 Play Store 확인
+  // both: Query App Store apps then check Play Store
   if (store === "both" || store === "appStore") {
     if (!config.appStore) {
       return {
         content: [
           {
             type: "text" as const,
-            text: "❌ App Store 인증이 설정되지 않았습니다. secrets/aso-config.json을 확인하세요.",
+            text: "❌ App Store authentication not configured. Please check secrets/aso-config.json.",
           },
         ],
       };
@@ -57,7 +57,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
     try {
       const client = getAppStoreClient({
         ...config.appStore,
-        bundleId: "dummy", // listAllApps()는 bundleId를 사용하지 않음
+        bundleId: "dummy", // listAllApps() does not use bundleId
       });
 
       const apps = await client.listAllApps({ onlyReleased: true });
@@ -67,41 +67,41 @@ export async function handleSetupApps(options: SetupAppsOptions) {
           content: [
             {
               type: "text" as const,
-              text: "📱 App Store에 등록된 앱이 없습니다.",
+              text: "📱 No apps registered in App Store.",
             },
           ],
         };
       }
 
-      // Play Store 서비스 계정 준비
+      // Prepare Play Store service account
       const playStoreEnabled =
         store === "both" && config.playStore?.serviceAccountJson;
       const serviceAccountKey = playStoreEnabled
         ? JSON.parse(config.playStore!.serviceAccountJson)
         : null;
 
-      // 자동 등록
+      // Auto-register
       const registered: string[] = [];
       const skipped: string[] = [];
       const playStoreFound: string[] = [];
       const playStoreNotFound: string[] = [];
 
       for (const app of apps) {
-        // bundleId의 마지막 부분만 slug로 사용 (com.quartz.postblackbelt -> postblackbelt)
+        // Use only last part of bundleId as slug (com.quartz.postblackbelt -> postblackbelt)
         const parts = app.bundleId.split(".");
         const slug = parts[parts.length - 1].toLowerCase();
 
-        // 이미 등록되어 있는지 확인 (findApp은 slug, bundleId, packageName 모두 검색)
+        // Check if already registered (findApp searches by slug, bundleId, packageName)
         const existing = findApp(app.bundleId);
         if (existing) {
-          // 기존 앱이 있고 both 모드면 Play Store 정보 업데이트 시도
+          // If existing app and both mode, try to update Play Store info
           if (playStoreEnabled && !existing.googlePlay) {
             const playResult = await checkPlayStoreAccess(
               app.bundleId,
               serviceAccountKey
             );
             if (playResult.accessible) {
-              // 기존 앱에 googlePlay 정보 추가
+              // Add googlePlay info to existing app
               const appsConfig = loadRegisteredApps();
               const appIndex = appsConfig.apps.findIndex(
                 (a) => a.slug === existing.slug
@@ -112,17 +112,17 @@ export async function handleSetupApps(options: SetupAppsOptions) {
                   name: playResult.title,
                 };
                 saveRegisteredApps(appsConfig);
-                playStoreFound.push(`${app.name} → Play Store 정보 추가됨`);
+                playStoreFound.push(`${app.name} → Play Store info added`);
               }
             } else {
               playStoreNotFound.push(app.name);
             }
           }
-          skipped.push(`${app.name} (${app.bundleId}) - 이미 등록됨`);
+          skipped.push(`${app.name} (${app.bundleId}) - already registered`);
           continue;
         }
 
-        // Play Store 확인 (both 모드일 때)
+        // Check Play Store (when in both mode)
         let googlePlayInfo: RegisteredApp["googlePlay"] = undefined;
         if (playStoreEnabled) {
           const playResult = await checkPlayStoreAccess(
@@ -155,14 +155,14 @@ export async function handleSetupApps(options: SetupAppsOptions) {
           const storeInfo = googlePlayInfo ? " (🍎+🤖)" : " (🍎)";
           registered.push(`${app.name}${storeInfo} → slug: "${slug}"`);
         } catch (error) {
-          skipped.push(`${app.name} (${app.bundleId}) - 등록 실패`);
+          skipped.push(`${app.name} (${app.bundleId}) - registration failed`);
         }
       }
 
-      const lines = [`📱 **앱 설정 완료**\n`];
+      const lines = [`📱 **App Setup Complete**\n`];
 
       if (registered.length > 0) {
-        lines.push(`✅ **등록됨** (${registered.length}개):`);
+        lines.push(`✅ **Registered** (${registered.length}):`);
         for (const r of registered) {
           lines.push(`  • ${r}`);
         }
@@ -170,7 +170,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       }
 
       if (skipped.length > 0) {
-        lines.push(`⏭️ **스킵** (${skipped.length}개):`);
+        lines.push(`⏭️ **Skipped** (${skipped.length}):`);
         for (const s of skipped) {
           lines.push(`  • ${s}`);
         }
@@ -178,14 +178,14 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       }
 
       if (playStoreEnabled) {
-        lines.push(`**Play Store 확인 결과:**`);
-        lines.push(`  🤖 있음: ${playStoreFound.length}개`);
+        lines.push(`**Play Store Check Results:**`);
+        lines.push(`  🤖 Found: ${playStoreFound.length}`);
         if (playStoreFound.length > 0) {
           for (const name of playStoreFound) {
             lines.push(`    • ${name}`);
           }
         }
-        lines.push(`  ❌ 없음: ${playStoreNotFound.length}개`);
+        lines.push(`  ❌ Not found: ${playStoreNotFound.length}`);
         if (playStoreNotFound.length > 0) {
           for (const name of playStoreNotFound) {
             lines.push(`    • ${name}`);
@@ -195,7 +195,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       }
 
       lines.push(
-        "이제 다른 툴에서 `app: \"slug\"` 파라미터로 앱을 참조할 수 있습니다."
+        "You can now reference apps in other tools using the `app: \"slug\"` parameter."
       );
 
       return {
@@ -214,7 +214,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         content: [
           {
             type: "text" as const,
-            text: `❌ App Store 앱 조회 실패: ${msg}`,
+            text: `❌ Failed to query App Store apps: ${msg}`,
           },
         ],
       };
@@ -227,7 +227,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         content: [
           {
             type: "text" as const,
-            text: "❌ Google Play 인증이 설정되지 않았습니다. secrets/aso-config.json을 확인하세요.",
+            text: "❌ Google Play authentication not configured. Please check secrets/aso-config.json.",
           },
         ],
       };
@@ -238,9 +238,9 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         content: [
           {
             type: "text" as const,
-            text: `⚠️ Google Play API는 앱 목록 조회를 지원하지 않습니다.
+            text: `⚠️ Google Play API does not support listing apps.
 
-packageName을 제공하면 해당 앱을 확인하고 등록합니다:
+Provide packageName to verify and register that app:
 \`\`\`json
 { "store": "googlePlay", "packageName": "com.example.app" }
 \`\`\``,
@@ -258,25 +258,25 @@ packageName을 제공하면 해당 앱을 확인하고 등록합니다:
 
       const appInfo = await client.verifyAppAccess();
 
-      // packageName의 마지막 부분만 slug로 사용 (com.quartz.postblackbelt -> postblackbelt)
+      // Use only last part of packageName as slug (com.quartz.postblackbelt -> postblackbelt)
       const parts = packageName.split(".");
       const slug = parts[parts.length - 1].toLowerCase();
 
-      // 이미 등록되어 있는지 확인 (findApp은 slug, bundleId, packageName 모두 검색)
+      // Check if already registered (findApp searches by slug, bundleId, packageName)
       const existing = findApp(packageName);
       if (existing) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `⏭️ 앱이 이미 등록되어 있습니다: "${existing.slug}"`,
+              text: `⏭️ App is already registered: "${existing.slug}"`,
             },
           ],
           _meta: { app: existing },
         };
       }
 
-      // 등록
+      // Register
       const newApp = registerApp({
         slug,
         name: appInfo.title || packageName,
@@ -290,13 +290,13 @@ packageName을 제공하면 해당 앱을 확인하고 등록합니다:
         content: [
           {
             type: "text" as const,
-            text: `✅ Google Play 앱 등록 완료
+            text: `✅ Google Play app registration complete
 
 • Package Name: \`${packageName}\`
 • Slug: \`${slug}\`
 • Name: ${newApp.name}
 
-이제 다른 툴에서 \`app: "${slug}"\` 파라미터로 앱을 참조할 수 있습니다.`,
+You can now reference this app in other tools using the \`app: "${slug}"\` parameter.`,
           },
         ],
         _meta: { app: newApp },
@@ -307,7 +307,7 @@ packageName을 제공하면 해당 앱을 확인하고 등록합니다:
         content: [
           {
             type: "text" as const,
-            text: `❌ Google Play 앱 접근 실패: ${msg}`,
+            text: `❌ Failed to access Google Play app: ${msg}`,
           },
         ],
       };
@@ -318,7 +318,7 @@ packageName을 제공하면 해당 앱을 확인하고 등록합니다:
     content: [
       {
         type: "text" as const,
-        text: "❌ store 파라미터는 'appStore', 'googlePlay', 'both'여야 합니다.",
+        text: "❌ store parameter must be 'appStore', 'googlePlay', or 'both'.",
       },
     ],
   };

@@ -1,5 +1,5 @@
-import { GooglePlayClient } from "../../../../packages/play-store";
-import { AppStoreClient } from "../../../../packages/app-store";
+import { GooglePlayClient } from "@packages/play-store";
+import { AppStoreClient } from "@packages/app-store";
 import {
   type StoreType,
   type GooglePlayMultilingualAsoData,
@@ -10,14 +10,14 @@ import {
   saveAsoData,
   prepareAsoDataForPush,
   convertToMultilingual,
-} from "../../../../packages/aso-core";
-import { loadConfig, findApp, getDataDir } from "../../../../packages/core";
+} from "@packages/aso-core";
+import { loadConfig, findApp, getDataDir } from "@packages/core";
 import { join } from "node:path";
 
 interface AsoPushOptions {
-  app?: string; // 등록된 앱 slug
-  packageName?: string; // Google Play용
-  bundleId?: string; // App Store용
+  app?: string; // Registered app slug
+  packageName?: string; // For Google Play
+  bundleId?: string; // For App Store
   store?: StoreType;
   uploadImages?: boolean;
   dryRun?: boolean;
@@ -27,12 +27,12 @@ export async function handleAsoPush(options: AsoPushOptions) {
   const { app, store = "both", uploadImages = false, dryRun = false } = options;
   let { packageName, bundleId } = options;
 
-  // slug 결정
+  // Determine slug
   let slug: string;
   let registeredApp = app ? findApp(app) : undefined;
 
   if (app && registeredApp) {
-    // app slug로 앱 정보 조회 성공
+    // Successfully retrieved app info by app slug
     slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
@@ -41,7 +41,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
       bundleId = registeredApp.appStore.bundleId;
     }
   } else if (packageName || bundleId) {
-    // bundleId나 packageName으로 앱 찾기
+    // Find app by bundleId or packageName
     const identifier = packageName || bundleId || "";
     registeredApp = findApp(identifier);
     if (!registeredApp) {
@@ -49,7 +49,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
         content: [
           {
             type: "text" as const,
-            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
           },
         ],
       };
@@ -66,7 +66,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
         },
       ],
     };
@@ -105,7 +105,11 @@ export async function handleAsoPush(options: AsoPushOptions) {
       content: [
         {
           type: "text" as const,
-          text: `📋 Dry run - Data that would be pushed:\n${JSON.stringify(localAsoData, null, 2)}`,
+          text: `📋 Dry run - Data that would be pushed:\n${JSON.stringify(
+            localAsoData,
+            null,
+            2
+          )}`,
         },
       ],
     };
@@ -120,7 +124,9 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
   if (store === "googlePlay" || store === "both") {
     if (!config.playStore) {
-      results.push(`⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`);
+      results.push(
+        `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
+      );
     } else if (!packageName) {
       results.push(`⏭️  Skipping Google Play (no packageName provided)`);
     } else if (!localAsoData.googlePlay) {
@@ -133,17 +139,18 @@ export async function handleAsoPush(options: AsoPushOptions) {
           serviceAccountKey: serviceAccount,
         });
 
-        const googlePlayData: GooglePlayMultilingualAsoData = isGooglePlayMultilingual(
-          localAsoData.googlePlay
-        )
-          ? localAsoData.googlePlay
-          : convertToMultilingual(
-              localAsoData.googlePlay,
-              localAsoData.googlePlay.defaultLanguage
-            );
+        const googlePlayData: GooglePlayMultilingualAsoData =
+          isGooglePlayMultilingual(localAsoData.googlePlay)
+            ? localAsoData.googlePlay
+            : convertToMultilingual(
+                localAsoData.googlePlay,
+                localAsoData.googlePlay.defaultLanguage
+              );
 
         console.log(`📤 Pushing to Google Play...`);
-        for (const [language, localeData] of Object.entries(googlePlayData.locales)) {
+        for (const [language, localeData] of Object.entries(
+          googlePlayData.locales
+        )) {
           console.log(`   📤 Pushing ${language}...`);
           await client.pushAsoData(localeData);
           console.log(`   ✅ ${language} uploaded`);
@@ -160,7 +167,9 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
   if (store === "appStore" || store === "both") {
     if (!config.appStore) {
-      results.push(`⏭️  Skipping App Store (not configured in secrets/aso-config.json)`);
+      results.push(
+        `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
+      );
     } else if (!bundleId) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else if (!localAsoData.appStore) {
@@ -174,14 +183,18 @@ export async function handleAsoPush(options: AsoPushOptions) {
           privateKey: config.appStore.privateKey,
         });
 
-        const appStoreData: AppStoreMultilingualAsoData = isAppStoreMultilingual(
-          localAsoData.appStore
-        )
-          ? localAsoData.appStore
-          : convertToMultilingual(localAsoData.appStore, localAsoData.appStore.locale);
+        const appStoreData: AppStoreMultilingualAsoData =
+          isAppStoreMultilingual(localAsoData.appStore)
+            ? localAsoData.appStore
+            : convertToMultilingual(
+                localAsoData.appStore,
+                localAsoData.appStore.locale
+              );
 
         console.log(`📤 Pushing to App Store...`);
-        for (const [locale, localeData] of Object.entries(appStoreData.locales)) {
+        for (const [locale, localeData] of Object.entries(
+          appStoreData.locales
+        )) {
           console.log(`   📤 Pushing ${locale}...`);
           await client.pushAsoData(localeData);
           console.log(`   ✅ ${locale} uploaded`);
@@ -195,7 +208,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
         if (msg.includes("409 Conflict") && msg.includes("STATE_ERROR")) {
           console.log(`\n🔄 STATE_ERROR detected. New version needed.`);
 
-          // 새 버전 생성 시도
+          // Try to create new version
           try {
             const client = new AppStoreClient({
               bundleId: bundleId!,
@@ -208,43 +221,45 @@ export async function handleAsoPush(options: AsoPushOptions) {
             const versionId = newVersion.id;
             const versionString = newVersion.attributes.versionString;
 
-            const currentAppStoreData: AppStoreMultilingualAsoData = isAppStoreMultilingual(
-              localAsoData.appStore!
-            )
-              ? localAsoData.appStore!
-              : convertToMultilingual(localAsoData.appStore!, localAsoData.appStore!.locale);
+            const currentAppStoreData: AppStoreMultilingualAsoData =
+              isAppStoreMultilingual(localAsoData.appStore!)
+                ? localAsoData.appStore!
+                : convertToMultilingual(
+                    localAsoData.appStore!,
+                    localAsoData.appStore!.locale
+                  );
             const locales = Object.keys(currentAppStoreData.locales);
 
             console.log(`✅ New version ${versionString} created.`);
 
-            // 번역 요청 반환 - LLM이 번역 후 aso-update-whats-new 호출하도록 안내
+            // Return translation request - guide LLM to translate then call aso-update-whats-new
             return {
               content: [
                 {
                   type: "text" as const,
-                  text: `🔄 App Store에 새 버전이 필요합니다.
+                  text: `🔄 New version required for App Store.
 
-✅ 새 버전 ${versionString} 생성됨 (Version ID: ${versionId})
+✅ New version ${versionString} created (Version ID: ${versionId})
 
-📝 **What's New 번역이 필요합니다**
+📝 **What's New translation required**
 
-다음 로케일에 대해 What's New 텍스트를 번역해주세요:
+Please translate What's New text for the following locales:
 ${locales.join(", ")}
 
-번역 완료 후 \`aso-update-whats-new\` 툴을 호출하세요:
+After translation is complete, call the \`aso-update-whats-new\` tool:
 \`\`\`json
 {
   "bundleId": "${bundleId}",
   "versionId": "${versionId}",
   "whatsNew": {
     "en-US": "Bug fixes and improvements",
-    "ko-KR": "버그 수정 및 개선",
+    "ko-KR": "Bug fixes and improvements",
     ...
   }
 }
 \`\`\`
 
-What's New 업데이트 후 다시 \`aso-push\`를 호출하면 ASO 데이터가 푸시됩니다.`,
+After updating What's New, call \`aso-push\` again to push ASO data.`,
                 },
               ],
               _meta: {
@@ -256,8 +271,13 @@ What's New 업데이트 후 다시 \`aso-push\`를 호출하면 ASO 데이터가
               },
             };
           } catch (versionError) {
-            const versionMsg = versionError instanceof Error ? versionError.message : String(versionError);
-            results.push(`❌ App Store: 새 버전 생성 실패: ${versionMsg}`);
+            const versionMsg =
+              versionError instanceof Error
+                ? versionError.message
+                : String(versionError);
+            results.push(
+              `❌ App Store: Failed to create new version: ${versionMsg}`
+            );
           }
         } else {
           results.push(`❌ App Store push failed: ${msg}`);

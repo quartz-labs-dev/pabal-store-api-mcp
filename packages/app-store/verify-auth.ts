@@ -1,5 +1,5 @@
-import { loadConfig } from "../core/config";
-import { createAppStoreJWT, decodeJwt } from "./auth";
+import { loadConfig } from "@packages/core/config";
+import { createAppStoreJWT, decodeJwt } from "@packages/app-store/auth";
 
 export interface VerifyAppStoreAuthResult {
   success: boolean;
@@ -11,9 +11,9 @@ export interface VerifyAppStoreAuthResult {
 }
 
 /**
- * App Store Connect 인증 설정을 확인하고 JWT 토큰을 생성하여 검증합니다.
- * @param expirationSeconds JWT 토큰 만료 시간 (초). 기본값: 300초
- * @returns 인증 확인 결과
+ * Verify App Store Connect authentication configuration and generate JWT token for validation.
+ * @param expirationSeconds JWT token expiration time (seconds). Default: 300 seconds
+ * @returns Authentication verification result
  */
 export async function verifyAppStoreAuth({
   expirationSeconds = 300,
@@ -25,7 +25,7 @@ export async function verifyAppStoreAuth({
     if (!cfg) {
       return {
         success: false,
-        error: "secrets/aso-config.json 파일에 App Store 설정이 없습니다.",
+        error: "App Store configuration not found in secrets/aso-config.json file.",
       };
     }
 
@@ -43,7 +43,7 @@ export async function verifyAppStoreAuth({
     const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: `App Store 인증 확인 실패: ${message}`,
+      error: `App Store authentication verification failed: ${message}`,
     };
   }
 }

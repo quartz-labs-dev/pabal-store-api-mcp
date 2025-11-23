@@ -7,14 +7,14 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, basename } from "node:path";
-import { createAppStoreJWT } from "./auth";
+import { createAppStoreJWT } from "@packages/app-store/auth";
 import type {
   AppStoreAsoData,
   AppStoreMultilingualAsoData,
   AppStoreReleaseNote,
   AppStoreScreenshots,
-} from "../aso-core/types";
-import { DEFAULT_LOCALE } from "../aso-core/types";
+} from "@packages/aso-core/types";
+import { DEFAULT_LOCALE } from "@packages/aso-core/types";
 
 export interface AppStoreClientConfig {
   issuerId: string;
@@ -162,7 +162,7 @@ export class AppStoreClient {
         if (errorDetails.includes("STATE_ERROR")) {
           throw new Error(
             `App Store Connect API error: 409 Conflict (STATE_ERROR)\n` +
-              `메타데이터 수정 불가 상태입니다. 앱 상태를 확인하세요.\n` +
+              `Metadata cannot be modified in current state. Please check app status.\n` +
               `Error: ${errorDetails}`
           );
         }
@@ -179,8 +179,8 @@ export class AppStoreClient {
   }
 
   /**
-   * 계정에 등록된 모든 앱 목록 조회
-   * @param options.onlyReleased - true면 배포된 앱만 반환 (READY_FOR_SALE 상태가 있는 앱)
+   * List all apps registered in the account
+   * @param options.onlyReleased - If true, returns only released apps (apps with READY_FOR_SALE status)
    */
   async listAllApps(options: { onlyReleased?: boolean } = {}): Promise<
     Array<{
@@ -207,15 +207,15 @@ export class AppStoreClient {
       >(nextUrl);
 
       for (const app of response.data || []) {
-        // 배포 상태 확인
+        // Check release status
         const isReleased = await this.checkAppReleased(app.id);
 
-        // onlyReleased 옵션이 true면 배포된 앱만 추가
+        // If onlyReleased option is true, add only released apps
         if (onlyReleased && !isReleased) {
           continue;
         }
 
-        // 영어 이름 우선 가져오기
+        // Get English name first
         const englishName = await this.getEnglishAppName(app.id);
 
         apps.push({
@@ -227,7 +227,7 @@ export class AppStoreClient {
         });
       }
 
-      // 페이지네이션 처리
+      // Handle pagination
       nextUrl = response.links?.next
         ? response.links.next.replace(this.baseUrl, "")
         : null;
@@ -237,7 +237,7 @@ export class AppStoreClient {
   }
 
   /**
-   * 앱이 배포되었는지 확인 (READY_FOR_SALE 상태의 버전이 있는지)
+   * Check if app is released (has version with READY_FOR_SALE status)
    */
   private async checkAppReleased(appId: string): Promise<boolean> {
     try {
@@ -251,11 +251,11 @@ export class AppStoreClient {
   }
 
   /**
-   * 앱의 영어 이름 가져오기 (en-US 우선, 없으면 en-GB, 없으면 null)
+   * Get English name of app (en-US first, then en-GB, then null)
    */
   private async getEnglishAppName(appId: string): Promise<string | null> {
     try {
-      // 앱 정보에서 appInfos를 통해 로컬라이제이션 정보 가져오기
+      // Get localization information from app info via appInfos
       const appInfosResponse = await this.apiRequest<
         ApiResponse<Array<{ id: string }>>
       >(`/apps/${appId}/appInfos?limit=1`);
@@ -263,7 +263,7 @@ export class AppStoreClient {
       const appInfo = appInfosResponse.data?.[0];
       if (!appInfo) return null;
 
-      // 영어 로컬라이제이션 찾기
+      // Find English localization
       const localizationsResponse = await this.apiRequest<
         ApiResponse<
           Array<{ id: string; attributes: { locale: string; name?: string } }>
@@ -272,7 +272,7 @@ export class AppStoreClient {
 
       const localizations = localizationsResponse.data || [];
 
-      // en-US 우선, 없으면 en-GB, 없으면 en으로 시작하는 것
+      // en-US first, then en-GB, then anything starting with en
       const enUS = localizations.find((l) => l.attributes.locale === "en-US");
       if (enUS?.attributes.name) return enUS.attributes.name;
 

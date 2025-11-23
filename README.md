@@ -1,27 +1,27 @@
 # pabal-mcp
 
-App Store / Play Store ASO 작업을 MCP 툴로 제공하기 위한 프로젝트입니다. 현재는 MCP 핸드셰이크 확인용 최소 `ping` 툴만 들어있으며, 이후 스토어별 클라이언트와 `aso:*` 워크플로우를 추가합니다.
+A project that provides App Store / Play Store ASO workflows as MCP tools. Currently includes a minimal `ping` tool for MCP handshake verification, with store-specific clients and `aso:*` workflows to be added.
 
-## 빠른 시작 (MCP 최소 서버)
+## Quick Start (MCP Minimal Server)
 
-- 요구 사항: Node.js 18+.
-- 설치: `npm install`
-- 실행: `npm run dev:mcp`
-  - MCP 클라이언트(예: Claude Desktop, MCP Inspector)에서 stdio 서버로 연결한 뒤 `ping`을 호출해 `pong` 응답이 나오면 기본 동작 확인 완료.
+- Requirements: Node.js 18+.
+- Installation: `npm install`
+- Run: `npm run dev:mcp`
+  - Connect from an MCP client (e.g., Claude Desktop, MCP Inspector) as a stdio server, then call `ping` to verify basic operation when you receive a `pong` response.
 
-## 데이터 저장 경로 설정 (MCP)
+## Data Storage Path Configuration (MCP)
 
-- MCP 도구가 파일을 남길 때 기본 경로는 레포 루트입니다.
-- 환경 변수 `PABAL_MCP_DATA_DIR`로 저장 경로를 바꿀 수 있습니다(절대·상대 경로 모두 지원, 상대 경로는 레포 기준).
-- 로컬 실행 예시: `PABAL_MCP_DATA_DIR=/Users/user-name/Desktop/projects/terms npm run dev:mcp`
-- Claude Desktop 설정 예시(`~/Library/Application Support/Claude/claude_desktop_config.json`):
+- The default path for files created by MCP tools is the repository root.
+- You can change the storage path using the `PABAL_MCP_DATA_DIR` environment variable (supports both absolute and relative paths; relative paths are relative to the repo).
+- Local execution example: `PABAL_MCP_DATA_DIR=/Users/user-name/Desktop/projects/terms npm run dev:mcp`
+- Claude Desktop configuration example (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "pabal-mcp": {
-      "command": "npm",
-      "args": ["run", "dev:mcp"],
+      "command": "bash",
+      "args": ["/Users/user-name/Desktop/projects/pabal-mcp/run-mcp.sh"],
       "cwd": "/Users/user-name/Desktop/projects/pabal-mcp",
       "env": {
         "PABAL_MCP_DATA_DIR": "/Users/user-name/Desktop/projects/terms"
@@ -31,33 +31,39 @@ App Store / Play Store ASO 작업을 MCP 툴로 제공하기 위한 프로젝트
 }
 ```
 
-## 테스트
+**Important Notes:**
 
-- 모든 테스트 실행: `npm test`
-- 각 MCP 도구는 `tests/mcp-tools/` 폴더에 테스트 파일이 있습니다.
-- 새로운 도구를 추가할 때는 반드시 테스트 파일도 함께 추가해야 합니다.
-- 자세한 내용은 [CONTRIBUTING.md](./docs/CONTRIBUTING.md)를 참고하세요.
+- Use `bash` as the command
+- Use the **absolute path** to `run-mcp.sh` in the `args`
+- Set `cwd` to the **project root directory** (not the MCP server directory)
 
-## 자격 증명 설정 (secrets/는 gitignore)
+## Testing
 
-- `secrets/` 디렉터리 아래에 키/설정 파일을 둡니다. 레포에 커밋하지 마세요.
+- Run all tests: `npm test`
+- Each MCP tool has a test file in the `tests/mcp-tools/` folder.
+- When adding a new tool, you must also add a test file.
+- For more details, see [CONTRIBUTING.md](./docs/CONTRIBUTING.md).
+
+## Credential Configuration (secrets/ is gitignored)
+
+- Place key/configuration files under the `secrets/` directory. Do not commit them to the repository.
 
 ### Google Play Console
 
-1. Google Cloud Console → 서비스 계정 생성 → JSON 키 다운로드 → `secrets/google-play-service-account.json` 저장.
-2. Play Console → Users and permissions → 서비스 계정 이메일 초대 후 권한 부여:
+1. Google Cloud Console → Create service account → Download JSON key → Save to `secrets/google-play-service-account.json`.
+2. Play Console → Users and permissions → Invite service account email and grant permissions:
    - ✅ View app information
    - ✅ Manage production releases
    - ✅ Manage store listing
 
 ### App Store Connect
 
-1. Users and Access → Integrations → App Store Connect API → 어드민 권한 키 생성.
-2. Issuer ID, Key ID 기록. 키 파일(`.p8`)은 `secrets/app-store-key.p8`에 저장.
+1. Users and Access → Integrations → App Store Connect API → Create admin key.
+2. Record Issuer ID and Key ID. Save the key file (`.p8`) to `secrets/app-store-key.p8`.
 
-### 공통 설정 파일 (`secrets/aso-config.json`)
+### Common Configuration File (`secrets/aso-config.json`)
 
-이 파일에 App Store와 Play Store 인증 정보를 설정합니다. 프로젝트는 이 파일을 읽어서 인증 정보를 사용합니다.
+Configure App Store and Play Store authentication information in this file. The project reads this file to use the authentication information.
 
 ```json
 {
@@ -72,34 +78,34 @@ App Store / Play Store ASO 작업을 MCP 툴로 제공하기 위한 프로젝트
 }
 ```
 
-## 예정된 구조
+## Planned Structure
 
-- `packages/core`: 공통 타입/에러/설정 로더.
-- `packages/app-store`: App Store Connect 클라이언트.
-- `packages/play-store`: Play Developer API 클라이언트.
-- `packages/use-cases`: `pull/push/prepare/create-version` 등 공통 유즈케이스.
-- `servers/mcp`: MCP 서버 엔트리(`ping` 포함, 추후 ASO 툴 추가).
-- `scripts/aso`: CLI 스크립트(`aso:*`)가 유즈케이스를 호출하도록 얇게 유지.
+- `packages/core`: Common types/errors/configuration loader.
+- `packages/app-store`: App Store Connect client.
+- `packages/play-store`: Play Developer API client.
+- `packages/use-cases`: Common use cases such as `pull/push/prepare/create-version`.
+- `servers/mcp`: MCP server entry (includes `ping`, ASO tools to be added).
+- `scripts/aso`: Keep CLI scripts (`aso:*`) thin by calling use cases.
 
-## 스토어별 구현 시 유의사항
+## Implementation Notes by Store
 
-- App Store Connect (공식 문서 기준)
-  - JWT: `kid`(Key ID), `iss`(Issuer ID), `aud`는 항상 `appstoreconnect-v1`. 토큰 유효기간 최대 20분, 시간 동기화 필수.
-  - 권한: 최소 `App Manager` 또는 작업에 맞는 역할이 필요. 팀/벤더 ID 정확히 사용.
-  - 앱 버전 상태: `prepare`/`push` 시 `appStoreVersions` 상태(예: `PREPARE_FOR_SUBMISSION`, `READY_FOR_SALE`)에 따라 허용/차단되는 필드가 있음.
-  - 로케일: 현지화 필드(`name`, `subtitle`, `description`, `releaseNotes`)는 로케일별로 관리. 누락 로케일이 있을 경우 제출 차단.
-  - 미디어 자산: 스크린샷/아이콘은 디바이스 패밀리별 규격이 엄격. 업로드 전 규격 검증 필요.
-  - 레이트 리밋: 429가 발생하면 `Retry-After` 준수, 지수 백오프 필요.
-- Google Play Developer API (공식 문서 기준)
-  - 인증: 서비스 계정 JSON(`client_email`, `private_key`) 사용. 플레이 콘솔에서 앱별 권한 부여 필수(Release Manager 이상 권장).
-  - Edits 워크플로우: 대부분의 메타데이터/트랙 변경은 `edits.insert -> edits.* -> edits.commit` 순서를 따라야 함. `commit` 누락 시 변경 미반영.
-  - 트랙/릴리스: `production`/`beta`/`alpha`/`internal` 트랙 이름을 정확히 사용. 단계적 출시 시 `userFraction` 관리.
-  - 로케일: 스토어 리스팅 필드는 로케일 키(`en-US`, `ko-KR` 등)별로 제출. 요구 길이 제한(예: 제목 50자) 준수.
-  - 앱 ID: 패키지명(`com.example.app`)으로 식별. 새 앱 생성은 콘솔에서 먼저 수행해야 API로 조작 가능.
+- App Store Connect (based on official documentation)
+  - JWT: `kid` (Key ID), `iss` (Issuer ID), `aud` is always `appstoreconnect-v1`. Token validity maximum 20 minutes, time synchronization required.
+  - Permissions: Minimum `App Manager` or role appropriate for the task required. Use team/vendor ID accurately.
+  - App version status: When `prepare`/`push`, fields are allowed/blocked based on `appStoreVersions` status (e.g., `PREPARE_FOR_SUBMISSION`, `READY_FOR_SALE`).
+  - Locales: Localized fields (`name`, `subtitle`, `description`, `releaseNotes`) are managed per locale. Missing locales can block submission.
+  - Media assets: Screenshots/icons have strict specifications per device family. Validate specifications before upload.
+  - Rate limits: When 429 occurs, comply with `Retry-After`, exponential backoff required.
+- Google Play Developer API (based on official documentation)
+  - Authentication: Use service account JSON (`client_email`, `private_key`). App-specific permissions must be granted in Play Console (Release Manager or higher recommended).
+  - Edits workflow: Most metadata/track changes must follow the order `edits.insert -> edits.* -> edits.commit`. Changes are not reflected if `commit` is missing.
+  - Tracks/releases: Use track names (`production`/`beta`/`alpha`/`internal`) accurately. Manage `userFraction` for staged rollouts.
+  - Locales: Store listing fields are submitted per locale key (`en-US`, `ko-KR`, etc.). Comply with required length limits (e.g., title 50 characters).
+  - App ID: Identified by package name (`com.example.app`). New apps must be created in the console first before they can be manipulated via API.
 
-## 다음 단계
+## Next Steps
 
-1. 공통 `StoreClient` 인터페이스/타입 정의.
-2. App Store/Play Store 클라이언트 최소 호출(인증/헬스체크) 구현.
-3. MCP 툴로 `aso:pull/prepare/push/create-version/pull-release-notes/extract-app-id` 추가.
-4. `scripts/aso/*.ts`가 동일 유즈케이스를 호출하도록 연결.
+1. Define common `StoreClient` interface/types.
+2. Implement minimal calls (authentication/health check) for App Store/Play Store clients.
+3. Add MCP tools: `aso:pull/prepare/push/create-version/pull-release-notes/extract-app-id`.
+4. Connect `scripts/aso/*.ts` to call the same use cases.

@@ -1,4 +1,4 @@
-import { loadConfig } from "../core/config";
+import { loadConfig } from "@packages/core/config";
 
 export interface VerifyPlayStoreAuthResult {
   success: boolean;
@@ -10,8 +10,8 @@ export interface VerifyPlayStoreAuthResult {
 }
 
 /**
- * Google Play Store 서비스 계정 인증 설정을 확인합니다.
- * @returns 인증 확인 결과
+ * Verify Google Play Store service account authentication configuration.
+ * @returns Authentication verification result
  */
 export function verifyPlayStoreAuth(): VerifyPlayStoreAuthResult {
   try {
@@ -19,7 +19,8 @@ export function verifyPlayStoreAuth(): VerifyPlayStoreAuthResult {
     if (!cfg) {
       return {
         success: false,
-        error: "secrets/aso-config.json 파일에 Play Store 설정이 없습니다.",
+        error:
+          "Play Store configuration not found in secrets/aso-config.json file.",
       };
     }
 
@@ -36,9 +37,7 @@ export function verifyPlayStoreAuth(): VerifyPlayStoreAuthResult {
     const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: `Play Store 인증 확인 실패: ${message}`,
+      error: `Play Store authentication verification failed: ${message}`,
     };
   }
 }
-
-

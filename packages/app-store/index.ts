@@ -4,14 +4,14 @@ export * from "./client";
 export { AppStoreClient } from "./client";
 export type { AppStoreClientConfig } from "./client";
 import { AppStoreClient } from "./client";
-import type { AppStoreConfig } from "../core/config";
+import type { AppStoreConfig } from "@packages/core/config";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getProjectRoot } from "../core/config";
+import { getProjectRoot } from "@packages/core/config";
 
 /**
- * AppStoreClient 생성 헬퍼 함수
- * AppStoreConfig에서 AppStoreClient 인스턴스를 생성합니다.
+ * Helper function to create AppStoreClient
+ * Creates an AppStoreClient instance from AppStoreConfig.
  */
 export function getAppStoreClient(config: AppStoreConfig & { bundleId: string }): AppStoreClient {
   if (!config) {

@@ -1,34 +1,36 @@
-import { GooglePlayClient } from "../../../../packages/play-store";
-import { AppStoreClient } from "../../../../packages/app-store";
+import { GooglePlayClient } from "@packages/play-store";
+import { AppStoreClient } from "@packages/app-store";
 import {
   type StoreType,
   type GooglePlayReleaseNote,
   type AppStoreReleaseNote,
   ensureDir,
   getAsoDir,
-} from "../../../../packages/aso-core";
-import { loadConfig, findApp } from "../../../../packages/core";
+} from "@packages/aso-core";
+import { loadConfig, findApp } from "@packages/core";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
 interface AsoPullReleaseNotesOptions {
-  app?: string; // 등록된 앱 slug
-  packageName?: string; // Google Play용
-  bundleId?: string; // App Store용
+  app?: string; // Registered app slug
+  packageName?: string; // For Google Play
+  bundleId?: string; // For App Store
   store?: StoreType;
   dryRun?: boolean;
 }
 
-export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOptions) {
+export async function handleAsoPullReleaseNotes(
+  options: AsoPullReleaseNotesOptions
+) {
   const { app, store = "both", dryRun = false } = options;
   let { packageName, bundleId } = options;
 
-  // slug 결정
+  // Determine slug
   let slug: string;
   let registeredApp = app ? findApp(app) : undefined;
 
   if (app && registeredApp) {
-    // app slug로 앱 정보 조회 성공
+    // Successfully retrieved app info by app slug
     slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
@@ -37,7 +39,7 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
       bundleId = registeredApp.appStore.bundleId;
     }
   } else if (packageName || bundleId) {
-    // bundleId나 packageName으로 앱 찾기
+    // Find app by bundleId or packageName
     const identifier = packageName || bundleId || "";
     registeredApp = findApp(identifier);
     if (!registeredApp) {
@@ -45,7 +47,7 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
         content: [
           {
             type: "text" as const,
-            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
           },
         ],
       };
@@ -62,7 +64,7 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
         },
       ],
     };
@@ -84,7 +86,9 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
 
   if (store === "googlePlay" || store === "both") {
     if (!config.playStore) {
-      console.log(`⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`);
+      console.log(
+        `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
+      );
     } else if (!packageName) {
       console.log(`⏭️  Skipping Google Play (no packageName provided)`);
     } else {
@@ -102,7 +106,11 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
         console.log(`\n📊 Google Play Release Notes:`);
         console.log(`   Total versions: ${notes.length}`);
         for (const rn of notes) {
-          console.log(`   Version ${rn.versionName} (${rn.versionCode}): ${Object.keys(rn.releaseNotes).length} languages`);
+          console.log(
+            `   Version ${rn.versionName} (${rn.versionCode}): ${
+              Object.keys(rn.releaseNotes).length
+            } languages`
+          );
         }
         console.log(`✅ Google Play release notes fetched`);
       } catch (error) {
@@ -113,7 +121,9 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
 
   if (store === "appStore" || store === "both") {
     if (!config.appStore) {
-      console.log(`⏭️  Skipping App Store (not configured in secrets/aso-config.json)`);
+      console.log(
+        `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
+      );
     } else if (!bundleId) {
       console.log(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
@@ -132,7 +142,11 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
         console.log(`\n📊 App Store Release Notes:`);
         console.log(`   Total versions: ${notes.length}`);
         for (const rn of notes) {
-          console.log(`   Version ${rn.versionString}: ${Object.keys(rn.releaseNotes).length} locales`);
+          console.log(
+            `   Version ${rn.versionString}: ${
+              Object.keys(rn.releaseNotes).length
+            } locales`
+          );
         }
         console.log(`✅ App Store release notes fetched`);
       } catch (error) {
@@ -146,7 +160,11 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
       content: [
         {
           type: "text" as const,
-          text: `📋 Dry run - Release notes:\n${JSON.stringify(releaseNotes, null, 2)}`,
+          text: `📋 Dry run - Release notes:\n${JSON.stringify(
+            releaseNotes,
+            null,
+            2
+          )}`,
         },
       ],
     };
@@ -175,9 +193,18 @@ export async function handleAsoPullReleaseNotes(options: AsoPullReleaseNotesOpti
     content: [
       {
         type: "text" as const,
-        text: `✅ Release notes pulled\n` +
-          `   Google Play: ${releaseNotes.googlePlay ? `${releaseNotes.googlePlay.length} versions` : "✗"}\n` +
-          `   App Store: ${releaseNotes.appStore ? `${releaseNotes.appStore.length} versions` : "✗"}`,
+        text:
+          `✅ Release notes pulled\n` +
+          `   Google Play: ${
+            releaseNotes.googlePlay
+              ? `${releaseNotes.googlePlay.length} versions`
+              : "✗"
+          }\n` +
+          `   App Store: ${
+            releaseNotes.appStore
+              ? `${releaseNotes.appStore.length} versions`
+              : "✗"
+          }`,
       },
     ],
   };

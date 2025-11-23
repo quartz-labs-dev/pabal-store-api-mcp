@@ -1,13 +1,13 @@
 /**
- * ASO (App Store Optimization) 데이터 타입 정의
+ * ASO (App Store Optimization) data type definitions
  */
 
 // ============================================================================
-// 지원 언어 목록
+// Supported Language Lists
 // ============================================================================
 
 /**
- * App Store Connect 지원 로케일 목록
+ * App Store Connect supported locale list
  * Reference: https://developer.apple.com/documentation/appstoreconnectapi
  */
 export const APP_STORE_SUPPORTED_LOCALES = [
@@ -52,7 +52,7 @@ export const APP_STORE_SUPPORTED_LOCALES = [
 ] as const;
 
 /**
- * Google Play Console 지원 언어 목록
+ * Google Play Console supported language list
  * Reference: https://support.google.com/googleplay/android-developer/answer/9844778
  */
 export const GOOGLE_PLAY_SUPPORTED_LANGUAGES = [
@@ -130,7 +130,7 @@ export function isGooglePlayLanguage(
 }
 
 // ============================================================================
-// Google Play ASO 타입
+// Google Play ASO Types
 // ============================================================================
 
 export interface GooglePlayScreenshots {
@@ -174,7 +174,7 @@ export interface GooglePlayReleaseNote {
 }
 
 // ============================================================================
-// App Store ASO 타입
+// App Store ASO Types
 // ============================================================================
 
 export interface AppStoreScreenshots {
@@ -223,7 +223,7 @@ export interface AppStoreReleaseNote {
 }
 
 // ============================================================================
-// 통합 ASO 타입
+// Unified ASO Types
 // ============================================================================
 
 export interface AsoData {
@@ -248,7 +248,7 @@ export function isAppStoreMultilingual(
 }
 
 // ============================================================================
-// 동기화 옵션
+// Sync Options
 // ============================================================================
 
 export type StoreType = "googlePlay" | "appStore" | "both";

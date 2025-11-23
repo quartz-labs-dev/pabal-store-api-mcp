@@ -1,5 +1,5 @@
 import { SignJWT, importPKCS8 } from "jose";
-import type { AppStoreConfig } from "../core/config";
+import type { AppStoreConfig } from "@packages/core/config";
 
 type JwtOptions = {
   now?: number; // seconds
@@ -20,13 +20,13 @@ export async function createAppStoreJWT(
     MAX_EXP_SECONDS
   );
 
-  // Private key 정규화
+  // Normalize private key
   const normalizedKey = config.privateKey.replace(/\\n/g, "\n").trim();
 
-  // PKCS8 형식의 private key를 import
+  // Import private key in PKCS8 format
   const privateKey = await importPKCS8(normalizedKey, "ES256");
 
-  // JWT 생성 (App Store Connect API는 iat를 요구하지 않음)
+  // Create JWT (App Store Connect API does not require iat)
   const jwt = await new SignJWT({
     iss: config.issuerId,
     aud: AUDIENCE,

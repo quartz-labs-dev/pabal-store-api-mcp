@@ -1,7 +1,7 @@
-import { verifyAppStoreAuth } from "../../../../packages/app-store";
+import { verifyAppStoreAuth } from "@packages/app-store";
 
 /**
- * App Store 인증 상태 확인 도구
+ * App Store authentication status check tool
  */
 export async function handleAuthAppStore() {
   const result = await verifyAppStoreAuth({ expirationSeconds: 300 });
@@ -27,7 +27,7 @@ export async function handleAuthAppStore() {
     content: [
       {
         type: "text" as const,
-        text: result.error || "알 수 없는 오류가 발생했습니다.",
+        text: result.error || "An unknown error occurred.",
       },
     ],
   };

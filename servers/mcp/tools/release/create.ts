@@ -1,27 +1,27 @@
-import { GooglePlayClient } from "../../../../packages/play-store";
-import { AppStoreClient } from "../../../../packages/app-store";
-import { type StoreType } from "../../../../packages/aso-core";
-import { loadConfig, findApp } from "../../../../packages/core";
+import { GooglePlayClient } from "@packages/play-store";
+import { AppStoreClient } from "@packages/app-store";
+import { type StoreType } from "@packages/aso-core";
+import { loadConfig, findApp } from "@packages/core";
 
 interface AsoCreateVersionOptions {
-  app?: string; // 등록된 앱 slug
-  packageName?: string; // Google Play용
-  bundleId?: string; // App Store용
+  app?: string; // Registered app slug
+  packageName?: string; // For Google Play
+  bundleId?: string; // For App Store
   version: string;
   store?: StoreType;
-  versionCodes?: number[]; // Google Play용
+  versionCodes?: number[]; // For Google Play
 }
 
 export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
   const { app, version, store = "both", versionCodes } = options;
   let { packageName, bundleId } = options;
 
-  // slug 결정
+  // Determine slug
   let slug: string;
   let registeredApp = app ? findApp(app) : undefined;
 
   if (app && registeredApp) {
-    // app slug로 앱 정보 조회 성공
+    // Successfully retrieved app info by app slug
     slug = app;
     if (!packageName && registeredApp.googlePlay) {
       packageName = registeredApp.googlePlay.packageName;
@@ -30,7 +30,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
       bundleId = registeredApp.appStore.bundleId;
     }
   } else if (packageName || bundleId) {
-    // bundleId나 packageName으로 앱 찾기
+    // Find app by bundleId or packageName
     const identifier = packageName || bundleId || "";
     registeredApp = findApp(identifier);
     if (!registeredApp) {
@@ -38,7 +38,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
         content: [
           {
             type: "text" as const,
-            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
           },
         ],
       };
@@ -55,7 +55,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
         },
       ],
     };
@@ -76,7 +76,9 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
 
   if (store === "appStore" || store === "both") {
     if (!config.appStore) {
-      results.push(`⏭️  Skipping App Store (not configured in secrets/aso-config.json)`);
+      results.push(
+        `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
+      );
     } else if (!bundleId) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
@@ -106,7 +108,9 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
 
   if (store === "googlePlay" || store === "both") {
     if (!config.playStore) {
-      results.push(`⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`);
+      results.push(
+        `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
+      );
     } else if (!packageName) {
       results.push(`⏭️  Skipping Google Play (no packageName provided)`);
     } else if (!versionCodes || versionCodes.length === 0) {
@@ -127,7 +131,9 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
         });
 
         results.push(
-          `✅ Google Play production draft created with versionCodes: ${versionCodes.join(", ")}`
+          `✅ Google Play production draft created with versionCodes: ${versionCodes.join(
+            ", "
+          )}`
         );
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

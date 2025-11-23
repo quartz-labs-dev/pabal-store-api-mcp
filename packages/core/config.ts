@@ -2,23 +2,23 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { ConfigError } from "./errors";
+import { ConfigError } from "@packages/core/errors";
 
 export const DATA_DIR_ENV_KEY = "PABAL_MCP_DATA_DIR";
 
-// 프로젝트 루트 경로 찾기
-// packages/core/config.ts 기준으로 상위 2단계가 프로젝트 루트
+// Find project root path
+// From packages/core/config.ts, go up 2 levels to reach project root
 export const getProjectRoot = (): string => {
   try {
-    // ES module인 경우
+    // For ES modules
     if (typeof import.meta !== "undefined" && import.meta.url) {
       const currentFile = fileURLToPath(import.meta.url);
       return resolve(dirname(currentFile), "../..");
     }
   } catch {
-    // CommonJS인 경우 또는 import.meta가 없는 경우
+    // For CommonJS or when import.meta is not available
   }
-  // fallback: process.cwd() 사용
+  // fallback: use process.cwd()
   return process.cwd();
 };
 
@@ -39,11 +39,11 @@ export function getDataDir(): string {
 const appStoreSchema = z.object({
   keyId: z.string().min(1),
   issuerId: z.string().min(1),
-  privateKey: z.string().min(1), // PEM 포맷 문자열
+  privateKey: z.string().min(1), // PEM format string
 });
 
 const playStoreSchema = z.object({
-  serviceAccountJson: z.string().min(1), // JSON 문자열
+  serviceAccountJson: z.string().min(1), // JSON string
 });
 
 export type AppStoreConfig = z.infer<typeof appStoreSchema>;
@@ -55,12 +55,12 @@ export type EnvConfig = {
 };
 
 export function loadConfig(): EnvConfig {
-  // 프로젝트 루트 기준으로 secrets/aso-config.json 파일 읽기
+  // Read secrets/aso-config.json file relative to project root
   const projectRoot = getProjectRoot();
   const configPath = resolve(projectRoot, "secrets/aso-config.json");
 
   if (!existsSync(configPath)) {
-    throw new ConfigError("secrets/aso-config.json 파일이 없습니다.");
+    throw new ConfigError("secrets/aso-config.json file not found.");
   }
 
   try {
@@ -69,11 +69,11 @@ export function loadConfig(): EnvConfig {
 
     const result: EnvConfig = {};
 
-    // App Store 설정 로드
+    // Load App Store configuration
     if (config.appStore) {
       const { issuerId, keyId, privateKeyPath } = config.appStore;
       if (issuerId && keyId && privateKeyPath) {
-        // 상대 경로를 프로젝트 루트 기준으로 해석
+        // Resolve relative path relative to project root
         const keyPath = resolve(projectRoot, privateKeyPath);
         const privateKey = readFileSafe(keyPath);
         if (privateKey) {
@@ -86,9 +86,9 @@ export function loadConfig(): EnvConfig {
       }
     }
 
-    // Play Store 설정 로드
+    // Load Play Store configuration
     if (config.googlePlay?.serviceAccountKeyPath) {
-      // 상대 경로를 프로젝트 루트 기준으로 해석
+      // Resolve relative path relative to project root
       const jsonPath = resolve(
         projectRoot,
         config.googlePlay.serviceAccountKeyPath
@@ -103,7 +103,7 @@ export function loadConfig(): EnvConfig {
 
     if (!result.appStore && !result.playStore) {
       throw new ConfigError(
-        "secrets/aso-config.json 파일에 App Store 또는 Play Store 인증 정보가 없습니다."
+        "secrets/aso-config.json file does not contain App Store or Play Store authentication information."
       );
     }
 
@@ -113,7 +113,7 @@ export function loadConfig(): EnvConfig {
       throw error;
     }
     throw new ConfigError(
-      `secrets/aso-config.json 파일을 읽는 중 오류가 발생했습니다: ${
+      `Error reading secrets/aso-config.json file: ${
         error instanceof Error ? error.message : String(error)
       }`
     );
@@ -128,7 +128,7 @@ function readFileSafe(path: string): string | undefined {
   }
 }
 
-// PEM 키의 줄바꿈 복원
+// Restore line breaks in PEM key
 function normalizePrivateKey(raw: string): string {
   if (raw.includes("-----BEGIN")) {
     return raw;

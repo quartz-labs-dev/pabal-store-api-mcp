@@ -1,14 +1,14 @@
 /**
- * 등록된 앱 관리
- * secrets/registered-apps.json 파일을 통해 앱 목록 관리
+ * Registered app management
+ * Manage app list through secrets/registered-apps.json file
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getProjectRoot } from "./config";
+import { getProjectRoot } from "@packages/core/config";
 
 // ============================================================================
-// 타입 정의
+// Type Definitions
 // ============================================================================
 
 export interface RegisteredAppStoreInfo {
@@ -23,13 +23,13 @@ export interface RegisteredGooglePlayInfo {
 }
 
 export interface RegisteredApp {
-  /** 앱 식별자 (사용자 정의, 고유해야 함) */
+  /** App identifier (user-defined, must be unique) */
   slug: string;
-  /** 표시 이름 */
+  /** Display name */
   name: string;
-  /** App Store 정보 */
+  /** App Store information */
   appStore?: RegisteredAppStoreInfo;
-  /** Google Play 정보 */
+  /** Google Play information */
   googlePlay?: RegisteredGooglePlayInfo;
 }
 
@@ -38,7 +38,7 @@ export interface RegisteredAppsConfig {
 }
 
 // ============================================================================
-// 파일 경로
+// File Paths
 // ============================================================================
 
 function getRegisteredAppsPath(): string {
@@ -46,11 +46,11 @@ function getRegisteredAppsPath(): string {
 }
 
 // ============================================================================
-// CRUD 함수
+// CRUD Functions
 // ============================================================================
 
 /**
- * 등록된 앱 목록 로드
+ * Load registered app list
  */
 export function loadRegisteredApps(): RegisteredAppsConfig {
   const filePath = getRegisteredAppsPath();
@@ -69,7 +69,7 @@ export function loadRegisteredApps(): RegisteredAppsConfig {
 }
 
 /**
- * 등록된 앱 목록 저장
+ * Save registered app list
  */
 export function saveRegisteredApps(config: RegisteredAppsConfig): void {
   const filePath = getRegisteredAppsPath();
@@ -83,12 +83,12 @@ export function saveRegisteredApps(config: RegisteredAppsConfig): void {
 }
 
 /**
- * 앱 등록
+ * Register app
  */
 export function registerApp(app: RegisteredApp): RegisteredApp {
   const config = loadRegisteredApps();
 
-  // 중복 체크
+  // Check for duplicates
   const existing = config.apps.find((a) => a.slug === app.slug);
   if (existing) {
     throw new Error(`App with slug "${app.slug}" already exists`);
@@ -101,7 +101,7 @@ export function registerApp(app: RegisteredApp): RegisteredApp {
 }
 
 /**
- * 앱 조회 (slug, bundleId, packageName으로 검색)
+ * Find app (search by slug, bundleId, packageName)
  */
 export function findApp(identifier: string): RegisteredApp | undefined {
   const config = loadRegisteredApps();

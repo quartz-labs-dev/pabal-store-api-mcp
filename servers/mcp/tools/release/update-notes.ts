@@ -1,7 +1,7 @@
 /**
- * 릴리즈 노트 업데이트 툴
+ * Release notes update tool
  *
- * App Store와 Google Play 모두 지원합니다.
+ * Supports both App Store and Google Play.
  */
 
 type StoreType = "googlePlay" | "appStore" | "both";
@@ -19,14 +19,14 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   const { app, versionId, whatsNew, store = "both" } = options;
   let { bundleId, packageName } = options;
 
-  const { findApp, loadConfig } = await import("../../../../packages/core");
+  const { findApp, loadConfig } = await import("@packages/core");
 
-  // slug 결정
+  // Determine slug
   let slug: string;
   let registeredApp = app ? findApp(app) : undefined;
 
   if (app && registeredApp) {
-    // app slug로 앱 정보 조회 성공
+    // Successfully retrieved app info by app slug
     slug = app;
     if (!bundleId && registeredApp.appStore) {
       bundleId = registeredApp.appStore.bundleId;
@@ -35,7 +35,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       packageName = registeredApp.googlePlay.packageName;
     }
   } else if (packageName || bundleId) {
-    // bundleId나 packageName으로 앱 찾기
+    // Find app by bundleId or packageName
     const identifier = packageName || bundleId || "";
     registeredApp = findApp(identifier);
     if (!registeredApp) {
@@ -43,7 +43,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
         content: [
           {
             type: "text" as const,
-            text: `❌ "${identifier}"로 등록된 앱을 찾을 수 없습니다. apps-search로 등록된 앱을 확인하세요.`,
+            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
           },
         ],
       };
@@ -60,7 +60,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱을 찾을 수 없습니다. app (slug), packageName, 또는 bundleId를 제공해주세요.`,
+          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
         },
       ],
     };
@@ -71,7 +71,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       content: [
         {
           type: "text" as const,
-          text: "❌ whatsNew 데이터가 필요합니다. 형식: { \"en-US\": \"텍스트\", \"ko\": \"텍스트\" }",
+          text: '❌ whatsNew data is required. Format: { "en-US": "text", "ko": "text" }',
         },
       ],
     };
@@ -91,13 +91,13 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   const appStoreResults: string[] = [];
   const googlePlayResults: string[] = [];
 
-  // App Store 업데이트
+  // App Store update
   if ((store === "both" || store === "appStore") && bundleId) {
     if (!config.appStore) {
-      appStoreResults.push("❌ App Store 인증 정보가 설정되지 않았습니다.");
+      appStoreResults.push("❌ App Store authentication not configured.");
     } else {
       try {
-        const { AppStoreClient } = await import("../../../../packages/app-store");
+        const { AppStoreClient } = await import("@packages/app-store");
         const client = new AppStoreClient({
           bundleId,
           issuerId: config.appStore.issuerId,
@@ -112,7 +112,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
             (v) => v.attributes.appStoreState === "PREPARE_FOR_SUBMISSION"
           );
           if (!editableVersion) {
-            appStoreResults.push("❌ 편집 가능한 버전이 없습니다.");
+            appStoreResults.push("❌ No editable version found.");
           } else {
             targetVersionId = editableVersion.id;
           }
@@ -128,25 +128,26 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
               });
               appStoreResults.push(`✅ ${locale}`);
             } catch (error) {
-              const msg = error instanceof Error ? error.message : String(error);
+              const msg =
+                error instanceof Error ? error.message : String(error);
               appStoreResults.push(`❌ ${locale}: ${msg}`);
             }
           }
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        appStoreResults.push(`❌ App Store 오류: ${msg}`);
+        appStoreResults.push(`❌ App Store error: ${msg}`);
       }
     }
   }
 
-  // Google Play 업데이트
+  // Google Play update
   if ((store === "both" || store === "googlePlay") && packageName) {
     if (!config.playStore?.serviceAccountJson) {
-      googlePlayResults.push("❌ Google Play 인증 정보가 설정되지 않았습니다.");
+      googlePlayResults.push("❌ Google Play authentication not configured.");
     } else {
       try {
-        const { GooglePlayClient } = await import("../../../../packages/play-store");
+        const { GooglePlayClient } = await import("@packages/play-store");
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
         const client = new GooglePlayClient({
           packageName,
@@ -166,19 +167,19 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        googlePlayResults.push(`❌ Google Play 오류: ${msg}`);
+        googlePlayResults.push(`❌ Google Play error: ${msg}`);
       }
     }
   }
 
-  // 결과 조합
+  // Combine results
   if (appStoreResults.length > 0) {
     results.push(`**🍎 App Store:**`);
-    results.push(...appStoreResults.map(r => `  ${r}`));
+    results.push(...appStoreResults.map((r) => `  ${r}`));
   }
   if (googlePlayResults.length > 0) {
     results.push(`**🤖 Google Play:**`);
-    results.push(...googlePlayResults.map(r => `  ${r}`));
+    results.push(...googlePlayResults.map((r) => `  ${r}`));
   }
 
   if (results.length === 0) {
@@ -186,7 +187,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       content: [
         {
           type: "text" as const,
-          text: "⚠️ 업데이트할 스토어가 없습니다. bundleId 또는 packageName을 확인하세요.",
+          text: "⚠️ No store to update. Please check bundleId or packageName.",
         },
       ],
     };
@@ -196,7 +197,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
     content: [
       {
         type: "text" as const,
-        text: `📝 릴리즈 노트 업데이트 결과:\n\n${results.join("\n")}`,
+        text: `📝 Release Notes Update Results:\n\n${results.join("\n")}`,
       },
     ],
   };

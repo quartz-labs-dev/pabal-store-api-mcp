@@ -5,9 +5,10 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
-      "packages/*": ["packages/*"],
-      "servers/*": ["servers/*"],
-      "scripts/*": ["scripts/*"]
+      "@/*": ["./*"],
+      "@packages/*": ["./packages/*"],
+      "@servers/*": ["./servers/*"],
+      "@scripts/*": ["./scripts/*"]
     },
     "esModuleInterop": true,
     "strict": true,

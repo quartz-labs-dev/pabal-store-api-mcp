@@ -1,27 +1,27 @@
 /**
- * add-app: bundleId 또는 packageName으로 앱 등록
+ * add-app: Register app by bundleId or packageName
  */
 
-import { getAppStoreClient } from "../../../../packages/app-store";
-import { GooglePlayClient } from "../../../../packages/play-store";
+import { getAppStoreClient } from "@packages/app-store";
+import { GooglePlayClient } from "@packages/play-store";
 import {
   loadConfig,
   registerApp,
   findApp,
   type RegisteredApp,
-} from "../../../../packages/core";
+} from "@packages/core";
 
 interface AddAppOptions {
-  /** 앱 식별자 (bundleId 또는 packageName) */
+  /** App identifier (bundleId or packageName) */
   identifier: string;
-  /** 커스텀 slug (미지정시 identifier의 마지막 부분 사용) */
+  /** Custom slug (if not specified, uses last part of identifier) */
   slug?: string;
-  /** 대상 스토어 (기본값: both - 둘 다 확인) */
+  /** Target store (default: both - check both stores) */
   store?: "appStore" | "googlePlay" | "both";
 }
 
 /**
- * App Store에서 앱 정보 조회
+ * Fetch app information from App Store
  */
 async function fetchAppStoreInfo(
   bundleId: string,
@@ -50,7 +50,7 @@ async function fetchAppStoreInfo(
 }
 
 /**
- * Google Play에서 앱 정보 조회
+ * Fetch app information from Google Play
  */
 async function fetchGooglePlayInfo(
   packageName: string,
@@ -75,7 +75,7 @@ async function fetchGooglePlayInfo(
 }
 
 /**
- * slug 생성 (identifier의 마지막 부분)
+ * Generate slug (last part of identifier)
  */
 function generateSlug(identifier: string): string {
   const parts = identifier.split(".");
@@ -90,9 +90,9 @@ export async function handleAddApp(options: AddAppOptions) {
       content: [
         {
           type: "text" as const,
-          text: `❌ identifier가 필요합니다.
+          text: `❌ identifier is required.
 
-사용법:
+Usage:
 \`\`\`json
 { "identifier": "com.example.app" }
 { "identifier": "com.example.app", "slug": "myapp" }
@@ -103,14 +103,14 @@ export async function handleAddApp(options: AddAppOptions) {
     };
   }
 
-  // 이미 등록되어 있는지 확인
+  // Check if already registered
   const existing = findApp(identifier);
   if (existing) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `⏭️ 이미 등록된 앱입니다.
+          text: `⏭️ App is already registered.
 
 • Slug: \`${existing.slug}\`
 • Name: ${existing.name}
@@ -125,31 +125,31 @@ export async function handleAddApp(options: AddAppOptions) {
   const config = loadConfig();
   const slug = customSlug || generateSlug(identifier);
 
-  // slug 중복 확인
+  // Check for slug duplicates
   const slugExists = findApp(slug);
   if (slugExists) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ slug "${slug}"가 이미 사용 중입니다. 다른 slug를 지정해주세요.
+          text: `❌ slug "${slug}" is already in use. Please specify a different slug.
 
 \`\`\`json
-{ "identifier": "${identifier}", "slug": "다른slug" }
+{ "identifier": "${identifier}", "slug": "different-slug" }
 \`\`\``,
         },
       ],
     };
   }
 
-  // 스토어별 앱 정보 조회
+  // Fetch app information by store
   let appStoreInfo: RegisteredApp["appStore"] = undefined;
   let googlePlayInfo: RegisteredApp["googlePlay"] = undefined;
   let appName = identifier;
 
   const results: string[] = [];
 
-  // App Store 조회
+  // Check App Store
   if (store === "both" || store === "appStore") {
     const asResult = await fetchAppStoreInfo(identifier, config);
     if (asResult.found) {
@@ -159,13 +159,13 @@ export async function handleAddApp(options: AddAppOptions) {
         name: asResult.name,
       };
       appName = asResult.name || appName;
-      results.push(`🍎 App Store: ✅ 발견 (${asResult.name})`);
+      results.push(`🍎 App Store: ✅ Found (${asResult.name})`);
     } else {
-      results.push(`🍎 App Store: ❌ 없음`);
+      results.push(`🍎 App Store: ❌ Not found`);
     }
   }
 
-  // Google Play 조회
+  // Check Google Play
   if (store === "both" || store === "googlePlay") {
     const gpResult = await fetchGooglePlayInfo(identifier, config);
     if (gpResult.found) {
@@ -174,33 +174,33 @@ export async function handleAddApp(options: AddAppOptions) {
         name: gpResult.name,
       };
       appName = gpResult.name || appName;
-      results.push(`🤖 Google Play: ✅ 발견 (${gpResult.name})`);
+      results.push(`🤖 Google Play: ✅ Found (${gpResult.name})`);
     } else {
-      results.push(`🤖 Google Play: ❌ 없음`);
+      results.push(`🤖 Google Play: ❌ Not found`);
     }
   }
 
-  // 최소 하나의 스토어에서 발견되어야 함
+  // Must be found in at least one store
   if (!appStoreInfo && !googlePlayInfo) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱을 찾을 수 없습니다.
+          text: `❌ App not found.
 
-**조회 결과:**
+**Search Results:**
 ${results.map((r) => `  • ${r}`).join("\n")}
 
-**확인사항:**
-• identifier가 올바른지 확인하세요: \`${identifier}\`
-• 해당 스토어에 앱이 등록되어 있는지 확인하세요
-• 인증 설정이 올바른지 확인하세요 (auth-check 툴 사용)`,
+**Things to Check:**
+• Verify identifier is correct: \`${identifier}\`
+• Verify app is registered in the store
+• Verify authentication settings are correct (use auth-check tool)`,
         },
       ],
     };
   }
 
-  // 앱 등록
+  // Register app
   try {
     const newApp = registerApp({
       slug,
@@ -220,18 +220,18 @@ ${results.map((r) => `  • ${r}`).join("\n")}
       content: [
         {
           type: "text" as const,
-          text: `✅ 앱 등록 완료 (${storeIcons})
+          text: `✅ App registration complete (${storeIcons})
 
-**등록 정보:**
+**Registration Info:**
 • Slug: \`${newApp.slug}\`
 • Name: ${newApp.name}
 ${appStoreInfo ? `• App Store: ${appStoreInfo.bundleId} (ID: ${appStoreInfo.appId})` : ""}
 ${googlePlayInfo ? `• Google Play: ${googlePlayInfo.packageName}` : ""}
 
-**조회 결과:**
+**Search Results:**
 ${results.map((r) => `  • ${r}`).join("\n")}
 
-이제 다른 툴에서 \`app: "${slug}"\` 파라미터로 앱을 참조할 수 있습니다.`,
+You can now reference this app in other tools using the \`app: "${slug}"\` parameter.`,
         },
       ],
       _meta: { app: newApp },
@@ -242,7 +242,7 @@ ${results.map((r) => `  • ${r}`).join("\n")}
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱 등록 실패: ${msg}`,
+          text: `❌ App registration failed: ${msg}`,
         },
       ],
     };

@@ -1,9 +1,9 @@
 /**
- * auth-check: App Store / Google Play 인증 상태 확인
+ * auth-check: Check App Store / Google Play authentication status
  */
 
-import { verifyAppStoreAuth } from "../../../../packages/app-store";
-import { verifyPlayStoreAuth } from "../../../../packages/play-store";
+import { verifyAppStoreAuth } from "@packages/app-store";
+import { verifyPlayStoreAuth } from "@packages/play-store";
 
 type StoreType = "appStore" | "googlePlay" | "both";
 
@@ -21,10 +21,10 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
       results.push(`✅ **App Store Connect**`);
       results.push(`   Issuer ID: ${appStoreResult.data.payload.iss}`);
       results.push(`   Key ID: ${appStoreResult.data.header.kid}`);
-      results.push(`   JWT 생성 성공`);
+      results.push(`   JWT created successfully`);
     } else {
       results.push(`❌ **App Store Connect**`);
-      results.push(`   ${appStoreResult.error || "인증 실패"}`);
+      results.push(`   ${appStoreResult.error || "Authentication failed"}`);
     }
     results.push("");
   }
@@ -37,7 +37,7 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
       results.push(`   Service Account: ${playStoreResult.data.client_email}`);
     } else {
       results.push(`❌ **Google Play Console**`);
-      results.push(`   ${playStoreResult.error || "인증 실패"}`);
+      results.push(`   ${playStoreResult.error || "Authentication failed"}`);
     }
   }
 
@@ -45,7 +45,7 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
     content: [
       {
         type: "text" as const,
-        text: `🔐 **인증 상태**\n\n${results.join("\n")}`,
+        text: `🔐 **Authentication Status**\n\n${results.join("\n")}`,
       },
     ],
   };

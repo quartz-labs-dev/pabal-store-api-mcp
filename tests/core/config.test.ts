@@ -5,7 +5,7 @@ import {
   DATA_DIR_ENV_KEY,
   getDataDir,
   getProjectRoot,
-} from "../../packages/core/config";
+} from "@packages/core/config";
 
 const originalDataDirEnv = process.env[DATA_DIR_ENV_KEY];
 
@@ -22,18 +22,18 @@ after(() => {
 });
 
 describe("getDataDir", () => {
-  it("기본값은 프로젝트 루트 경로다", () => {
+  it("default value should be project root path", () => {
     assert.equal(getDataDir(), getProjectRoot());
   });
 
-  it("절대 경로 환경 변수 값을 그대로 사용한다", () => {
+  it("should use absolute path environment variable value as is", () => {
     const absolutePath = "/tmp/pabal-mcp-data";
     process.env[DATA_DIR_ENV_KEY] = absolutePath;
 
     assert.equal(getDataDir(), absolutePath);
   });
 
-  it("상대 경로 환경 변수 값은 프로젝트 루트를 기준으로 해석한다", () => {
+  it("should interpret relative path environment variable value relative to project root", () => {
     process.env[DATA_DIR_ENV_KEY] = "./tmp/data";
     const expected = resolve(getProjectRoot(), "tmp/data");
 

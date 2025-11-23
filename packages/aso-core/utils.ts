@@ -6,7 +6,7 @@ import {
   copyFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { getDataDir } from "../core/config";
+import { getDataDir } from "@packages/core/config";
 import {
   type AsoData,
   type GooglePlayAsoData,
@@ -17,7 +17,7 @@ import {
 } from "./types";
 
 // ============================================================================
-// ASO 디렉토리 경로 유틸리티
+// ASO Directory Path Utilities
 // ============================================================================
 
 export function getAsoDir(): string {
@@ -35,7 +35,7 @@ export function ensureDir(dirPath: string): void {
 }
 
 // ============================================================================
-// 데이터 변환
+// Data Conversion
 // ============================================================================
 
 export function convertToMultilingual<
@@ -123,7 +123,7 @@ export function prepareAsoDataForPush(
 }
 
 // ============================================================================
-// ASO 데이터 저장/로딩
+// ASO Data Save/Load
 // ============================================================================
 
 export function saveAsoData(
@@ -215,7 +215,7 @@ export function loadAsoData(
 }
 
 // ============================================================================
-// 이미지 유틸리티
+// Image Utilities
 // ============================================================================
 
 export function isLocalAssetPath(assetPath: string): boolean {

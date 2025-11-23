@@ -1,11 +1,11 @@
 /**
- * ASO 번역 요청 툴
+ * ASO translation request tool
  *
- * 이 툴은 번역이 필요한 텍스트와 대상 로케일 목록을 반환합니다.
- * LLM이 직접 번역을 수행한 후, 결과를 다른 ASO 툴에 전달합니다.
+ * This tool returns text that needs translation and target locale list.
+ * LLM performs translation directly, then passes results to other ASO tools.
  */
 
-import { APP_STORE_SUPPORTED_LOCALES, GOOGLE_PLAY_SUPPORTED_LANGUAGES } from "../../../../packages/aso-core";
+import { APP_STORE_SUPPORTED_LOCALES, GOOGLE_PLAY_SUPPORTED_LANGUAGES } from "@packages/aso-core";
 
 type StoreType = "googlePlay" | "appStore" | "both";
 
@@ -24,7 +24,7 @@ interface TranslationRequest {
 }
 
 /**
- * 스토어 타입에 따른 기본 로케일 목록 반환
+ * Return default locale list by store type
  */
 function getDefaultLocales(store: StoreType): string[] {
   switch (store) {
@@ -42,7 +42,7 @@ function getDefaultLocales(store: StoreType): string[] {
 }
 
 /**
- * 번역 요청 생성
+ * Create translation request
  */
 export async function handleAsoTranslate(options: AsoTranslateOptions) {
   const {
@@ -57,7 +57,7 @@ export async function handleAsoTranslate(options: AsoTranslateOptions) {
       content: [
         {
           type: "text" as const,
-          text: "❌ 번역할 텍스트가 필요합니다.",
+          text: "❌ Text to translate is required.",
         },
       ],
     };
@@ -73,14 +73,14 @@ export async function handleAsoTranslate(options: AsoTranslateOptions) {
     sourceText: text,
     sourceLocale,
     targetLocales: filteredLocales,
-    instructions: `다음 텍스트를 각 로케일에 맞게 번역해주세요.
-앱 스토어 릴리즈 노트/What's New에 적합한 톤을 유지하세요.
-각 로케일의 문화적 맥락을 고려하여 자연스럽게 번역해주세요.
+    instructions: `Please translate the following text for each locale.
+Maintain a tone appropriate for app store release notes/What's New.
+Consider the cultural context of each locale and translate naturally.
 
-번역 결과는 다음 JSON 형식으로 제공해주세요:
+Provide translation results in the following JSON format:
 {
   "translations": {
-    "ko": "번역된 텍스트",
+    "ko": "Translated text",
     "ja": "翻訳されたテキスト",
     ...
   }
@@ -91,19 +91,19 @@ export async function handleAsoTranslate(options: AsoTranslateOptions) {
     content: [
       {
         type: "text" as const,
-        text: `🌐 번역 요청
+        text: `🌐 Translation Request
 
-**원본 텍스트** (${sourceLocale}):
+**Source Text** (${sourceLocale}):
 ${text}
 
-**대상 로케일** (${filteredLocales.length}개):
+**Target Locales** (${filteredLocales.length}):
 ${filteredLocales.join(", ")}
 
-**지침**:
+**Instructions**:
 ${request.instructions}
 
 ---
-번역을 완료한 후, \`release:update-notes\` 툴을 사용하여 각 로케일의 릴리즈 노트를 업데이트하세요.`,
+After completing translation, use the \`release:update-notes\` tool to update release notes for each locale.`,
       },
     ],
     _meta: {

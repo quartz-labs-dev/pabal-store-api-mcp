@@ -1,54 +1,54 @@
 /**
- * apps-search: 등록된 앱 검색
+ * apps-search: Search registered apps
  *
- * registered-apps.json에서 앱을 검색합니다.
- * - query 없이 호출: 모든 앱 목록 반환
- * - query와 함께 호출: slug, bundleId, packageName, name으로 검색
+ * Search apps from registered-apps.json.
+ * - Called without query: Returns all app list
+ * - Called with query: Search by slug, bundleId, packageName, name
  */
 
 import {
   loadRegisteredApps,
   findApp,
   type RegisteredApp,
-} from "../../../../packages/core";
+} from "@packages/core";
 
 interface SearchAppsOptions {
-  /** 검색어 (slug, bundleId, packageName, name). 비워두면 모든 앱 반환 */
+  /** Search term (slug, bundleId, packageName, name). Returns all apps if empty */
   query?: string;
-  /** 스토어 필터 (기본값: all) */
+  /** Store filter (default: all) */
   store?: "all" | "appStore" | "googlePlay";
 }
 
 /**
- * 앱이 검색어와 매칭되는지 확인
+ * Check if app matches query
  */
 function matchesQuery(app: RegisteredApp, query: string): boolean {
   const lowerQuery = query.toLowerCase();
 
-  // slug 매칭
+  // slug match
   if (app.slug.toLowerCase().includes(lowerQuery)) return true;
 
-  // name 매칭
+  // name match
   if (app.name.toLowerCase().includes(lowerQuery)) return true;
 
-  // App Store bundleId 매칭
+  // App Store bundleId match
   if (app.appStore?.bundleId?.toLowerCase().includes(lowerQuery)) return true;
 
-  // App Store name 매칭
+  // App Store name match
   if (app.appStore?.name?.toLowerCase().includes(lowerQuery)) return true;
 
-  // Google Play packageName 매칭
+  // Google Play packageName match
   if (app.googlePlay?.packageName?.toLowerCase().includes(lowerQuery))
     return true;
 
-  // Google Play name 매칭
+  // Google Play name match
   if (app.googlePlay?.name?.toLowerCase().includes(lowerQuery)) return true;
 
   return false;
 }
 
 /**
- * 스토어 필터 적용
+ * Apply store filter
  */
 function filterByStore(
   apps: RegisteredApp[],
@@ -64,7 +64,7 @@ function filterByStore(
 }
 
 /**
- * 앱 정보를 포맷팅
+ * Format app information
  */
 function formatAppInfo(app: RegisteredApp): string {
   const lines: string[] = [];
@@ -93,26 +93,26 @@ export async function handleSearchApps(options: SearchAppsOptions) {
     let results: RegisteredApp[];
 
     if (!query) {
-      // 검색어 없으면 전체 목록
+      // If no query, return full list
       results = config.apps;
     } else {
-      // 정확한 매칭 우선 시도
+      // Try exact match first
       const exactMatch = findApp(query);
       if (exactMatch) {
         results = [exactMatch];
       } else {
-        // 부분 매칭
+        // Partial match
         results = config.apps.filter((app) => matchesQuery(app, query));
       }
     }
 
-    // 스토어 필터 적용
+    // Apply store filter
     results = filterByStore(results, store);
 
     if (results.length === 0) {
       const message = query
-        ? `"${query}"와 일치하는 앱을 찾을 수 없습니다.`
-        : "등록된 앱이 없습니다.";
+        ? `No apps found matching "${query}".`
+        : "No apps registered.";
 
       return {
         content: [
@@ -120,7 +120,7 @@ export async function handleSearchApps(options: SearchAppsOptions) {
             type: "text" as const,
             text: `❌ ${message}
 
-💡 apps-add 또는 apps-init 도구로 앱을 등록하세요.`,
+💡 Register apps using apps-add or apps-init tools.`,
           },
         ],
         _meta: { apps: [], count: 0 },
@@ -128,8 +128,8 @@ export async function handleSearchApps(options: SearchAppsOptions) {
     }
 
     const header = query
-      ? `🔍 "${query}" 검색 결과: ${results.length}개`
-      : `📋 등록된 앱 목록: ${results.length}개`;
+      ? `🔍 Search results for "${query}": ${results.length}`
+      : `📋 Registered app list: ${results.length}`;
 
     const appList = results.map(formatAppInfo).join("\n\n");
 
@@ -149,7 +149,7 @@ ${appList}`,
       content: [
         {
           type: "text" as const,
-          text: `❌ 앱 검색 실패: ${error instanceof Error ? error.message : String(error)}`,
+          text: `❌ App search failed: ${error instanceof Error ? error.message : String(error)}`,
         },
       ],
       isError: true,

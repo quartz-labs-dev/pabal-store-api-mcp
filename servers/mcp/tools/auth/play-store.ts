@@ -1,7 +1,7 @@
-import { verifyPlayStoreAuth } from "../../../../packages/play-store";
+import { verifyPlayStoreAuth } from "@packages/play-store";
 
 /**
- * Google Play 인증 상태 확인 도구
+ * Google Play authentication status check tool
  */
 export async function handleAuthPlayStore() {
   const result = verifyPlayStoreAuth();
@@ -27,7 +27,7 @@ export async function handleAuthPlayStore() {
     content: [
       {
         type: "text" as const,
-        text: result.error || "알 수 없는 오류가 발생했습니다.",
+        text: result.error || "An unknown error occurred.",
       },
     ],
   };

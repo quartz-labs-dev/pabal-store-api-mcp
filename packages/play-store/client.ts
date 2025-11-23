@@ -14,8 +14,8 @@ import type {
   GooglePlayAsoData,
   GooglePlayMultilingualAsoData,
   GooglePlayReleaseNote,
-} from "../aso-core/types";
-import { DEFAULT_LOCALE } from "../aso-core/types";
+} from "@packages/aso-core/types";
+import { DEFAULT_LOCALE } from "@packages/aso-core/types";
 
 export interface GooglePlayClientConfig {
   packageName: string;
@@ -50,8 +50,8 @@ export class GooglePlayClient {
   }
 
   /**
-   * 앱 접근 가능 여부 확인 (앱 정보 반환)
-   * Google Play API는 앱 목록 조회를 지원하지 않으므로, 패키지명으로 접근 가능한지만 확인
+   * Verify app access (returns app information)
+   * Google Play API does not support listing apps, so only verifies access by package name
    */
   async verifyAppAccess(): Promise<{ packageName: string; title?: string; defaultLanguage?: string }> {
     const authClient = await this.auth.getClient();
@@ -64,14 +64,14 @@ export class GooglePlayClient {
     const editId = appResponse.data.id!;
 
     try {
-      // 앱 상세 정보 가져오기
+      // Get app details
       const appDetails = await this.androidPublisher.edits.details.get({
         auth: authClient,
         packageName: this.packageName,
         editId,
       });
 
-      // 기본 언어 리스팅 가져오기
+      // Get default language listing
       const listingsResponse = await this.androidPublisher.edits.listings.list({
         auth: authClient,
         packageName: this.packageName,
@@ -87,7 +87,7 @@ export class GooglePlayClient {
         defaultLanguage: appDetails.data.defaultLanguage ?? undefined,
       };
     } finally {
-      // Edit 삭제 (변경사항 없이 종료)
+      // Delete edit (exit without changes)
       try {
         await this.androidPublisher.edits.delete({
           auth: authClient,
@@ -95,7 +95,7 @@ export class GooglePlayClient {
           editId,
         });
       } catch {
-        // 삭제 실패해도 무시
+        // Ignore deletion failure
       }
     }
   }
@@ -559,10 +559,10 @@ export class GooglePlayClient {
   }
 
   /**
-   * 프로덕션 트랙의 릴리즈 노트 업데이트
+   * Update release notes for production track
    */
   async updateReleaseNotes(options: {
-    releaseNotes: Record<string, string>; // { "en-US": "Bug fixes", "ko": "버그 수정" }
+    releaseNotes: Record<string, string>; // { "en-US": "Bug fixes", "ko": "Bug fixes" }
     track?: string;
   }): Promise<{ updated: string[]; failed: Array<{ locale: string; error: string }> }> {
     const { releaseNotes, track = "production" } = options;
@@ -575,7 +575,7 @@ export class GooglePlayClient {
     const editId = editResponse.data.id!;
 
     try {
-      // 현재 트랙 정보 가져오기
+      // Get current track information
       const trackResponse = await this.androidPublisher.edits.tracks.get({
         auth: authClient,
         packageName: this.packageName,
@@ -588,14 +588,14 @@ export class GooglePlayClient {
         throw new Error(`No releases found in ${track} track`);
       }
 
-      // 최신 릴리즈에 릴리즈 노트 추가
+      // Add release notes to latest release
       const latestRelease = releases[0];
       const releaseNotesArray = Object.entries(releaseNotes).map(([language, text]) => ({
         language,
         text,
       }));
 
-      // 트랙 업데이트
+      // Update track
       await this.androidPublisher.edits.tracks.update({
         auth: authClient,
         packageName: this.packageName,
@@ -612,7 +612,7 @@ export class GooglePlayClient {
         },
       });
 
-      // 커밋
+      // Commit
       await this.androidPublisher.edits.commit({
         auth: authClient,
         packageName: this.packageName,
@@ -624,7 +624,7 @@ export class GooglePlayClient {
         failed: [],
       };
     } catch (error) {
-      // 실패 시 롤백
+      // Rollback on failure
       try {
         await this.androidPublisher.edits.delete({
           auth: authClient,
@@ -632,7 +632,7 @@ export class GooglePlayClient {
           editId,
         });
       } catch {
-        // 삭제 실패 무시
+        // Ignore deletion failure
       }
       throw error;
     }
