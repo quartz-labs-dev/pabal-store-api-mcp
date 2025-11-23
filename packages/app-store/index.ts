@@ -5,6 +5,8 @@ export { AppStoreClient } from "./client";
 export type { AppStoreClientConfig } from "./client";
 export * from "./check-latest-versions";
 export * from "./update-release-notes";
+export * from "./pull-release-notes";
+export * from "./create-version";
 import { AppStoreClient } from "./client";
 import type { AppStoreConfig } from "@packages/shared/config";
 import { existsSync, readFileSync } from "node:fs";

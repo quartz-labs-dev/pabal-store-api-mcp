@@ -1,5 +1,6 @@
 import { GooglePlayClient } from "@packages/play-store";
-import { AppStoreClient } from "@packages/app-store";
+import { AppStoreClient, getAppStoreClient } from "@packages/app-store";
+import { createAppStoreVersionWithAutoIncrement } from "@packages/app-store/create-version";
 import {
   type StoreType,
   type GooglePlayMultilingualAsoData,
@@ -210,16 +211,18 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
           // Try to create new version
           try {
-            const client = new AppStoreClient({
+            const client = getAppStoreClient({
               bundleId: bundleId!,
               issuerId: config.appStore!.issuerId,
               keyId: config.appStore!.keyId,
               privateKey: config.appStore!.privateKey,
             });
 
-            const newVersion = await client.createNewVersionWithAutoIncrement();
-            const versionId = newVersion.id;
-            const versionString = newVersion.attributes.versionString;
+            const result = await createAppStoreVersionWithAutoIncrement({
+              client,
+            });
+            const versionId = result.version.id;
+            const versionString = result.version.attributes.versionString;
 
             const currentAppStoreData: AppStoreMultilingualAsoData =
               isAppStoreMultilingual(localAsoData.appStore!)

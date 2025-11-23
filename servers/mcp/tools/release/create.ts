@@ -1,7 +1,9 @@
-import { GooglePlayClient } from "@packages/play-store";
-import { AppStoreClient } from "@packages/app-store";
 import { type StoreType } from "@packages/shared/types";
 import { loadConfig, findApp, checkLatestVersions } from "@packages/shared";
+import { createAppStoreVersion } from "@packages/app-store/create-version";
+import { createGooglePlayVersion } from "@packages/play-store/create-version";
+import { getAppStoreClient } from "@packages/app-store";
+import { GooglePlayClient } from "@packages/play-store";
 
 interface AsoCreateVersionOptions {
   app?: string; // Registered app slug
@@ -103,7 +105,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
       try {
-        const client = new AppStoreClient({
+        const client = getAppStoreClient({
           bundleId,
           issuerId: config.appStore.issuerId,
           keyId: config.appStore.keyId,
@@ -111,11 +113,14 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
         });
 
         console.log(`📦 Creating App Store version ${version}...`);
-        const createdVersion = await client.createNewVersion(version);
-        const state = createdVersion.attributes.appStoreState?.toUpperCase();
+        const result = await createAppStoreVersion({
+          client,
+          versionString: version,
+        });
+        const state = result.version.attributes.appStoreState?.toUpperCase();
 
         results.push(
-          `✅ App Store version ${createdVersion.attributes.versionString} created` +
+          `✅ App Store version ${result.version.attributes.versionString} created` +
             (state ? ` (${state})` : "")
         );
       } catch (error) {
@@ -144,10 +149,10 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
         });
 
         console.log(`📦 Creating Google Play production release ${version}...`);
-        await client.createProductionRelease({
+        await createGooglePlayVersion({
+          client,
+          versionString: version,
           versionCodes,
-          releaseName: version,
-          status: "draft",
         });
 
         results.push(

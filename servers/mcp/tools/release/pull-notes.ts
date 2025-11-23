@@ -1,5 +1,3 @@
-import { GooglePlayClient } from "@packages/play-store";
-import { AppStoreClient } from "@packages/app-store";
 import {
   type StoreType,
   type GooglePlayReleaseNote,
@@ -8,6 +6,10 @@ import {
   getAsoDir,
 } from "@packages/aso-core";
 import { loadConfig, findApp } from "@packages/shared";
+import { pullAppStoreReleaseNotes } from "@packages/app-store/pull-release-notes";
+import { pullGooglePlayReleaseNotes } from "@packages/play-store/pull-release-notes";
+import { getAppStoreClient } from "@packages/app-store";
+import { GooglePlayClient } from "@packages/play-store";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
@@ -100,12 +102,12 @@ export async function handleAsoPullReleaseNotes(
         });
 
         console.log(`📥 Fetching release notes from Google Play...`);
-        const notes = await client.pullProductionReleaseNotes();
-        releaseNotes.googlePlay = notes;
+        const result = await pullGooglePlayReleaseNotes({ client });
+        releaseNotes.googlePlay = result.releaseNotes;
 
         console.log(`\n📊 Google Play Release Notes:`);
-        console.log(`   Total versions: ${notes.length}`);
-        for (const rn of notes) {
+        console.log(`   Total versions: ${result.releaseNotes.length}`);
+        for (const rn of result.releaseNotes) {
           console.log(
             `   Version ${rn.versionName} (${rn.versionCode}): ${
               Object.keys(rn.releaseNotes).length
@@ -128,7 +130,7 @@ export async function handleAsoPullReleaseNotes(
       console.log(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
       try {
-        const client = new AppStoreClient({
+        const client = getAppStoreClient({
           bundleId,
           issuerId: config.appStore.issuerId,
           keyId: config.appStore.keyId,
@@ -136,12 +138,12 @@ export async function handleAsoPullReleaseNotes(
         });
 
         console.log(`📥 Fetching release notes from App Store...`);
-        const notes = await client.pullReleaseNotes();
-        releaseNotes.appStore = notes;
+        const result = await pullAppStoreReleaseNotes({ client });
+        releaseNotes.appStore = result.releaseNotes;
 
         console.log(`\n📊 App Store Release Notes:`);
-        console.log(`   Total versions: ${notes.length}`);
-        for (const rn of notes) {
+        console.log(`   Total versions: ${result.releaseNotes.length}`);
+        for (const rn of result.releaseNotes) {
           console.log(
             `   Version ${rn.versionString}: ${
               Object.keys(rn.releaseNotes).length
