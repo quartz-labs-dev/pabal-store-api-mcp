@@ -84,15 +84,14 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
   }
 
   // Version is provided, proceed with creation
-  console.log(`\n📦 Creating version: ${version}`);
-  console.log(`   Store: ${store}`);
-  console.log(`   App: ${slug}`);
-  if (packageName) console.log(`   Package Name: ${packageName}`);
-  if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
+  console.error(`[MCP] 📦 Creating version: ${version}`);
+  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   App: ${slug}`);
+  if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
+  if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
   if (versionCodes) {
-    console.log(`   Version Codes: ${versionCodes.join(", ")}`);
+    console.error(`[MCP]   Version Codes: ${versionCodes.join(", ")}`);
   }
-  console.log();
 
   const results: string[] = [];
 
@@ -112,12 +111,13 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
           privateKey: config.appStore.privateKey,
         });
 
-        console.log(`📦 Creating App Store version ${version}...`);
+        console.error(`[MCP]   📦 Creating App Store version ${version}...`);
         const result = await createAppStoreVersion({
           client,
           versionString: version,
         });
         const state = result.version.attributes.appStoreState?.toUpperCase();
+        console.error(`[MCP]     ✅ App Store version created (${state || "UNKNOWN"})`);
 
         results.push(
           `✅ App Store version ${result.version.attributes.versionString} created` +
@@ -148,12 +148,13 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
           serviceAccountKey: serviceAccount,
         });
 
-        console.log(`📦 Creating Google Play production release ${version}...`);
+        console.error(`[MCP]   📦 Creating Google Play production release ${version}...`);
         await createGooglePlayVersion({
           client,
           versionString: version,
           versionCodes,
         });
+        console.error(`[MCP]     ✅ Google Play version created`);
 
         results.push(
           `✅ Google Play production draft created with versionCodes: ${versionCodes.join(

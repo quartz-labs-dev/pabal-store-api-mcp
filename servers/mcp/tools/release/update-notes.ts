@@ -145,8 +145,8 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
             }
           }
         } catch (error) {
-          console.warn(
-            `⚠️ Failed to fetch App Store locales: ${
+          console.error(
+            `[MCP]   ⚠️ Failed to fetch App Store locales: ${
               error instanceof Error ? error.message : String(error)
             }`
           );
@@ -174,8 +174,8 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
             }
           }
         } catch (error) {
-          console.warn(
-            `⚠️ Failed to fetch Google Play locales: ${
+          console.error(
+            `[MCP]   ⚠️ Failed to fetch Google Play locales: ${
               error instanceof Error ? error.message : String(error)
             }`
           );
@@ -308,13 +308,12 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
 
   const config = loadConfig();
 
-  console.log(`\n📝 Updating release notes`);
-  console.log(`   Store: ${store}`);
-  console.log(`   App: ${slug}`);
-  if (packageName) console.log(`   Package Name: ${packageName}`);
-  if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
-  if (versionId) console.log(`   Version ID: ${versionId}`);
-  console.log();
+  console.error(`[MCP] 📝 Updating release notes`);
+  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   App: ${slug}`);
+  if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
+  if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
+  if (versionId) console.error(`[MCP]   Version ID: ${versionId}`);
 
   const results: string[] = [];
   const appStoreResults: string[] = [];
@@ -329,8 +328,17 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
       store,
     });
 
+  console.error(`[MCP]   📝 Locales to update: ${Object.keys(finalWhatsNew).length}`);
+  if (Object.keys(appStoreTranslations).length > 0) {
+    console.error(`[MCP]   🍎 App Store locales: ${Object.keys(appStoreTranslations).join(", ")}`);
+  }
+  if (Object.keys(googlePlayTranslations).length > 0) {
+    console.error(`[MCP]   🤖 Google Play locales: ${Object.keys(googlePlayTranslations).join(", ")}`);
+  }
+
   // App Store update
   if ((store === "both" || store === "appStore") && bundleId) {
+    console.error(`[MCP]   📤 Updating App Store release notes...`);
     if (!config.appStore) {
       appStoreResults.push("❌ App Store authentication not configured.");
     } else if (Object.keys(appStoreTranslations).length === 0) {
@@ -354,11 +362,14 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
           supportedLocales: registeredApp.appStore?.supportedLocales,
         });
 
+        console.error(`[MCP]     ✅ Updated ${updateResult.updated.length} locales`);
         for (const locale of updateResult.updated) {
           appStoreResults.push(`✅ ${locale}`);
+          console.error(`[MCP]       ✅ ${locale}`);
         }
         for (const fail of updateResult.failed) {
           appStoreResults.push(`❌ ${fail.locale}: ${fail.error}`);
+          console.error(`[MCP]       ❌ ${fail.locale}: ${fail.error}`);
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -376,6 +387,7 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
         "⚠️ No translations available for Google Play locales."
       );
     } else {
+      console.error(`[MCP]   📤 Updating Google Play release notes...`);
       try {
         const { GooglePlayClient } = await import("@packages/play-store");
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
@@ -391,11 +403,14 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
           supportedLocales: registeredApp.googlePlay?.supportedLocales,
         });
 
+        console.error(`[MCP]     ✅ Updated ${updateResult.updated.length} locales`);
         for (const locale of updateResult.updated) {
           googlePlayResults.push(`✅ ${locale}`);
+          console.error(`[MCP]       ✅ ${locale}`);
         }
         for (const fail of updateResult.failed) {
           googlePlayResults.push(`❌ ${fail.locale}: ${fail.error}`);
+          console.error(`[MCP]       ❌ ${fail.locale}: ${fail.error}`);
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

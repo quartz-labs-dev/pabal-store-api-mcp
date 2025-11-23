@@ -72,12 +72,12 @@ export async function handleAsoPullReleaseNotes(
     };
   }
 
-  console.log(`\n📥 Pulling release notes`);
-  console.log(`   Store: ${store}`);
-  console.log(`   App: ${slug}`);
-  if (packageName) console.log(`   Package Name: ${packageName}`);
-  if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
-  console.log(`   Mode: ${dryRun ? "Dry run" : "Actual fetch"}\n`);
+  console.error(`[MCP] 📥 Pulling release notes`);
+  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   App: ${slug}`);
+  if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
+  if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
+  console.error(`[MCP]   Mode: ${dryRun ? "Dry run" : "Actual fetch"}`);
 
   const config = loadConfig();
 
@@ -88,11 +88,11 @@ export async function handleAsoPullReleaseNotes(
 
   if (store === "googlePlay" || store === "both") {
     if (!config.playStore) {
-      console.log(
-        `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
     } else if (!packageName) {
-      console.log(`⏭️  Skipping Google Play (no packageName provided)`);
+      console.error(`[MCP]   ⏭️  Skipping Google Play (no packageName provided)`);
     } else {
       try {
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
@@ -101,33 +101,33 @@ export async function handleAsoPullReleaseNotes(
           serviceAccountKey: serviceAccount,
         });
 
-        console.log(`📥 Fetching release notes from Google Play...`);
+        console.error(`[MCP]   📥 Fetching release notes from Google Play...`);
         const result = await pullGooglePlayReleaseNotes({ client });
         releaseNotes.googlePlay = result.releaseNotes;
 
-        console.log(`\n📊 Google Play Release Notes:`);
-        console.log(`   Total versions: ${result.releaseNotes.length}`);
+        console.error(`[MCP]   📊 Google Play Release Notes:`);
+        console.error(`[MCP]     Total versions: ${result.releaseNotes.length}`);
         for (const rn of result.releaseNotes) {
-          console.log(
-            `   Version ${rn.versionName} (${rn.versionCode}): ${
+          console.error(
+            `[MCP]     Version ${rn.versionName} (${rn.versionCode}): ${
               Object.keys(rn.releaseNotes).length
             } languages`
           );
         }
-        console.log(`✅ Google Play release notes fetched`);
+        console.error(`[MCP]   ✅ Google Play release notes fetched`);
       } catch (error) {
-        console.error(`❌ Google Play fetch failed:`, error);
+        console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
       }
     }
   }
 
   if (store === "appStore" || store === "both") {
     if (!config.appStore) {
-      console.log(
-        `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
+      console.error(
+        `[MCP]   ⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
       );
     } else if (!bundleId) {
-      console.log(`⏭️  Skipping App Store (no bundleId provided)`);
+      console.error(`[MCP]   ⏭️  Skipping App Store (no bundleId provided)`);
     } else {
       try {
         const client = getAppStoreClient({
@@ -137,22 +137,22 @@ export async function handleAsoPullReleaseNotes(
           privateKey: config.appStore.privateKey,
         });
 
-        console.log(`📥 Fetching release notes from App Store...`);
+        console.error(`[MCP]   📥 Fetching release notes from App Store...`);
         const result = await pullAppStoreReleaseNotes({ client });
         releaseNotes.appStore = result.releaseNotes;
 
-        console.log(`\n📊 App Store Release Notes:`);
-        console.log(`   Total versions: ${result.releaseNotes.length}`);
+        console.error(`[MCP]   📊 App Store Release Notes:`);
+        console.error(`[MCP]     Total versions: ${result.releaseNotes.length}`);
         for (const rn of result.releaseNotes) {
-          console.log(
-            `   Version ${rn.versionString}: ${
+          console.error(
+            `[MCP]     Version ${rn.versionString}: ${
               Object.keys(rn.releaseNotes).length
             } locales`
           );
         }
-        console.log(`✅ App Store release notes fetched`);
+        console.error(`[MCP]   ✅ App Store release notes fetched`);
       } catch (error) {
-        console.error(`❌ App Store fetch failed:`, error);
+        console.error(`[MCP]   ❌ App Store fetch failed:`, error);
       }
     }
   }
@@ -180,7 +180,7 @@ export async function handleAsoPullReleaseNotes(
     ensureDir(googlePlayDir);
     const filePath = join(googlePlayDir, "release-notes.json");
     writeFileSync(filePath, JSON.stringify(releaseNotes.googlePlay, null, 2));
-    console.log(`💾 Google Play release notes saved to ${filePath}`);
+    console.error(`[MCP]   💾 Google Play release notes saved to ${filePath}`);
   }
 
   if (releaseNotes.appStore) {
@@ -188,7 +188,7 @@ export async function handleAsoPullReleaseNotes(
     ensureDir(appStoreDir);
     const filePath = join(appStoreDir, "release-notes.json");
     writeFileSync(filePath, JSON.stringify(releaseNotes.appStore, null, 2));
-    console.log(`💾 App Store release notes saved to ${filePath}`);
+    console.error(`[MCP]   💾 App Store release notes saved to ${filePath}`);
   }
 
   return {

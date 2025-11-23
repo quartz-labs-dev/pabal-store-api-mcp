@@ -14,7 +14,10 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
   const { store = "both" } = options;
   const results: string[] = [];
 
+  console.error(`[MCP] 🔐 Checking authentication (store: ${store})`);
+
   if (store === "appStore" || store === "both") {
+    console.error(`[MCP]   Checking App Store Connect...`);
     const appStoreResult = await verifyAppStoreAuth({ expirationSeconds: 300 });
     if (appStoreResult.success && appStoreResult.data) {
       results.push(`✅ **App Store Connect**`);
@@ -29,6 +32,7 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
   }
 
   if (store === "googlePlay" || store === "both") {
+    console.error(`[MCP]   Checking Google Play Console...`);
     const playStoreResult = verifyPlayStoreAuth();
     if (playStoreResult.success && playStoreResult.data) {
       results.push(`✅ **Google Play Console**`);

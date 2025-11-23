@@ -52,6 +52,62 @@ interface ToolInfo {
 
 const toolInfos: ToolInfo[] = [];
 
+/**
+ * Format parameters for logging (hide sensitive data)
+ */
+function formatParamsForLogging(params: any): string {
+  if (!params || typeof params !== "object") return "";
+
+  const safeParams: Record<string, any> = {};
+  const sensitiveKeys = [
+    "privateKey",
+    "serviceAccountJson",
+    "serviceAccountKey",
+  ];
+
+  for (const [key, value] of Object.entries(params)) {
+    if (
+      sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
+    ) {
+      safeParams[key] = "[REDACTED]";
+    } else if (typeof value === "object" && value !== null) {
+      safeParams[key] = formatParamsForLogging(value);
+    } else {
+      safeParams[key] = value;
+    }
+  }
+
+  const entries = Object.entries(safeParams)
+    .filter(([_, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`)
+    .slice(0, 3); // Limit to first 3 params to keep it concise
+
+  return entries.length > 0 ? ` (${entries.join(", ")})` : "";
+}
+
+/**
+ * Wrap handler with logging
+ */
+function wrapHandlerWithLogging(name: string, handler: any) {
+  return async (params: any) => {
+    const paramsStr = formatParamsForLogging(params);
+    console.error(`[MCP] 🔧 ${name}${paramsStr}`);
+
+    const startTime = Date.now();
+    try {
+      const result = await handler(params);
+      const duration = Date.now() - startTime;
+      console.error(`[MCP] ✅ ${name} completed (${duration}ms)`);
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MCP] ❌ ${name} failed (${duration}ms): ${errorMsg}`);
+      throw error;
+    }
+  };
+}
+
 function registerToolWithInfo(
   name: string,
   info: { description: string; inputSchema?: z.ZodObject<any> | z.ZodTypeAny },
@@ -81,7 +137,9 @@ function registerToolWithInfo(
     mcpInfo.inputSchema = plainSchema;
   }
 
-  server.registerTool(name, mcpInfo, handler);
+  // Wrap handler with logging
+  const wrappedHandler = wrapHandlerWithLogging(name, handler);
+  server.registerTool(name, mcpInfo, wrappedHandler);
 }
 
 // Export tool info for documentation
@@ -344,8 +402,10 @@ registerToolWithInfo(
 );
 
 async function main() {
+  console.error("[MCP] 🚀 Starting pabal-mcp server...");
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  console.error("[MCP] ✅ Server connected and ready");
 }
 
 // Only start server if this file is run directly (not imported)

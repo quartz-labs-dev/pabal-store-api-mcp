@@ -12,6 +12,8 @@ export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
   const { app, store = "both" } = options;
   let { packageName, bundleId } = options;
 
+  console.error(`[MCP] 🔍 Checking latest versions (store: ${store})`);
+
   // Determine bundleId and packageName
   let registeredApp = app ? findApp(app) : undefined;
 
@@ -55,12 +57,17 @@ export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
   }
 
   // Check latest versions (without prompt message since this is a dedicated check tool)
+  if (bundleId) console.error(`[MCP]   App Store bundleId: ${bundleId}`);
+  if (packageName) console.error(`[MCP]   Google Play packageName: ${packageName}`);
+  
   const versionInfo = await checkLatestVersions({
     store,
     bundleId,
     packageName,
     includePrompt: false,
   });
+  
+  console.error(`[MCP]   ✅ Version check completed`);
 
   return {
     content: [

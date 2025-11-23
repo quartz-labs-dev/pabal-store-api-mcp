@@ -73,13 +73,13 @@ export async function handleAsoPush(options: AsoPushOptions) {
     };
   }
 
-  console.log(`\n📤 Pushing ASO data`);
-  console.log(`   Store: ${store}`);
-  console.log(`   App: ${slug}`);
-  if (packageName) console.log(`   Package Name: ${packageName}`);
-  if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
-  console.log(`   Upload Images: ${uploadImages ? "Yes" : "No"}`);
-  console.log(`   Mode: ${dryRun ? "Dry run" : "Actual push"}\n`);
+  console.error(`[MCP] 📤 Pushing ASO data`);
+  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   App: ${slug}`);
+  if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
+  if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
+  console.error(`[MCP]   Upload Images: ${uploadImages ? "Yes" : "No"}`);
+  console.error(`[MCP]   Mode: ${dryRun ? "Dry run" : "Actual push"}`);
 
   const config = loadConfig();
 
@@ -148,13 +148,13 @@ export async function handleAsoPush(options: AsoPushOptions) {
                 localAsoData.googlePlay.defaultLanguage
               );
 
-        console.log(`📤 Pushing to Google Play...`);
+        console.error(`[MCP]   📤 Pushing to Google Play...`);
         for (const [language, localeData] of Object.entries(
           googlePlayData.locales
         )) {
-          console.log(`   📤 Pushing ${language}...`);
+          console.error(`[MCP]     📤 Pushing ${language}...`);
           await client.pushAsoData(localeData);
-          console.log(`   ✅ ${language} uploaded`);
+          console.error(`[MCP]     ✅ ${language} uploaded`);
         }
 
         results.push(`✅ Google Play data pushed`);
@@ -192,13 +192,13 @@ export async function handleAsoPush(options: AsoPushOptions) {
                 localAsoData.appStore.locale
               );
 
-        console.log(`📤 Pushing to App Store...`);
+        console.error(`[MCP]   📤 Pushing to App Store...`);
         for (const [locale, localeData] of Object.entries(
           appStoreData.locales
         )) {
-          console.log(`   📤 Pushing ${locale}...`);
+          console.error(`[MCP]     📤 Pushing ${locale}...`);
           await client.pushAsoData(localeData);
-          console.log(`   ✅ ${locale} uploaded`);
+          console.error(`[MCP]     ✅ ${locale} uploaded`);
         }
 
         results.push(`✅ App Store data pushed`);
@@ -207,7 +207,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
         // Handle 409 STATE_ERROR - need to create new version with What's New
         if (msg.includes("409 Conflict") && msg.includes("STATE_ERROR")) {
-          console.log(`\n🔄 STATE_ERROR detected. New version needed.`);
+          console.error(`[MCP]   🔄 STATE_ERROR detected. New version needed.`);
 
           // Try to create new version
           try {
@@ -233,7 +233,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
                   );
             const locales = Object.keys(currentAppStoreData.locales);
 
-            console.log(`✅ New version ${versionString} created.`);
+            console.error(`[MCP]     ✅ New version ${versionString} created.`);
 
             // Return translation request - guide LLM to translate then call aso-update-whats-new
             return {

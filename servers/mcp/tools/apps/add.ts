@@ -36,6 +36,8 @@ function generateSlug(identifier: string): string {
 export async function handleAddApp(options: AddAppOptions) {
   const { identifier, slug: customSlug, store = "both" } = options;
 
+  console.error(`[MCP] 📱 Adding app: ${identifier} (store: ${store})`);
+
   if (!identifier) {
     return {
       content: [
@@ -228,6 +230,7 @@ ${localeInfo.length > 0 ? `\n**Supported Languages:**\n${localeInfo.map((l) => `
 
   // Check App Store
   if (store === "both" || store === "appStore") {
+    console.error(`[MCP]   🔍 Searching App Store for: ${identifier}`);
     const asResult = await fetchAppStoreAppInfo({
       bundleId: identifier,
       config: config.appStore,
@@ -250,6 +253,7 @@ ${localeInfo.length > 0 ? `\n**Supported Languages:**\n${localeInfo.map((l) => `
 
   // Check Google Play
   if (store === "both" || store === "googlePlay") {
+    console.error(`[MCP]   🔍 Searching Google Play for: ${identifier}`);
     const gpResult = await fetchGooglePlayAppInfo({
       packageName: identifier,
       config: config.playStore,
@@ -292,12 +296,14 @@ ${results.map((r) => `  • ${r}`).join("\n")}
 
   // Register app
   try {
+    console.error(`[MCP]   💾 Registering app with slug: ${slug}`);
     const newApp = registerApp({
       slug,
       name: appName,
       appStore: appStoreInfo,
       googlePlay: googlePlayInfo,
     });
+    console.error(`[MCP]   ✅ App registered successfully`);
 
     const storeIcons = [
       appStoreInfo ? "🍎" : null,

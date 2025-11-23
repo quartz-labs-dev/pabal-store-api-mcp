@@ -56,8 +56,8 @@ async function downloadScreenshotsToAso(
       );
 
       if (localeData.screenshots.phone?.length > 0) {
-        console.log(
-          `📥 Downloading ${localeData.screenshots.phone.length} Google Play phone screenshots...`
+        console.error(
+          `[MCP]   📥 Downloading ${localeData.screenshots.phone.length} Google Play phone screenshots...`
         );
         for (let i = 0; i < localeData.screenshots.phone.length; i++) {
           const url = localeData.screenshots.phone[i];
@@ -67,19 +67,19 @@ async function downloadScreenshotsToAso(
           } else {
             await downloadImage(url, outputPath);
           }
-          console.log(`   ✅ phone-${i + 1}.png`);
+          console.error(`[MCP]     ✅ phone-${i + 1}.png`);
         }
       }
 
       if (localeData.featureGraphic) {
-        console.log(`📥 Downloading Feature Graphic...`);
+        console.error(`[MCP]   📥 Downloading Feature Graphic...`);
         const outputPath = join(screenshotDir, "feature-graphic.png");
         if (isLocalAssetPath(localeData.featureGraphic)) {
           copyLocalAssetToAso(localeData.featureGraphic, outputPath);
         } else {
           await downloadImage(localeData.featureGraphic, outputPath);
         }
-        console.log(`   ✅ feature-graphic.png`);
+        console.error(`[MCP]     ✅ feature-graphic.png`);
       }
     }
   }
@@ -110,8 +110,8 @@ async function downloadScreenshotsToAso(
       for (const type of screenshotTypes) {
         const screenshots = localeData.screenshots[type];
         if (screenshots && screenshots.length > 0) {
-          console.log(
-            `📥 Downloading ${screenshots.length} App Store ${type} screenshots...`
+          console.error(
+            `[MCP]   📥 Downloading ${screenshots.length} App Store ${type} screenshots...`
           );
           for (let i = 0; i < screenshots.length; i++) {
             let url = screenshots[i];
@@ -125,7 +125,7 @@ async function downloadScreenshotsToAso(
               }
               await downloadImage(url, outputPath);
             }
-            console.log(`   ✅ ${type}-${i + 1}.png`);
+            console.error(`[MCP]     ✅ ${type}-${i + 1}.png`);
           }
         }
       }
@@ -182,23 +182,23 @@ export async function handleAsoPull(options: AsoPullOptions) {
     };
   }
 
-  console.log(`\n📥 Pulling ASO data`);
-  console.log(`   Store: ${store}`);
-  console.log(`   App: ${slug}`);
-  if (packageName) console.log(`   Package Name: ${packageName}`);
-  if (bundleId) console.log(`   Bundle ID: ${bundleId}`);
-  console.log(`   Mode: ${dryRun ? "Dry run" : "Actual fetch"}\n`);
+  console.error(`[MCP] 📥 Pulling ASO data`);
+  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   App: ${slug}`);
+  if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
+  if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
+  console.error(`[MCP]   Mode: ${dryRun ? "Dry run" : "Actual fetch"}`);
 
   const config = loadConfig();
   const syncedData: AsoData = {};
 
   if (store === "googlePlay" || store === "both") {
     if (!config.playStore) {
-      console.log(
-        `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
     } else if (!packageName) {
-      console.log(`⏭️  Skipping Google Play (no packageName provided)`);
+      console.error(`[MCP]   ⏭️  Skipping Google Play (no packageName provided)`);
     } else {
       try {
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
@@ -207,23 +207,23 @@ export async function handleAsoPull(options: AsoPullOptions) {
           serviceAccountKey: serviceAccount,
         });
 
-        console.log(`📥 Fetching from Google Play...`);
+        console.error(`[MCP]   📥 Fetching from Google Play...`);
         const data = await client.pullAllLanguagesAsoData();
         syncedData.googlePlay = data;
-        console.log(`✅ Google Play data fetched`);
+        console.error(`[MCP]   ✅ Google Play data fetched`);
       } catch (error) {
-        console.error(`❌ Google Play fetch failed:`, error);
+        console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
       }
     }
   }
 
   if (store === "appStore" || store === "both") {
     if (!config.appStore) {
-      console.log(
-        `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
+      console.error(
+        `[MCP]   ⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
       );
     } else if (!bundleId) {
-      console.log(`⏭️  Skipping App Store (no bundleId provided)`);
+      console.error(`[MCP]   ⏭️  Skipping App Store (no bundleId provided)`);
     } else {
       try {
         const client = new AppStoreClient({
@@ -233,12 +233,12 @@ export async function handleAsoPull(options: AsoPullOptions) {
           privateKey: config.appStore.privateKey,
         });
 
-        console.log(`📥 Fetching from App Store...`);
+        console.error(`[MCP]   📥 Fetching from App Store...`);
         const data = await client.pullAllLocalesAsoData();
         syncedData.appStore = data;
-        console.log(`✅ App Store data fetched`);
+        console.error(`[MCP]   ✅ App Store data fetched`);
       } catch (error) {
-        console.error(`❌ App Store fetch failed:`, error);
+        console.error(`[MCP]   ❌ App Store fetch failed:`, error);
       }
     }
   }

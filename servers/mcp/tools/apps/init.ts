@@ -53,6 +53,8 @@ export async function handleSetupApps(options: SetupAppsOptions) {
   const { store = "both", packageName } = options;
   const config = loadConfig();
 
+  console.error(`[MCP] 📱 Initializing apps (store: ${store})`);
+
   // both: Query App Store apps then check Play Store
   if (store === "both" || store === "appStore") {
     if (!config.appStore) {
@@ -72,7 +74,9 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         bundleId: "dummy", // listAllApps() does not use bundleId
       });
 
+      console.error(`[MCP]   📋 Fetching app list from App Store...`);
       const apps = await client.listAllApps({ onlyReleased: true });
+      console.error(`[MCP]   ✅ Found ${apps.length} apps`);
 
       // 모든 앱의 언어 정보를 미리 가져오기 위한 클라이언트 인스턴스
       const appInfoClient = getAppStoreClient({
@@ -109,10 +113,13 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       const playStoreFound: string[] = [];
       const playStoreNotFound: string[] = [];
 
-      for (const app of apps) {
+      for (let i = 0; i < apps.length; i++) {
+        const app = apps[i];
         // Use only last part of bundleId as slug (com.quartz.postblackbelt -> postblackbelt)
         const parts = app.bundleId.split(".");
         const slug = parts[parts.length - 1].toLowerCase();
+
+        console.error(`[MCP]   [${i + 1}/${apps.length}] Processing: ${app.name} (${app.bundleId})`);
 
         // Check if already registered (findApp searches by slug, bundleId, packageName)
         const existing = findApp(app.bundleId);
@@ -228,6 +235,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
             googlePlay: googlePlayInfo,
           });
 
+          console.error(`[MCP]     ✅ Registered: ${slug}`);
           const storeInfo = googlePlayInfo ? " (🍎+🤖)" : " (🍎)";
           registered.push({
             name: app.name,
@@ -315,6 +323,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
   }
 
   if (store === "googlePlay") {
+    console.error(`[MCP]   📋 Processing Google Play app: ${packageName || "N/A"}`);
     if (!config.playStore) {
       return {
         content: [
@@ -350,6 +359,7 @@ Provide packageName to verify and register that app:
       });
 
       // Google Play 정보 가져오기 (언어 정보 포함)
+      console.error(`[MCP]   🔍 Fetching Google Play app info...`);
       const googlePlayInfo = await fetchGooglePlayAppInfo({
         packageName,
         config: config.playStore,
@@ -383,11 +393,13 @@ Provide packageName to verify and register that app:
         appInfo: googlePlayInfo,
       });
 
+      console.error(`[MCP]   💾 Registering app with slug: ${slug}`);
       const newApp = registerApp({
         slug,
         name: googlePlayInfo.name || packageName,
         googlePlay: registeredGooglePlayInfo,
       });
+      console.error(`[MCP]   ✅ App registered successfully`);
 
       const localeInfo =
         registeredGooglePlayInfo?.supportedLocales &&
