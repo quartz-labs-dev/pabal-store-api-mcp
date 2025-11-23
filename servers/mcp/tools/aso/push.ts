@@ -11,7 +11,8 @@ import {
   prepareAsoDataForPush,
   convertToMultilingual,
 } from "../../../../packages/aso-core";
-import { loadConfig, findApp } from "../../../../packages/core";
+import { loadConfig, findApp, getDataDir } from "../../../../packages/core";
+import { join } from "node:path";
 
 interface AsoPushOptions {
   app?: string; // 등록된 앱 slug
@@ -82,7 +83,8 @@ export async function handleAsoPush(options: AsoPushOptions) {
   const config = loadConfig();
 
   // Load local data from cache
-  const configData = loadAsoFromCache(slug);
+  const cacheDir = join(getDataDir(), ".cache", "pushData");
+  const configData = loadAsoFromCache(slug, { cacheDir });
 
   if (!configData.googlePlay && !configData.appStore) {
     return {
@@ -111,7 +113,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
   // Save to cache before pushing
   if (localAsoData.googlePlay || localAsoData.appStore) {
-    saveAsoToCache(slug, localAsoData);
+    saveAsoToCache(slug, localAsoData, { cacheDir });
   }
 
   const results: string[] = [];
