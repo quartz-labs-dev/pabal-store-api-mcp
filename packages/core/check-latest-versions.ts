@@ -1,7 +1,7 @@
 import { checkAppStoreLatestVersion } from "@packages/app-store/check-latest-versions";
 import { checkGooglePlayLatestVersion } from "@packages/play-store/check-latest-versions";
 import { type StoreType } from "@packages/core/types";
-import { loadConfig } from "@packages/core/config";
+import { loadConfig } from "@packages/shared/config";
 
 interface CheckLatestVersionsOptions {
   store?: StoreType;

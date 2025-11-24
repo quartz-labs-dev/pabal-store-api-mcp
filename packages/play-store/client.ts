@@ -360,43 +360,205 @@ export class GooglePlayClient {
       const language = data.defaultLanguage || "en-US";
 
       if (data.title || data.shortDescription || data.fullDescription) {
-        await this.androidPublisher.edits.listings.update({
-          auth: authClient,
-          packageName: this.packageName,
-          editId,
-          language,
-          requestBody: {
-            title: data.title,
-            shortDescription: data.shortDescription,
-            fullDescription: data.fullDescription,
-          },
-        });
+        // Build request body with only defined values
+        const listingBody: Record<string, string> = {};
+        if (data.title) listingBody.title = data.title;
+        if (data.shortDescription) listingBody.shortDescription = data.shortDescription;
+        if (data.fullDescription) listingBody.fullDescription = data.fullDescription;
+
+        console.error(`[GooglePlayClient] Updating listing for ${language}:`, JSON.stringify(listingBody, null, 2));
+
+        try {
+          await this.androidPublisher.edits.listings.update({
+            auth: authClient,
+            packageName: this.packageName,
+            editId,
+            language,
+            requestBody: listingBody,
+          });
+          console.error(`[GooglePlayClient] ✅ Listing updated for ${language}`);
+        } catch (listingError: any) {
+          console.error(`[GooglePlayClient] ❌ Listing update failed for ${language}`);
+          console.error(`[GooglePlayClient] Error code:`, listingError.code);
+          console.error(`[GooglePlayClient] Error message:`, listingError.message);
+          if (listingError.errors) {
+            console.error(`[GooglePlayClient] Error details:`, JSON.stringify(listingError.errors, null, 2));
+          }
+          if (listingError.response?.data) {
+            console.error(`[GooglePlayClient] Response data:`, JSON.stringify(listingError.response.data, null, 2));
+          }
+          throw listingError;
+        }
       }
 
       if (data.contactEmail || data.contactPhone || data.contactWebsite) {
-        await this.androidPublisher.edits.details.update({
-          auth: authClient,
-          packageName: this.packageName,
-          editId,
-          requestBody: {
-            contactEmail: data.contactEmail,
-            contactPhone: data.contactPhone,
-            contactWebsite: data.contactWebsite,
-          },
-        });
+        // Build request body with only defined values
+        const detailsBody: Record<string, string> = {};
+        if (data.contactEmail) detailsBody.contactEmail = data.contactEmail;
+        if (data.contactPhone) detailsBody.contactPhone = data.contactPhone;
+        if (data.contactWebsite) detailsBody.contactWebsite = data.contactWebsite;
+
+        console.error(`[GooglePlayClient] Updating details:`, JSON.stringify(detailsBody, null, 2));
+
+        try {
+          await this.androidPublisher.edits.details.update({
+            auth: authClient,
+            packageName: this.packageName,
+            editId,
+            requestBody: detailsBody,
+          });
+          console.error(`[GooglePlayClient] ✅ Details updated`);
+        } catch (detailsError: any) {
+          console.error(`[GooglePlayClient] ❌ Details update failed`);
+          console.error(`[GooglePlayClient] Error code:`, detailsError.code);
+          console.error(`[GooglePlayClient] Error message:`, detailsError.message);
+          if (detailsError.errors) {
+            console.error(`[GooglePlayClient] Error details:`, JSON.stringify(detailsError.errors, null, 2));
+          }
+          if (detailsError.response?.data) {
+            console.error(`[GooglePlayClient] Response data:`, JSON.stringify(detailsError.response.data, null, 2));
+          }
+          throw detailsError;
+        }
       }
 
+      console.error(`[GooglePlayClient] Committing edit...`);
       await this.androidPublisher.edits.commit({
         auth: authClient,
         packageName: this.packageName,
         editId,
       });
+      console.error(`[GooglePlayClient] ✅ Edit committed successfully`);
     } catch (error) {
+      console.error(`[GooglePlayClient] Rolling back edit due to error...`);
       await this.androidPublisher.edits.delete({
         auth: authClient,
         packageName: this.packageName,
         editId,
       });
+      throw error;
+    }
+  }
+
+  /**
+   * Push multilingual ASO data in a single edit session
+   * This prevents backendError from rapid successive commits
+   */
+  async pushMultilingualAsoData(data: GooglePlayMultilingualAsoData): Promise<void> {
+    const authClient = await this.auth.getClient();
+
+    const editResponse = await this.androidPublisher.edits.insert({
+      auth: authClient,
+      packageName: this.packageName,
+    });
+
+    const editId = editResponse.data.id!;
+    const locales = Object.keys(data.locales);
+
+    console.error(`[GooglePlayClient] Starting multilingual push for ${locales.length} locale(s): ${locales.join(", ")}`);
+
+    try {
+      // Update listings for all languages in a single edit session
+      for (const [language, localeData] of Object.entries(data.locales)) {
+        if (localeData.title || localeData.shortDescription || localeData.fullDescription) {
+          const listingBody: Record<string, string> = {};
+          if (localeData.title) listingBody.title = localeData.title;
+          if (localeData.shortDescription) listingBody.shortDescription = localeData.shortDescription;
+          if (localeData.fullDescription) listingBody.fullDescription = localeData.fullDescription;
+
+          console.error(`[GooglePlayClient] Updating listing for ${language}...`);
+
+          try {
+            await this.androidPublisher.edits.listings.update({
+              auth: authClient,
+              packageName: this.packageName,
+              editId,
+              language,
+              requestBody: listingBody,
+            });
+            console.error(`[GooglePlayClient] ✅ Listing prepared for ${language}`);
+          } catch (listingError: any) {
+            console.error(`[GooglePlayClient] ❌ Listing update failed for ${language}`);
+            console.error(`[GooglePlayClient] Error code:`, listingError.code);
+            console.error(`[GooglePlayClient] Error message:`, listingError.message);
+            if (listingError.errors) {
+              console.error(`[GooglePlayClient] Error details:`, JSON.stringify(listingError.errors, null, 2));
+            }
+            throw listingError;
+          }
+        }
+      }
+
+      // Update app details (contactEmail, contactPhone, contactWebsite) once
+      // Use first locale's data for contact info (it's app-level, not locale-specific)
+      const firstLocaleData = Object.values(data.locales)[0];
+      if (firstLocaleData && (firstLocaleData.contactEmail || firstLocaleData.contactPhone || firstLocaleData.contactWebsite)) {
+        const detailsBody: Record<string, string> = {};
+        if (firstLocaleData.contactEmail) detailsBody.contactEmail = firstLocaleData.contactEmail;
+        if (firstLocaleData.contactPhone) detailsBody.contactPhone = firstLocaleData.contactPhone;
+        if (firstLocaleData.contactWebsite) detailsBody.contactWebsite = firstLocaleData.contactWebsite;
+
+        console.error(`[GooglePlayClient] Updating app details...`);
+
+        try {
+          await this.androidPublisher.edits.details.update({
+            auth: authClient,
+            packageName: this.packageName,
+            editId,
+            requestBody: detailsBody,
+          });
+          console.error(`[GooglePlayClient] ✅ App details prepared`);
+        } catch (detailsError: any) {
+          console.error(`[GooglePlayClient] ❌ Details update failed`);
+          console.error(`[GooglePlayClient] Error code:`, detailsError.code);
+          console.error(`[GooglePlayClient] Error message:`, detailsError.message);
+          throw detailsError;
+        }
+      }
+
+      // Commit all changes at once
+      console.error(`[GooglePlayClient] Committing all changes...`);
+      try {
+        await this.androidPublisher.edits.commit({
+          auth: authClient,
+          packageName: this.packageName,
+          editId,
+        });
+        console.error(`[GooglePlayClient] ✅ All ${locales.length} locale(s) committed successfully`);
+      } catch (commitError: any) {
+        console.error(`[GooglePlayClient] ❌ Commit failed`);
+        console.error(`[GooglePlayClient] Error code:`, commitError.code);
+        console.error(`[GooglePlayClient] Error message:`, commitError.message);
+        console.error(`[GooglePlayClient] Error status:`, commitError.status);
+        if (commitError.errors) {
+          console.error(`[GooglePlayClient] Error details:`, JSON.stringify(commitError.errors, null, 2));
+        }
+        if (commitError.response?.data) {
+          console.error(`[GooglePlayClient] Response data:`, JSON.stringify(commitError.response.data, null, 2));
+        }
+        if (commitError.response?.status) {
+          console.error(`[GooglePlayClient] Response status:`, commitError.response.status);
+        }
+        if (commitError.response?.statusText) {
+          console.error(`[GooglePlayClient] Response statusText:`, commitError.response.statusText);
+        }
+        if (commitError.response?.headers) {
+          console.error(`[GooglePlayClient] Response headers:`, JSON.stringify(commitError.response.headers, null, 2));
+        }
+        throw commitError;
+      }
+    } catch (error: any) {
+      console.error(`[GooglePlayClient] Rolling back edit due to error...`);
+      console.error(`[GooglePlayClient] Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      try {
+        await this.androidPublisher.edits.delete({
+          auth: authClient,
+          packageName: this.packageName,
+          editId,
+        });
+      } catch {
+        // Ignore deletion failure
+      }
       throw error;
     }
   }

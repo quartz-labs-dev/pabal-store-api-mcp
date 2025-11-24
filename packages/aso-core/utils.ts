@@ -74,10 +74,9 @@ export function prepareAsoDataForPush(
     const cleanedLocales: Record<string, CleanedGooglePlay> = {};
 
     for (const [locale, localeData] of Object.entries(locales)) {
-      const { screenshots, ...rest } = localeData;
+      const { screenshots, featureGraphic, ...rest } = localeData;
       cleanedLocales[locale] = {
         ...rest,
-        featureGraphic: undefined,
         contactWebsite: detailPageUrl,
       };
     }

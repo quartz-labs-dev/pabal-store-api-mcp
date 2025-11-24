@@ -279,24 +279,11 @@ export async function handleAsoPush(options: AsoPushOptions) {
           } total)`
         );
 
-        for (const [language, localeData] of Object.entries(
-          googlePlayData.locales
-        )) {
-          console.error(`[MCP]     📤 Pushing ${language}...`);
-          try {
-            await client.pushAsoData(localeData);
-            console.error(`[MCP]     ✅ ${language} uploaded successfully`);
-          } catch (localeError) {
-            const localeMsg =
-              localeError instanceof Error
-                ? localeError.message
-                : String(localeError);
-            console.error(`[MCP]     ❌ ${language} failed: ${localeMsg}`);
-            throw localeError; // Re-throw to be caught by outer catch
-          }
-        }
+        // Use pushMultilingualAsoData to push all locales in a single edit session
+        // This prevents backendError from rapid successive commits
+        await client.pushMultilingualAsoData(googlePlayData);
 
-        results.push(`✅ Google Play data pushed`);
+        results.push(`✅ Google Play data pushed (${localesToPush.length} locales)`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
@@ -305,7 +292,11 @@ export async function handleAsoPush(options: AsoPushOptions) {
         if (errorStack) {
           console.error(`[MCP]     Stack: ${errorStack}`);
         }
+
+        // Extract detailed error info for response
+        let detailedError = msg;
         if (error instanceof Error && "response" in error) {
+          const responseData = (error as any).response?.data;
           console.error(
             `[MCP]     Response: ${JSON.stringify(
               (error as any).response,
@@ -313,8 +304,15 @@ export async function handleAsoPush(options: AsoPushOptions) {
               2
             )}`
           );
+          if (responseData) {
+            detailedError = `${msg}\n\nAPI Response:\n${JSON.stringify(responseData, null, 2)}`;
+          }
         }
-        results.push(`❌ Google Play push failed: ${msg}`);
+        if ((error as any).errors) {
+          detailedError = `${msg}\n\nError Details:\n${JSON.stringify((error as any).errors, null, 2)}`;
+        }
+
+        results.push(`❌ Google Play push failed: ${detailedError}`);
         console.error(`❌ Google Play push failed:`, error);
       }
     }
