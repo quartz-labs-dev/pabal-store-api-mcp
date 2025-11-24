@@ -92,7 +92,9 @@ export async function handleAsoPullReleaseNotes(
         `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
     } else if (!packageName) {
-      console.error(`[MCP]   ⏭️  Skipping Google Play (no packageName provided)`);
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play (no packageName provided)`
+      );
     } else {
       try {
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
@@ -106,7 +108,9 @@ export async function handleAsoPullReleaseNotes(
         releaseNotes.googlePlay = result.releaseNotes;
 
         console.error(`[MCP]   📊 Google Play Release Notes:`);
-        console.error(`[MCP]     Total versions: ${result.releaseNotes.length}`);
+        console.error(
+          `[MCP]     Total versions: ${result.releaseNotes.length}`
+        );
         for (const rn of result.releaseNotes) {
           console.error(
             `[MCP]     Version ${rn.versionName} (${rn.versionCode}): ${
@@ -142,7 +146,9 @@ export async function handleAsoPullReleaseNotes(
         releaseNotes.appStore = result.releaseNotes;
 
         console.error(`[MCP]   📊 App Store Release Notes:`);
-        console.error(`[MCP]     Total versions: ${result.releaseNotes.length}`);
+        console.error(
+          `[MCP]     Total versions: ${result.releaseNotes.length}`
+        );
         for (const rn of result.releaseNotes) {
           console.error(
             `[MCP]     Version ${rn.versionString}: ${

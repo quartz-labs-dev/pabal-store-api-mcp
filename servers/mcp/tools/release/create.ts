@@ -117,7 +117,9 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
           versionString: version,
         });
         const state = result.version.attributes.appStoreState?.toUpperCase();
-        console.error(`[MCP]     ✅ App Store version created (${state || "UNKNOWN"})`);
+        console.error(
+          `[MCP]     ✅ App Store version created (${state || "UNKNOWN"})`
+        );
 
         results.push(
           `✅ App Store version ${result.version.attributes.versionString} created` +
@@ -148,7 +150,9 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
           serviceAccountKey: serviceAccount,
         });
 
-        console.error(`[MCP]   📦 Creating Google Play production release ${version}...`);
+        console.error(
+          `[MCP]   📦 Creating Google Play production release ${version}...`
+        );
         await createGooglePlayVersion({
           client,
           versionString: version,

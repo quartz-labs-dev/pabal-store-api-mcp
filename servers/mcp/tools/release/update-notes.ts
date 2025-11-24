@@ -328,12 +328,22 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
       store,
     });
 
-  console.error(`[MCP]   📝 Locales to update: ${Object.keys(finalWhatsNew).length}`);
+  console.error(
+    `[MCP]   📝 Locales to update: ${Object.keys(finalWhatsNew).length}`
+  );
   if (Object.keys(appStoreTranslations).length > 0) {
-    console.error(`[MCP]   🍎 App Store locales: ${Object.keys(appStoreTranslations).join(", ")}`);
+    console.error(
+      `[MCP]   🍎 App Store locales: ${Object.keys(appStoreTranslations).join(
+        ", "
+      )}`
+    );
   }
   if (Object.keys(googlePlayTranslations).length > 0) {
-    console.error(`[MCP]   🤖 Google Play locales: ${Object.keys(googlePlayTranslations).join(", ")}`);
+    console.error(
+      `[MCP]   🤖 Google Play locales: ${Object.keys(
+        googlePlayTranslations
+      ).join(", ")}`
+    );
   }
 
   // App Store update
@@ -362,7 +372,9 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
           supportedLocales: registeredApp.appStore?.supportedLocales,
         });
 
-        console.error(`[MCP]     ✅ Updated ${updateResult.updated.length} locales`);
+        console.error(
+          `[MCP]     ✅ Updated ${updateResult.updated.length} locales`
+        );
         for (const locale of updateResult.updated) {
           appStoreResults.push(`✅ ${locale}`);
           console.error(`[MCP]       ✅ ${locale}`);
@@ -403,7 +415,9 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
           supportedLocales: registeredApp.googlePlay?.supportedLocales,
         });
 
-        console.error(`[MCP]     ✅ Updated ${updateResult.updated.length} locales`);
+        console.error(
+          `[MCP]     ✅ Updated ${updateResult.updated.length} locales`
+        );
         for (const locale of updateResult.updated) {
           googlePlayResults.push(`✅ ${locale}`);
           console.error(`[MCP]       ✅ ${locale}`);

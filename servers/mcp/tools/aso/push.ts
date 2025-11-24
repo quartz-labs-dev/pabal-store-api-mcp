@@ -11,9 +11,11 @@ import {
   saveAsoData,
   prepareAsoDataForPush,
   convertToMultilingual,
+  getAsoDir,
 } from "@packages/aso-core";
-import { loadConfig, findApp, getDataDir } from "@packages/shared";
+import { loadConfig, findApp } from "@packages/shared";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 
 interface AsoPushOptions {
   app?: string; // Registered app slug
@@ -84,22 +86,136 @@ export async function handleAsoPush(options: AsoPushOptions) {
   const config = loadConfig();
 
   // Load local data from ASO directory
-  const asoDir = join(getDataDir(), ".aso", "pushData");
+  const asoDir = join(getAsoDir(), "pushData");
+  console.error(`[MCP]   📁 ASO Directory: ${asoDir}`);
+  console.error(`[MCP]   📁 Base ASO Dir: ${getAsoDir()}`);
+
+  // Check expected file paths before loading
+  const googlePlayDataPath = join(
+    asoDir,
+    "products",
+    slug,
+    "store",
+    "google-play",
+    "aso-data.json"
+  );
+  const appStoreDataPath = join(
+    asoDir,
+    "products",
+    slug,
+    "store",
+    "app-store",
+    "aso-data.json"
+  );
+
+  console.error(`[MCP]   🔍 Checking data files...`);
+  console.error(`[MCP]     Google Play: ${googlePlayDataPath}`);
+  console.error(
+    `[MCP]       Exists: ${existsSync(googlePlayDataPath) ? "✅ Yes" : "❌ No"}`
+  );
+  console.error(`[MCP]     App Store: ${appStoreDataPath}`);
+  console.error(
+    `[MCP]       Exists: ${existsSync(appStoreDataPath) ? "✅ Yes" : "❌ No"}`
+  );
+
   const configData = loadAsoData(slug, { asoDir });
 
+  console.error(`[MCP]   📊 Loaded data status:`);
+  console.error(
+    `[MCP]     Google Play: ${
+      configData.googlePlay ? "✅ Loaded" : "❌ Not found"
+    }`
+  );
+  if (configData.googlePlay) {
+    const gpData = configData.googlePlay;
+    if (isGooglePlayMultilingual(gpData)) {
+      const locales = Object.keys(gpData.locales);
+      console.error(
+        `[MCP]       Locales: ${locales.join(", ")} (${locales.length} total)`
+      );
+    } else {
+      console.error(
+        `[MCP]       Language: ${gpData.defaultLanguage || "unknown"}`
+      );
+    }
+  }
+  console.error(
+    `[MCP]     App Store: ${configData.appStore ? "✅ Loaded" : "❌ Not found"}`
+  );
+  if (configData.appStore) {
+    const asData = configData.appStore;
+    if (isAppStoreMultilingual(asData)) {
+      const locales = Object.keys(asData.locales);
+      console.error(
+        `[MCP]       Locales: ${locales.join(", ")} (${locales.length} total)`
+      );
+    } else {
+      console.error(`[MCP]       Locale: ${asData.locale || "unknown"}`);
+    }
+  }
+
   if (!configData.googlePlay && !configData.appStore) {
+    const errorDetails = [
+      `❌ No ASO data found for ${slug}.`,
+      ``,
+      `📁 Expected paths:`,
+      `   Google Play: ${googlePlayDataPath}`,
+      `   App Store: ${appStoreDataPath}`,
+      ``,
+      `💡 To fix this:`,
+      `   1. Run \`aso-pull\` to fetch data from stores`,
+      `   2. Or ensure data exists at the paths above`,
+      `   3. Check that PABAL_MCP_DATA_DIR is set correctly (current: ${getAsoDir()})`,
+    ].join("\n");
+
+    console.error(`[MCP]   ❌ ${errorDetails}`);
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ No ASO data found for ${slug}. Run aso-pull first.`,
+          text: errorDetails,
         },
       ],
     };
   }
 
   // Prepare data for push
+  console.error(`[MCP]   🔄 Preparing data for push...`);
   const localAsoData = prepareAsoDataForPush(slug, configData);
+
+  console.error(`[MCP]   📊 Prepared data status:`);
+  console.error(
+    `[MCP]     Google Play: ${
+      localAsoData.googlePlay ? "✅ Ready" : "❌ Not available"
+    }`
+  );
+  if (localAsoData.googlePlay) {
+    const gpData = localAsoData.googlePlay;
+    if (isGooglePlayMultilingual(gpData)) {
+      const locales = Object.keys(gpData.locales);
+      console.error(
+        `[MCP]       Locales to push: ${locales.join(", ")} (${
+          locales.length
+        } total)`
+      );
+    }
+  }
+  console.error(
+    `[MCP]     App Store: ${
+      localAsoData.appStore ? "✅ Ready" : "❌ Not available"
+    }`
+  );
+  if (localAsoData.appStore) {
+    const asData = localAsoData.appStore;
+    if (isAppStoreMultilingual(asData)) {
+      const locales = Object.keys(asData.locales);
+      console.error(
+        `[MCP]       Locales to push: ${locales.join(", ")} (${
+          locales.length
+        } total)`
+      );
+    }
+  }
 
   if (dryRun) {
     return {
@@ -131,6 +247,12 @@ export async function handleAsoPush(options: AsoPushOptions) {
     } else if (!packageName) {
       results.push(`⏭️  Skipping Google Play (no packageName provided)`);
     } else if (!localAsoData.googlePlay) {
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play: No data found after preparation`
+      );
+      console.error(
+        `[MCP]     Check if Google Play data exists in: ${googlePlayDataPath}`
+      );
       results.push(`⏭️  Skipping Google Play (no data found)`);
     } else {
       try {
@@ -148,18 +270,50 @@ export async function handleAsoPush(options: AsoPushOptions) {
                 localAsoData.googlePlay.defaultLanguage
               );
 
+        const localesToPush = Object.keys(googlePlayData.locales);
         console.error(`[MCP]   📤 Pushing to Google Play...`);
+        console.error(`[MCP]     Package: ${packageName}`);
+        console.error(
+          `[MCP]     Locales: ${localesToPush.join(", ")} (${
+            localesToPush.length
+          } total)`
+        );
+
         for (const [language, localeData] of Object.entries(
           googlePlayData.locales
         )) {
           console.error(`[MCP]     📤 Pushing ${language}...`);
-          await client.pushAsoData(localeData);
-          console.error(`[MCP]     ✅ ${language} uploaded`);
+          try {
+            await client.pushAsoData(localeData);
+            console.error(`[MCP]     ✅ ${language} uploaded successfully`);
+          } catch (localeError) {
+            const localeMsg =
+              localeError instanceof Error
+                ? localeError.message
+                : String(localeError);
+            console.error(`[MCP]     ❌ ${language} failed: ${localeMsg}`);
+            throw localeError; // Re-throw to be caught by outer catch
+          }
         }
 
         results.push(`✅ Google Play data pushed`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error(`[MCP]   ❌ Google Play push failed`);
+        console.error(`[MCP]     Error: ${msg}`);
+        if (errorStack) {
+          console.error(`[MCP]     Stack: ${errorStack}`);
+        }
+        if (error instanceof Error && "response" in error) {
+          console.error(
+            `[MCP]     Response: ${JSON.stringify(
+              (error as any).response,
+              null,
+              2
+            )}`
+          );
+        }
         results.push(`❌ Google Play push failed: ${msg}`);
         console.error(`❌ Google Play push failed:`, error);
       }
@@ -174,6 +328,12 @@ export async function handleAsoPush(options: AsoPushOptions) {
     } else if (!bundleId) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else if (!localAsoData.appStore) {
+      console.error(
+        `[MCP]   ⏭️  Skipping App Store: No data found after preparation`
+      );
+      console.error(
+        `[MCP]     Check if App Store data exists in: ${appStoreDataPath}`
+      );
       results.push(`⏭️  Skipping App Store (no data found)`);
     } else {
       try {
@@ -192,13 +352,30 @@ export async function handleAsoPush(options: AsoPushOptions) {
                 localAsoData.appStore.locale
               );
 
+        const localesToPush = Object.keys(appStoreData.locales);
         console.error(`[MCP]   📤 Pushing to App Store...`);
+        console.error(`[MCP]     Bundle ID: ${bundleId}`);
+        console.error(
+          `[MCP]     Locales: ${localesToPush.join(", ")} (${
+            localesToPush.length
+          } total)`
+        );
+
         for (const [locale, localeData] of Object.entries(
           appStoreData.locales
         )) {
           console.error(`[MCP]     📤 Pushing ${locale}...`);
-          await client.pushAsoData(localeData);
-          console.error(`[MCP]     ✅ ${locale} uploaded`);
+          try {
+            await client.pushAsoData(localeData);
+            console.error(`[MCP]     ✅ ${locale} uploaded successfully`);
+          } catch (localeError) {
+            const localeMsg =
+              localeError instanceof Error
+                ? localeError.message
+                : String(localeError);
+            console.error(`[MCP]     ❌ ${locale} failed: ${localeMsg}`);
+            throw localeError; // Re-throw to be caught by outer catch
+          }
         }
 
         results.push(`✅ App Store data pushed`);
@@ -283,6 +460,21 @@ After updating What's New, call \`aso-push\` again to push ASO data.`,
             );
           }
         } else {
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          console.error(`[MCP]   ❌ App Store push failed`);
+          console.error(`[MCP]     Error: ${msg}`);
+          if (errorStack) {
+            console.error(`[MCP]     Stack: ${errorStack}`);
+          }
+          if (error instanceof Error && "response" in error) {
+            console.error(
+              `[MCP]     Response: ${JSON.stringify(
+                (error as any).response,
+                null,
+                2
+              )}`
+            );
+          }
           results.push(`❌ App Store push failed: ${msg}`);
         }
 

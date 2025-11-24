@@ -58,15 +58,16 @@ export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
 
   // Check latest versions (without prompt message since this is a dedicated check tool)
   if (bundleId) console.error(`[MCP]   App Store bundleId: ${bundleId}`);
-  if (packageName) console.error(`[MCP]   Google Play packageName: ${packageName}`);
-  
+  if (packageName)
+    console.error(`[MCP]   Google Play packageName: ${packageName}`);
+
   const versionInfo = await checkLatestVersions({
     store,
     bundleId,
     packageName,
     includePrompt: false,
   });
-  
+
   console.error(`[MCP]   ✅ Version check completed`);
 
   return {

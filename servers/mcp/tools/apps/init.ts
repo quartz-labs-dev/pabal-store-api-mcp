@@ -119,7 +119,11 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         const parts = app.bundleId.split(".");
         const slug = parts[parts.length - 1].toLowerCase();
 
-        console.error(`[MCP]   [${i + 1}/${apps.length}] Processing: ${app.name} (${app.bundleId})`);
+        console.error(
+          `[MCP]   [${i + 1}/${apps.length}] Processing: ${app.name} (${
+            app.bundleId
+          })`
+        );
 
         // Check if already registered (findApp searches by slug, bundleId, packageName)
         const existing = findApp(app.bundleId);
@@ -323,7 +327,9 @@ export async function handleSetupApps(options: SetupAppsOptions) {
   }
 
   if (store === "googlePlay") {
-    console.error(`[MCP]   📋 Processing Google Play app: ${packageName || "N/A"}`);
+    console.error(
+      `[MCP]   📋 Processing Google Play app: ${packageName || "N/A"}`
+    );
     if (!config.playStore) {
       return {
         content: [

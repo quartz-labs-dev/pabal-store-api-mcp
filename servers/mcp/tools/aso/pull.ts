@@ -13,7 +13,7 @@ import {
   resolveAppStoreImageUrl,
   convertToMultilingual,
 } from "@packages/aso-core";
-import { loadConfig, getDataDir, findApp } from "@packages/shared";
+import { loadConfig, findApp } from "@packages/shared";
 import { join } from "node:path";
 
 interface AsoPullOptions {
@@ -198,7 +198,9 @@ export async function handleAsoPull(options: AsoPullOptions) {
         `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
     } else if (!packageName) {
-      console.error(`[MCP]   ⏭️  Skipping Google Play (no packageName provided)`);
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play (no packageName provided)`
+      );
     } else {
       try {
         const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
@@ -263,7 +265,7 @@ export async function handleAsoPull(options: AsoPullOptions) {
   await downloadScreenshotsToAso(
     slug,
     syncedData,
-    join(getDataDir(), ".aso", "pullData")
+    join(getAsoDir(), "pullData")
   );
 
   return {
