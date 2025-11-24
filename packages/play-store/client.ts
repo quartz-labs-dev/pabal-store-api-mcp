@@ -544,11 +544,13 @@ export class GooglePlayClient {
   /**
    * Push app details (contactEmail, contactPhone, contactWebsite) in a separate edit session
    * This must be called separately from pushMultilingualAsoData due to Google Play API limitations
+   * NOTE: defaultLanguage is required - it will be fetched from current app details if not provided
    */
   async pushAppDetails(details: {
     contactEmail?: string;
     contactPhone?: string;
     contactWebsite?: string;
+    defaultLanguage?: string;
   }): Promise<void> {
     if (!details.contactEmail && !details.contactPhone && !details.contactWebsite) {
       console.error(`[GooglePlayClient] No app details to update, skipping`);
@@ -567,7 +569,23 @@ export class GooglePlayClient {
     console.error(`[GooglePlayClient] Starting app details update...`);
 
     try {
-      const detailsBody: Record<string, string> = {};
+      // defaultLanguage is required for details.update API
+      // If not provided, fetch current value first
+      let defaultLanguage = details.defaultLanguage;
+      if (!defaultLanguage) {
+        console.error(`[GooglePlayClient] Fetching current defaultLanguage...`);
+        const currentDetails = await this.androidPublisher.edits.details.get({
+          auth: authClient,
+          packageName: this.packageName,
+          editId,
+        });
+        defaultLanguage = currentDetails.data.defaultLanguage || "en-US";
+        console.error(`[GooglePlayClient] Current defaultLanguage: ${defaultLanguage}`);
+      }
+
+      const detailsBody: Record<string, string> = {
+        defaultLanguage: defaultLanguage!, // Required field (guaranteed to be set above)
+      };
       if (details.contactEmail) detailsBody.contactEmail = details.contactEmail;
       if (details.contactPhone) detailsBody.contactPhone = details.contactPhone;
       if (details.contactWebsite) detailsBody.contactWebsite = details.contactWebsite;
