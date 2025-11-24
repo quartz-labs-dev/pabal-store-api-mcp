@@ -94,9 +94,7 @@ npm test -- tests/mcp-tools/my-new-tool.test.ts
 
 ## 기존 도구 목록
 
-- `ping`: 연결 확인용 헬스체크
-- `auth-app-store`: App Store 인증 상태 확인
-- `auth-play-store`: Play Store 인증 상태 확인
+- `auth-check`: App Store / Play Store 인증 상태 확인
 
 
 

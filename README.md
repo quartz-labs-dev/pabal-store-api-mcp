@@ -1,13 +1,13 @@
 # pabal-mcp
 
-A project that provides App Store / Play Store ASO workflows as MCP tools. Currently includes a minimal `ping` tool for MCP handshake verification, with store-specific clients and `aso:*` workflows to be added.
+A project that provides App Store / Play Store ASO workflows as MCP tools. Includes store-specific clients and `aso:*` workflows.
 
 ## Quick Start (MCP Minimal Server)
 
 - Requirements: Node.js 18+.
 - Installation: `npm install`
 - Run: `npm run dev:mcp`
-  - Connect from an MCP client (e.g., Claude Desktop, MCP Inspector) as a stdio server, then call `ping` to verify basic operation when you receive a `pong` response.
+  - Connect from an MCP client (e.g., Claude Desktop, MCP Inspector) as a stdio server.
 
 ## Data Storage Path Configuration (MCP)
 
@@ -84,7 +84,7 @@ Configure App Store and Play Store authentication information in this file. The 
 - `packages/app-store`: App Store Connect client.
 - `packages/play-store`: Play Developer API client.
 - `packages/use-cases`: Common use cases such as `pull/push/prepare/create-version`.
-- `servers/mcp`: MCP server entry (includes `ping`, ASO tools to be added).
+- `servers/mcp`: MCP server entry (includes ASO tools).
 - `scripts/aso`: Keep CLI scripts (`aso:*`) thin by calling use cases.
 
 ## Implementation Notes by Store

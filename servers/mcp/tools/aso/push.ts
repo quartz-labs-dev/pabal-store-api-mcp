@@ -283,7 +283,9 @@ export async function handleAsoPush(options: AsoPushOptions) {
         // This prevents backendError from rapid successive commits
         await client.pushMultilingualAsoData(googlePlayData);
 
-        results.push(`✅ Google Play data pushed (${localesToPush.length} locales)`);
+        results.push(
+          `✅ Google Play data pushed (${localesToPush.length} locales)`
+        );
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
@@ -305,11 +307,19 @@ export async function handleAsoPush(options: AsoPushOptions) {
             )}`
           );
           if (responseData) {
-            detailedError = `${msg}\n\nAPI Response:\n${JSON.stringify(responseData, null, 2)}`;
+            detailedError = `${msg}\n\nAPI Response:\n${JSON.stringify(
+              responseData,
+              null,
+              2
+            )}`;
           }
         }
         if ((error as any).errors) {
-          detailedError = `${msg}\n\nError Details:\n${JSON.stringify((error as any).errors, null, 2)}`;
+          detailedError = `${msg}\n\nError Details:\n${JSON.stringify(
+            (error as any).errors,
+            null,
+            2
+          )}`;
         }
 
         results.push(`❌ Google Play push failed: ${detailedError}`);

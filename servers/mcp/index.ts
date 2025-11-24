@@ -5,7 +5,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio";
 import { z } from "zod";
 import {
-  handlePing,
   handleAuthCheck,
   handleSetupApps,
   handleAddApp,
@@ -29,7 +28,7 @@ const server = new McpServer(
   { name: "pabal-mcp", version: "0.0.1" },
   {
     instructions:
-      "Provides tools for App Store/Play Store ASO. Use ping first to verify connection.",
+      "Provides tools for App Store/Play Store ASO.",
   }
 );
 
@@ -146,19 +145,6 @@ function registerToolWithInfo(
 export function getToolInfos(): ToolInfo[] {
   return toolInfos;
 }
-
-// ============================================================================
-// Health Check
-// ============================================================================
-
-registerToolWithInfo(
-  "ping",
-  {
-    description: "Health check for connection verification",
-  },
-  handlePing,
-  "Health Check"
-);
 
 // ============================================================================
 // Authentication (auth-*)

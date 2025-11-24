@@ -1,4 +1,3 @@
-export * from "./ping";
 export * from "./auth";
 export * from "./apps";
 export * from "./aso";
