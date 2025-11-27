@@ -278,10 +278,18 @@ export async function handleAsoPush(options: AsoPushOptions) {
             localesToPush.length
           } total)`
         );
+        for (const locale of localesToPush) {
+          console.error(`[MCP]       📤 Preparing locale: ${locale}`);
+        }
 
         // Use pushMultilingualAsoData to push all locales in a single edit session
         // This prevents backendError from rapid successive commits
         await client.pushMultilingualAsoData(googlePlayData);
+
+        console.error(`[MCP]     ✅ Google Play upload complete per locale:`);
+        for (const locale of localesToPush) {
+          console.error(`[MCP]       ✅ ${locale}`);
+        }
 
         results.push(
           `✅ Google Play data pushed (${localesToPush.length} locales)`

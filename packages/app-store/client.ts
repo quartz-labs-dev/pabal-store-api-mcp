@@ -33,6 +33,21 @@ interface AppStoreApp {
   attributes: { name: string; bundleId: string; sku: string };
 }
 
+interface AppInfo {
+  id: string;
+  attributes: { appStoreState?: string };
+}
+
+interface AppInfoLocalization {
+  id: string;
+  attributes: {
+    locale?: string;
+    name?: string;
+    subtitle?: string;
+    privacyPolicyUrl?: string;
+  };
+}
+
 interface AppStoreVersion {
   id: string;
   attributes: {
@@ -255,20 +270,14 @@ export class AppStoreClient {
    */
   private async getEnglishAppName(appId: string): Promise<string | null> {
     try {
-      // Get localization information from app info via appInfos
-      const appInfosResponse = await this.apiRequest<
-        ApiResponse<Array<{ id: string }>>
-      >(`/apps/${appId}/appInfos?limit=1`);
-
-      const appInfo = appInfosResponse.data?.[0];
-      if (!appInfo) return null;
+      const appInfoId = await this.findAppInfoId(appId);
 
       // Find English localization
       const localizationsResponse = await this.apiRequest<
         ApiResponse<
           Array<{ id: string; attributes: { locale: string; name?: string } }>
         >
-      >(`/appInfos/${appInfo.id}/appInfoLocalizations`);
+      >(`/appInfos/${appInfoId}/appInfoLocalizations`);
 
       const localizations = localizationsResponse.data || [];
 
@@ -295,20 +304,14 @@ export class AppStoreClient {
    */
   async getSupportedLocales(appId: string): Promise<string[]> {
     try {
-      // Get localization information from app info via appInfos
-      const appInfosResponse = await this.apiRequest<
-        ApiResponse<Array<{ id: string }>>
-      >(`/apps/${appId}/appInfos?limit=1`);
-
-      const appInfo = appInfosResponse.data?.[0];
-      if (!appInfo) return [];
+      const appInfoId = await this.findAppInfoId(appId);
 
       // Get all localizations
       const localizationsResponse = await this.apiRequest<
         ApiResponse<
           Array<{ id: string; attributes: { locale: string; name?: string } }>
         >
-      >(`/appInfos/${appInfo.id}/appInfoLocalizations`);
+      >(`/appInfos/${appInfoId}/appInfoLocalizations`);
 
       const localizations = localizationsResponse.data || [];
       return localizations
@@ -333,6 +336,21 @@ export class AppStoreClient {
     return app.id;
   }
 
+  private async findAppInfoId(appId?: string): Promise<string> {
+    const targetAppId = appId || (await this.findAppId());
+
+    const appInfosResponse = await this.apiRequest<ApiResponse<AppInfo[]>>(
+      `/apps/${targetAppId}/appInfos?limit=1`
+    );
+
+    const appInfo = appInfosResponse.data?.[0];
+    if (!appInfo) {
+      throw new Error(`App Info not found for App ID "${targetAppId}".`);
+    }
+
+    return appInfo.id;
+  }
+
   private sortVersions(versions: AppStoreVersion[]): AppStoreVersion[] {
     return versions.sort((a, b) => {
       const vA = a.attributes.versionString.split(".").map(Number);
@@ -350,6 +368,7 @@ export class AppStoreClient {
   ): Promise<AppStoreAsoData> {
     const locale = options.locale || "en-US";
     const appId = await this.findAppId();
+    const appInfoId = await this.findAppInfoId(appId);
 
     const appResponse = await this.apiRequest<ApiResponse<AppStoreApp>>(
       `/apps/${appId}`
@@ -371,6 +390,10 @@ export class AppStoreClient {
 
     const localization = localizationsResponse.data?.[0];
     let detailedLocalization: AppStoreLocalization | null = null;
+    const appInfoLocalizationResponse = await this.apiRequest<
+      ApiResponse<AppInfoLocalization[]>
+    >(`/appInfos/${appInfoId}/appInfoLocalizations?filter[locale]=${locale}`);
+    const appInfoLocalization = appInfoLocalizationResponse.data?.[0];
 
     if (localization) {
       detailedLocalization = (
@@ -407,8 +430,8 @@ export class AppStoreClient {
     }
 
     return {
-      name: app.attributes.name,
-      subtitle: detailedLocalization?.attributes.promotionalText,
+      name: appInfoLocalization?.attributes.name || app.attributes.name,
+      subtitle: appInfoLocalization?.attributes.subtitle,
       description: detailedLocalization?.attributes.description || "",
       keywords: detailedLocalization?.attributes.keywords,
       promotionalText: detailedLocalization?.attributes.promotionalText,
@@ -423,10 +446,21 @@ export class AppStoreClient {
 
   async pullAllLocalesAsoData(): Promise<AppStoreMultilingualAsoData> {
     const appId = await this.findAppId();
+    const appInfoId = await this.findAppInfoId(appId);
     const appResponse = await this.apiRequest<ApiResponse<AppStoreApp>>(
       `/apps/${appId}`
     );
     const app = appResponse.data;
+
+    const appInfoLocalizationsResponse = await this.apiRequest<
+      ApiResponse<AppInfoLocalization[]>
+    >(`/appInfos/${appInfoId}/appInfoLocalizations`);
+    const appInfoLocalizationMap = (appInfoLocalizationsResponse.data || []).reduce<
+      Record<string, AppInfoLocalization>
+    >((acc, loc) => {
+      if (loc.attributes.locale) acc[loc.attributes.locale] = loc;
+      return acc;
+    }, {});
 
     const versionsResponse = await this.apiRequest<
       ApiResponse<AppStoreVersion[]>
@@ -486,8 +520,9 @@ export class AppStoreClient {
       }
 
       locales[locale] = {
-        name: app.attributes.name,
-        subtitle: detailedLocalization?.attributes.promotionalText,
+        name:
+          appInfoLocalizationMap[locale]?.attributes.name || app.attributes.name,
+        subtitle: appInfoLocalizationMap[locale]?.attributes.subtitle,
         description: detailedLocalization?.attributes.description || "",
         keywords: detailedLocalization?.attributes.keywords,
         promotionalText: detailedLocalization?.attributes.promotionalText,
@@ -513,7 +548,49 @@ export class AppStoreClient {
 
   async pushAsoData(data: Partial<AppStoreAsoData>): Promise<void> {
     const appId = await this.findAppId();
+    const appInfoId = await this.findAppInfoId(appId);
     const locale = data.locale || "en-US";
+
+    const appInfoLocalizationResponse = await this.apiRequest<
+      ApiResponse<AppInfoLocalization[]>
+    >(`/appInfos/${appInfoId}/appInfoLocalizations?filter[locale]=${locale}`);
+
+    const appInfoAttributes: Record<string, string> = {};
+    if (typeof data.name === "string") appInfoAttributes.name = data.name;
+    if (typeof data.subtitle === "string")
+      appInfoAttributes.subtitle = data.subtitle;
+
+    if (Object.keys(appInfoAttributes).length > 0) {
+      if (appInfoLocalizationResponse.data?.[0]) {
+        const localizationId = appInfoLocalizationResponse.data[0].id;
+        await this.apiRequest(`/appInfoLocalizations/${localizationId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            data: {
+              type: "appInfoLocalizations",
+              id: localizationId,
+              attributes: appInfoAttributes,
+            },
+          }),
+        });
+      } else {
+        await this.apiRequest<ApiResponse<AppInfoLocalization>>(
+          `/appInfoLocalizations`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              data: {
+                type: "appInfoLocalizations",
+                attributes: { locale, ...appInfoAttributes },
+                relationships: {
+                  appInfo: { data: { type: "appInfos", id: appInfoId } },
+                },
+              },
+            }),
+          }
+        );
+      }
+    }
 
     const versionsResponse = await this.apiRequest<
       ApiResponse<AppStoreVersion[]>
