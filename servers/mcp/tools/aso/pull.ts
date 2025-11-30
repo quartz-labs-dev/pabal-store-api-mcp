@@ -14,10 +14,11 @@ import {
   convertToMultilingual,
   getAsoPullDir,
   getPullProductAsoDir,
+  getScreenshotDir,
+  getScreenshotFilePath,
 } from "@packages/aso";
 import { getStoreTargets, loadConfig } from "@packages/common";
 import { findApp } from "@packages/utils";
-import { join } from "node:path";
 
 interface AsoPullOptions {
   app?: string; // Registered app slug
@@ -51,10 +52,9 @@ async function downloadScreenshotsToAso(
 
     if (targetLanguage) {
       const localeData = googlePlayData.locales[targetLanguage];
-      const screenshotDir = join(
+      const screenshotDir = getScreenshotDir(
         productStoreRoot,
         "google-play",
-        "screenshots",
         targetLanguage
       );
 
@@ -64,7 +64,10 @@ async function downloadScreenshotsToAso(
         );
         for (let i = 0; i < localeData.screenshots.phone.length; i++) {
           const url = localeData.screenshots.phone[i];
-          const outputPath = join(screenshotDir, `phone-${i + 1}.png`);
+          const outputPath = getScreenshotFilePath(
+            screenshotDir,
+            `phone-${i + 1}.png`
+          );
           if (isLocalAssetPath(url)) {
             copyLocalAssetToAso(url, outputPath);
           } else {
@@ -76,7 +79,10 @@ async function downloadScreenshotsToAso(
 
       if (localeData.featureGraphic) {
         console.error(`[MCP]   📥 Downloading Feature Graphic...`);
-        const outputPath = join(screenshotDir, "feature-graphic.png");
+        const outputPath = getScreenshotFilePath(
+          screenshotDir,
+          "feature-graphic.png"
+        );
         if (isLocalAssetPath(localeData.featureGraphic)) {
           copyLocalAssetToAso(localeData.featureGraphic, outputPath);
         } else {
@@ -101,10 +107,9 @@ async function downloadScreenshotsToAso(
 
     if (targetLocale) {
       const localeData = appStoreData.locales[targetLocale];
-      const screenshotDir = join(
+      const screenshotDir = getScreenshotDir(
         productStoreRoot,
         "app-store",
-        "screenshots",
         targetLocale
       );
 
@@ -118,7 +123,10 @@ async function downloadScreenshotsToAso(
           );
           for (let i = 0; i < screenshots.length; i++) {
             let url = screenshots[i];
-            const outputPath = join(screenshotDir, `${type}-${i + 1}.png`);
+            const outputPath = getScreenshotFilePath(
+              screenshotDir,
+              `${type}-${i + 1}.png`
+            );
 
             if (isLocalAssetPath(url)) {
               copyLocalAssetToAso(url, outputPath);

@@ -7,6 +7,7 @@ import {
   prepareAsoDataForPush,
   getAsoDir,
   getAsoDataPaths,
+  getAsoPushDir,
 } from "@packages/aso";
 import {
   pushToAppStore,
@@ -14,7 +15,6 @@ import {
   resolveAsoAppInfo,
 } from "@packages/aso/push";
 import { loadConfig } from "@packages/common";
-import { join } from "node:path";
 import { existsSync } from "node:fs";
 
 interface AsoPushOptions {
@@ -57,7 +57,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
   const config = loadConfig();
 
   // Load local data from ASO directory
-  const asoDir = join(getAsoDir(), "pushData");
+  const asoDir = getAsoPushDir();
   const { googlePlay: googlePlayDataPath, appStore: appStoreDataPath } =
     getAsoDataPaths(slug, asoDir);
 

@@ -28,12 +28,42 @@ export function getAsoPullDir(): string {
   return join(getAsoDir(), "pullData");
 }
 
+export function getAsoPushDir(): string {
+  return join(getAsoDir(), "pushData");
+}
+
 export function getProductAsoDir(slug: string): string {
   return join(getAsoDir(), "products", slug, "store");
 }
 
 export function getPullProductAsoDir(slug: string, baseDir?: string): string {
   return join(baseDir ?? getAsoPullDir(), "products", slug, "store");
+}
+
+export function getScreenshotDir(
+  productStoreRoot: string,
+  store: "google-play" | "app-store",
+  locale: string
+): string {
+  return join(productStoreRoot, store, "screenshots", locale);
+}
+
+export function getScreenshotFilePath(
+  screenshotDir: string,
+  filename: string
+): string {
+  return join(screenshotDir, filename);
+}
+
+export function getStoreDir(
+  productStoreRoot: string,
+  store: "google-play" | "app-store"
+): string {
+  return join(productStoreRoot, store);
+}
+
+export function getReleaseNotesPath(storeDir: string): string {
+  return join(storeDir, "release-notes.json");
 }
 
 export function getAsoDataPaths(slug: string, asoDir?: string) {

@@ -5,6 +5,8 @@ import {
   ensureDir,
   getAsoPullDir,
   getPullProductAsoDir,
+  getStoreDir,
+  getReleaseNotesPath,
 } from "@packages/aso";
 import { getStoreTargets, loadConfig } from "@packages/common";
 import { findApp } from "@packages/utils";
@@ -12,7 +14,6 @@ import { pullAppStoreReleaseNotes } from "@packages/app-store/pull-release-notes
 import { pullGooglePlayReleaseNotes } from "@packages/play-store/pull-release-notes";
 import { getAppStoreClient } from "@packages/app-store";
 import { GooglePlayClient } from "@packages/play-store";
-import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
 interface AsoPullReleaseNotesOptions {
@@ -189,17 +190,17 @@ export async function handleAsoPullReleaseNotes(
   const asoDir = getPullProductAsoDir(slug, getAsoPullDir());
 
   if (releaseNotes.googlePlay) {
-    const googlePlayDir = join(asoDir, "google-play");
+    const googlePlayDir = getStoreDir(asoDir, "google-play");
     ensureDir(googlePlayDir);
-    const filePath = join(googlePlayDir, "release-notes.json");
+    const filePath = getReleaseNotesPath(googlePlayDir);
     writeFileSync(filePath, JSON.stringify(releaseNotes.googlePlay, null, 2));
     console.error(`[MCP]   💾 Google Play release notes saved to ${filePath}`);
   }
 
   if (releaseNotes.appStore) {
-    const appStoreDir = join(asoDir, "app-store");
+    const appStoreDir = getStoreDir(asoDir, "app-store");
     ensureDir(appStoreDir);
-    const filePath = join(appStoreDir, "release-notes.json");
+    const filePath = getReleaseNotesPath(appStoreDir);
     writeFileSync(filePath, JSON.stringify(releaseNotes.appStore, null, 2));
     console.error(`[MCP]   💾 App Store release notes saved to ${filePath}`);
   }
