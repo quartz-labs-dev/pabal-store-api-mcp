@@ -6,13 +6,13 @@ import {
   copyFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { getDataDir } from "@packages/shared/config";
+import { getDataDir } from "@packages/common/config";
 import {
   type AsoData,
   type GooglePlayAsoData,
+  type GooglePlayMultilingualAsoData,
   type AppStoreAsoData,
-  isGooglePlayMultilingual,
-  isAppStoreMultilingual,
+  type AppStoreMultilingualAsoData,
   DEFAULT_LOCALE,
 } from "./types";
 
@@ -24,8 +24,25 @@ export function getAsoDir(): string {
   return join(getDataDir(), ".aso");
 }
 
+export function getAsoPullDir(): string {
+  return join(getAsoDir(), "pullData");
+}
+
 export function getProductAsoDir(slug: string): string {
   return join(getAsoDir(), "products", slug, "store");
+}
+
+export function getPullProductAsoDir(slug: string, baseDir?: string): string {
+  return join(baseDir ?? getAsoPullDir(), "products", slug, "store");
+}
+
+export function getAsoDataPaths(slug: string, asoDir?: string) {
+  const baseDir = asoDir ?? getAsoDir();
+  const productStoreDir = join(baseDir, "products", slug, "store");
+  return {
+    googlePlay: join(productStoreDir, "google-play", "aso-data.json"),
+    appStore: join(productStoreDir, "app-store", "aso-data.json"),
+  };
 }
 
 export function ensureDir(dirPath: string): void {
@@ -37,6 +54,11 @@ export function ensureDir(dirPath: string): void {
 // ============================================================================
 // Data Conversion
 // ============================================================================
+
+export interface PreparedAsoData {
+  googlePlay?: GooglePlayMultilingualAsoData;
+  appStore?: AppStoreMultilingualAsoData;
+}
 
 export function convertToMultilingual<
   T extends { locale?: string; defaultLanguage?: string },
@@ -52,12 +74,24 @@ export function convertToMultilingual<
   };
 }
 
+export function isGooglePlayMultilingual(
+  data: GooglePlayAsoData | GooglePlayMultilingualAsoData | undefined
+): data is GooglePlayMultilingualAsoData {
+  return data !== undefined && "locales" in data;
+}
+
+export function isAppStoreMultilingual(
+  data: AppStoreAsoData | AppStoreMultilingualAsoData | undefined
+): data is AppStoreMultilingualAsoData {
+  return data !== undefined && "locales" in data;
+}
+
 export function prepareAsoDataForPush(
   slug: string,
   configData: AsoData,
   options?: { baseUrl?: string }
-): Partial<AsoData> {
-  const storeData: Partial<AsoData> = {};
+): PreparedAsoData {
+  const storeData: PreparedAsoData = {};
   const baseUrl =
     options?.baseUrl ??
     process.env.NEXT_PUBLIC_SITE_URL ??

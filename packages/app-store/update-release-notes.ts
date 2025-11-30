@@ -3,7 +3,6 @@
  */
 
 import type { AppStoreClient } from "./client";
-import type { RegisteredAppStoreInfo } from "@packages/shared/registered-apps";
 
 export interface UpdateAppStoreReleaseNotesOptions {
   client: AppStoreClient;

@@ -5,16 +5,16 @@
  * Automatically translates to all supported languages if text is provided.
  */
 
-import { type StoreType } from "@packages/shared/types";
+import { type StoreType } from "@packages/common/types";
 import {
   createTranslationRequests,
   separateTranslationsByStore,
   collectSupportedLocales,
-} from "@packages/shared/translate-release-notes";
+} from "@packages/utils/translate-release-notes";
 import {
   fetchAppStoreAppInfo,
   fetchGooglePlayAppInfo,
-} from "@packages/shared/app-info";
+} from "@packages/utils/app-info";
 import { updateAppStoreReleaseNotes } from "@packages/app-store/update-release-notes";
 import { updateGooglePlayReleaseNotes } from "@packages/play-store/update-release-notes";
 
@@ -40,7 +40,8 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   } = options;
   let { bundleId, packageName } = options;
 
-  const { findApp, loadConfig } = await import("@packages/shared");
+  const { loadConfig } = await import("@packages/common");
+  const { findApp } = await import("@packages/utils");
 
   // Determine slug
   let slug: string;

@@ -1,4 +1,4 @@
-import { loadConfig } from "@packages/shared/config";
+import { loadConfig } from "@packages/common/config";
 import { createAppStoreJWT, decodeJwt } from "@packages/app-store/auth";
 
 export interface VerifyAppStoreAuthResult {

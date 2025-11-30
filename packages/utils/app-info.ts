@@ -4,8 +4,8 @@
  */
 
 import { getAppStoreClient, type AppStoreClient } from "@packages/app-store";
-import { GooglePlayClient } from "@packages/play-store";
-import type { AppStoreConfig, PlayStoreConfig } from "./config";
+import { getPlayStoreClient } from "@packages/play-store";
+import type { AppStoreConfig, PlayStoreConfig } from "@packages/common/config";
 import type {
   RegisteredAppStoreInfo,
   RegisteredGooglePlayInfo,
@@ -84,10 +84,9 @@ export async function fetchGooglePlayAppInfo({
   }
 
   try {
-    const serviceAccount = JSON.parse(config.serviceAccountJson);
-    const client = new GooglePlayClient({
+    const client = getPlayStoreClient({
+      serviceAccountJson: config.serviceAccountJson,
       packageName,
-      serviceAccountKey: serviceAccount,
     });
 
     const appInfo = await client.verifyAppAccess();

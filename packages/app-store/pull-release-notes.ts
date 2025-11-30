@@ -3,7 +3,7 @@
  */
 
 import type { AppStoreClient } from "./client";
-import type { AppStoreReleaseNote } from "@packages/aso-core/types";
+import type { AppStoreReleaseNote } from "@packages/aso/types";
 
 export interface PullAppStoreReleaseNotesOptions {
   client: AppStoreClient;

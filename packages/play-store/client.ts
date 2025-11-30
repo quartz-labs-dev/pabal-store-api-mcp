@@ -14,8 +14,8 @@ import type {
   GooglePlayAsoData,
   GooglePlayMultilingualAsoData,
   GooglePlayReleaseNote,
-} from "@packages/aso-core/types";
-import { DEFAULT_LOCALE } from "@packages/aso-core/types";
+} from "@packages/aso/types";
+import { DEFAULT_LOCALE } from "@packages/aso/types";
 
 export interface GooglePlayClientConfig {
   packageName: string;

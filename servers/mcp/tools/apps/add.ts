@@ -2,8 +2,8 @@
  * add-app: Register app by bundleId or packageName
  */
 
+import { loadConfig } from "@packages/common";
 import {
-  loadConfig,
   registerApp,
   findApp,
   loadRegisteredApps,
@@ -13,7 +13,7 @@ import {
   toRegisteredAppStoreInfo,
   toRegisteredGooglePlayInfo,
   type RegisteredApp,
-} from "@packages/shared";
+} from "@packages/utils";
 
 interface AddAppOptions {
   /** App identifier (bundleId or packageName) */

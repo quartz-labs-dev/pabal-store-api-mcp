@@ -1,7 +1,8 @@
 import { checkAppStoreLatestVersion } from "@packages/app-store/check-latest-versions";
 import { checkGooglePlayLatestVersion } from "@packages/play-store/check-latest-versions";
-import { type StoreType } from "@packages/core/types";
-import { loadConfig } from "@packages/shared/config";
+import { type StoreType } from "@packages/common/types";
+import { loadConfig } from "@packages/common/config";
+import { getStoreTargets } from "@packages/common/store";
 
 interface CheckLatestVersionsOptions {
   store?: StoreType;
@@ -17,23 +18,15 @@ interface CheckLatestVersionsOptions {
 export async function checkLatestVersions(
   options: CheckLatestVersionsOptions
 ): Promise<string[]> {
-  const {
-    store = "both",
-    bundleId,
-    packageName,
-    includePrompt = true,
-  } = options;
+  const { store, bundleId, packageName, includePrompt = true } = options;
+  const { includeAppStore, includeGooglePlay } = getStoreTargets(store);
   const config = loadConfig();
   const versionInfo: string[] = [];
 
   versionInfo.push(`\n📋 Checking latest versions from stores...\n`);
 
   // Check App Store latest version
-  if (
-    (store === "appStore" || store === "both") &&
-    config.appStore &&
-    bundleId
-  ) {
+  if (includeAppStore && config.appStore && bundleId) {
     const appStoreInfo = await checkAppStoreLatestVersion({
       bundleId,
       config: config.appStore,
@@ -44,11 +37,7 @@ export async function checkLatestVersions(
   }
 
   // Check Google Play latest version
-  if (
-    (store === "googlePlay" || store === "both") &&
-    config.playStore &&
-    packageName
-  ) {
+  if (includeGooglePlay && config.playStore && packageName) {
     const playStoreInfo = await checkGooglePlayLatestVersion({
       packageName,
       config: config.playStore,

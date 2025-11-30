@@ -13,8 +13,8 @@ import type {
   AppStoreMultilingualAsoData,
   AppStoreReleaseNote,
   AppStoreScreenshots,
-} from "@packages/aso-core/types";
-import { DEFAULT_LOCALE } from "@packages/aso-core/types";
+} from "@packages/aso/types";
+import { DEFAULT_LOCALE } from "@packages/aso/types";
 
 export interface AppStoreClientConfig {
   issuerId: string;
@@ -593,10 +593,18 @@ export class AppStoreClient {
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        // App Info fields may be locked when app is in certain states (e.g. submitted for review)
+        // App Info fields (name/subtitle) require a new version to be updated
+        // They are locked when app is in certain states (e.g. submitted for review, approved)
         if (msg.includes("STATE_ERROR") || msg.includes("409 Conflict")) {
           console.error(
-            `[AppStore] ⚠️  Name/Subtitle update skipped for ${locale}: ${msg}`
+            `[AppStore] ⚠️  Name/Subtitle update failed for ${locale}: ${msg}`
+          );
+          console.error(
+            `[AppStore]   ℹ️  Name and Subtitle can only be updated when a new version is created.`
+          );
+          // Throw error to trigger new version creation in push.ts
+          throw new Error(
+            `409 Conflict: STATE_ERROR - Name/Subtitle update requires a new version. ${msg}`
           );
         } else {
           throw error;

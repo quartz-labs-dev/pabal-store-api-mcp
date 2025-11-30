@@ -235,23 +235,11 @@ export interface AsoData {
   };
 }
 
-export function isGooglePlayMultilingual(
-  data: GooglePlayAsoData | GooglePlayMultilingualAsoData | undefined
-): data is GooglePlayMultilingualAsoData {
-  return data !== undefined && "locales" in data;
-}
-
-export function isAppStoreMultilingual(
-  data: AppStoreAsoData | AppStoreMultilingualAsoData | undefined
-): data is AppStoreMultilingualAsoData {
-  return data !== undefined && "locales" in data;
-}
-
 // ============================================================================
 // Sync Options
 // ============================================================================
 
-import { type StoreType } from "@packages/shared/types";
+import { type StoreType } from "@packages/common/types";
 
 export type SyncDirection = "pull" | "push" | "sync";
 
@@ -264,4 +252,4 @@ export interface SyncOptions {
 }
 
 // Re-export StoreType for backward compatibility
-export type { StoreType } from "@packages/shared/types";
+export type { StoreType } from "@packages/common/types";

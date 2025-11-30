@@ -4,7 +4,7 @@
  */
 
 import type { RegisteredApp } from "./registered-apps";
-import type { StoreType } from "./types";
+import type { StoreType } from "@packages/common/types";
 
 export interface TranslationRequest {
   sourceText: string;

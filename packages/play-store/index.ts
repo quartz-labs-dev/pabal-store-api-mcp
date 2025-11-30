@@ -4,3 +4,5 @@ export * from "./check-latest-versions";
 export * from "./update-release-notes";
 export * from "./pull-release-notes";
 export * from "./create-version";
+export * from "./push";
+export * from "./client-factory";

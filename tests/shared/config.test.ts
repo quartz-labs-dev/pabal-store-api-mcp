@@ -5,7 +5,7 @@ import {
   DATA_DIR_ENV_KEY,
   getDataDir,
   getProjectRoot,
-} from "@packages/shared/config";
+} from "@packages/common/config";
 
 const originalDataDirEnv = process.env[DATA_DIR_ENV_KEY];
 

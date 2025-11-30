@@ -3,9 +3,10 @@
  */
 
 import { getAppStoreClient } from "@packages/app-store";
-import { GooglePlayClient } from "@packages/play-store";
+import { getPlayStoreClient } from "@packages/play-store";
+import { loadConfig } from "@packages/common";
+import type { PlayStoreConfig } from "@packages/common/config";
 import {
-  loadConfig,
   registerApp,
   findApp,
   loadRegisteredApps,
@@ -15,7 +16,7 @@ import {
   toRegisteredAppStoreInfo,
   toRegisteredGooglePlayInfo,
   type RegisteredApp,
-} from "@packages/shared";
+} from "@packages/utils";
 
 interface SetupAppsOptions {
   store?: "appStore" | "googlePlay" | "both";
@@ -27,16 +28,16 @@ interface SetupAppsOptions {
  */
 async function checkPlayStoreAccess(
   packageName: string,
-  serviceAccountKey: object
+  playStoreConfig: PlayStoreConfig
 ): Promise<{
   accessible: boolean;
   title?: string;
   supportedLocales?: string[];
 }> {
   try {
-    const client = new GooglePlayClient({
+    const client = getPlayStoreClient({
+      ...playStoreConfig,
       packageName,
-      serviceAccountKey,
     });
     const appInfo = await client.verifyAppAccess();
     return {
@@ -97,10 +98,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
 
       // Prepare Play Store service account
       const playStoreEnabled =
-        store === "both" && config.playStore?.serviceAccountJson;
-      const serviceAccountKey = playStoreEnabled
-        ? JSON.parse(config.playStore!.serviceAccountJson)
-        : null;
+        store === "both" && !!config.playStore?.serviceAccountJson;
 
       // Auto-register
       const registered: Array<{
@@ -162,7 +160,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
             if (playStoreEnabled) {
               const playResult = await checkPlayStoreAccess(
                 app.bundleId,
-                serviceAccountKey
+                config.playStore!
               );
               if (playResult.accessible) {
                 if (!appsConfig.apps[appIndex].googlePlay) {
@@ -208,7 +206,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         if (playStoreEnabled) {
           const playResult = await checkPlayStoreAccess(
             app.bundleId,
-            serviceAccountKey
+            config.playStore!
           );
           if (playResult.accessible) {
             googlePlayInfo = {
@@ -358,12 +356,6 @@ Provide packageName to verify and register that app:
     }
 
     try {
-      const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
-      const client = new GooglePlayClient({
-        packageName,
-        serviceAccountKey: serviceAccount,
-      });
-
       // Google Play 정보 가져오기 (언어 정보 포함)
       console.error(`[MCP]   🔍 Fetching Google Play app info...`);
       const googlePlayInfo = await fetchGooglePlayAppInfo({

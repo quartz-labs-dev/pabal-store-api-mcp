@@ -3,9 +3,11 @@ import {
   type GooglePlayReleaseNote,
   type AppStoreReleaseNote,
   ensureDir,
-  getAsoDir,
-} from "@packages/aso-core";
-import { loadConfig, findApp } from "@packages/shared";
+  getAsoPullDir,
+  getPullProductAsoDir,
+} from "@packages/aso";
+import { getStoreTargets, loadConfig } from "@packages/common";
+import { findApp } from "@packages/utils";
 import { pullAppStoreReleaseNotes } from "@packages/app-store/pull-release-notes";
 import { pullGooglePlayReleaseNotes } from "@packages/play-store/pull-release-notes";
 import { getAppStoreClient } from "@packages/app-store";
@@ -24,8 +26,13 @@ interface AsoPullReleaseNotesOptions {
 export async function handleAsoPullReleaseNotes(
   options: AsoPullReleaseNotesOptions
 ) {
-  const { app, store = "both", dryRun = false } = options;
+  const { app, store, dryRun = false } = options;
   let { packageName, bundleId } = options;
+  const {
+    store: targetStore,
+    includeAppStore,
+    includeGooglePlay,
+  } = getStoreTargets(store);
 
   // Determine slug
   let slug: string;
@@ -73,7 +80,7 @@ export async function handleAsoPullReleaseNotes(
   }
 
   console.error(`[MCP] 📥 Pulling release notes`);
-  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   Store: ${targetStore}`);
   console.error(`[MCP]   App: ${slug}`);
   if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
   if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
@@ -86,7 +93,7 @@ export async function handleAsoPullReleaseNotes(
     appStore?: AppStoreReleaseNote[];
   } = {};
 
-  if (store === "googlePlay" || store === "both") {
+  if (includeGooglePlay) {
     if (!config.playStore) {
       console.error(
         `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
@@ -125,7 +132,7 @@ export async function handleAsoPullReleaseNotes(
     }
   }
 
-  if (store === "appStore" || store === "both") {
+  if (includeAppStore) {
     if (!config.appStore) {
       console.error(
         `[MCP]   ⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
@@ -179,7 +186,7 @@ export async function handleAsoPullReleaseNotes(
   }
 
   // Save to ASO directory
-  const asoDir = join(getAsoDir(), "pullData", "products", slug, "store");
+  const asoDir = getPullProductAsoDir(slug, getAsoPullDir());
 
   if (releaseNotes.googlePlay) {
     const googlePlayDir = join(asoDir, "google-play");

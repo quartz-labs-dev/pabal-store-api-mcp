@@ -4,19 +4,24 @@
 
 import { verifyAppStoreAuth } from "@packages/app-store";
 import { verifyPlayStoreAuth } from "@packages/play-store";
-import { type StoreType } from "@packages/shared/types";
+import { getStoreTargets, type StoreType } from "@packages/common";
 
 interface AuthCheckOptions {
   store?: StoreType;
 }
 
 export async function handleAuthCheck(options: AuthCheckOptions) {
-  const { store = "both" } = options;
+  const { store } = options;
+  const {
+    store: targetStore,
+    includeAppStore,
+    includeGooglePlay,
+  } = getStoreTargets(store);
   const results: string[] = [];
 
-  console.error(`[MCP] 🔐 Checking authentication (store: ${store})`);
+  console.error(`[MCP] 🔐 Checking authentication (store: ${targetStore})`);
 
-  if (store === "appStore" || store === "both") {
+  if (includeAppStore) {
     console.error(`[MCP]   Checking App Store Connect...`);
     const appStoreResult = await verifyAppStoreAuth({ expirationSeconds: 300 });
     if (appStoreResult.success && appStoreResult.data) {
@@ -31,7 +36,7 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
     results.push("");
   }
 
-  if (store === "googlePlay" || store === "both") {
+  if (includeGooglePlay) {
     console.error(`[MCP]   Checking Google Play Console...`);
     const playStoreResult = verifyPlayStoreAuth();
     if (playStoreResult.success && playStoreResult.data) {

@@ -1,5 +1,6 @@
-import { type StoreType } from "@packages/shared/types";
-import { loadConfig, findApp, checkLatestVersions } from "@packages/shared";
+import { type StoreType } from "@packages/common/types";
+import { loadConfig, checkLatestVersions } from "@packages/common";
+import { findApp } from "@packages/utils";
 import { createAppStoreVersion } from "@packages/app-store/create-version";
 import { createGooglePlayVersion } from "@packages/play-store/create-version";
 import { getAppStoreClient } from "@packages/app-store";

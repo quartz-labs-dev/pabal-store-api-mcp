@@ -12,8 +12,11 @@ import {
   isLocalAssetPath,
   resolveAppStoreImageUrl,
   convertToMultilingual,
-} from "@packages/aso-core";
-import { loadConfig, findApp } from "@packages/shared";
+  getAsoPullDir,
+  getPullProductAsoDir,
+} from "@packages/aso";
+import { getStoreTargets, loadConfig } from "@packages/common";
+import { findApp } from "@packages/utils";
 import { join } from "node:path";
 
 interface AsoPullOptions {
@@ -29,7 +32,7 @@ async function downloadScreenshotsToAso(
   asoData: AsoData,
   asoDir: string
 ): Promise<void> {
-  const productStoreRoot = join(asoDir, "products", slug, "store");
+  const productStoreRoot = getPullProductAsoDir(slug, asoDir);
 
   if (asoData.googlePlay) {
     const googlePlayData = isGooglePlayMultilingual(asoData.googlePlay)
@@ -134,8 +137,13 @@ async function downloadScreenshotsToAso(
 }
 
 export async function handleAsoPull(options: AsoPullOptions) {
-  const { app, store = "both", dryRun = false } = options;
+  const { app, store, dryRun = false } = options;
   let { packageName, bundleId } = options;
+  const {
+    store: targetStore,
+    includeAppStore,
+    includeGooglePlay,
+  } = getStoreTargets(store);
 
   // Determine slug
   let slug: string;
@@ -183,7 +191,7 @@ export async function handleAsoPull(options: AsoPullOptions) {
   }
 
   console.error(`[MCP] 📥 Pulling ASO data`);
-  console.error(`[MCP]   Store: ${store}`);
+  console.error(`[MCP]   Store: ${targetStore}`);
   console.error(`[MCP]   App: ${slug}`);
   if (packageName) console.error(`[MCP]   Package Name: ${packageName}`);
   if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
@@ -191,8 +199,9 @@ export async function handleAsoPull(options: AsoPullOptions) {
 
   const config = loadConfig();
   const syncedData: AsoData = {};
+  const pullDir = getAsoPullDir();
 
-  if (store === "googlePlay" || store === "both") {
+  if (includeGooglePlay) {
     if (!config.playStore) {
       console.error(
         `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
@@ -219,7 +228,7 @@ export async function handleAsoPull(options: AsoPullOptions) {
     }
   }
 
-  if (store === "appStore" || store === "both") {
+  if (includeAppStore) {
     if (!config.appStore) {
       console.error(
         `[MCP]   ⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
@@ -260,13 +269,8 @@ export async function handleAsoPull(options: AsoPullOptions) {
     };
   }
 
-  const asoDir = join(getAsoDir(), "pullData");
-  saveAsoData(slug, syncedData, { asoDir });
-  await downloadScreenshotsToAso(
-    slug,
-    syncedData,
-    join(getAsoDir(), "pullData")
-  );
+  saveAsoData(slug, syncedData, { asoDir: pullDir });
+  await downloadScreenshotsToAso(slug, syncedData, pullDir);
 
   return {
     content: [

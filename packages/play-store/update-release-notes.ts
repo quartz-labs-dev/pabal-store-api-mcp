@@ -3,7 +3,6 @@
  */
 
 import type { GooglePlayClient } from "./client";
-import type { RegisteredGooglePlayInfo } from "@packages/shared/registered-apps";
 
 export interface UpdateGooglePlayReleaseNotesOptions {
   client: GooglePlayClient;

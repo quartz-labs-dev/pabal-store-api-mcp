@@ -1,5 +1,5 @@
-import { GooglePlayClient } from "./client";
-import type { PlayStoreConfig } from "@packages/shared/config";
+import type { PlayStoreConfig } from "@packages/common/config";
+import { getPlayStoreClient } from "./client-factory";
 
 interface CheckGooglePlayLatestVersionOptions {
   packageName: string;
@@ -15,10 +15,9 @@ export async function checkGooglePlayLatestVersion({
   config,
 }: CheckGooglePlayLatestVersionOptions): Promise<string | null> {
   try {
-    const serviceAccount = JSON.parse(config.serviceAccountJson);
-    const client = new GooglePlayClient({
+    const client = getPlayStoreClient({
+      ...config,
       packageName,
-      serviceAccountKey: serviceAccount,
     });
 
     const latestRelease = await client.getLatestProductionRelease();

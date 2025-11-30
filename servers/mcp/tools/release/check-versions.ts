@@ -1,5 +1,9 @@
-import { type StoreType } from "@packages/shared/types";
-import { findApp, checkLatestVersions } from "@packages/shared";
+import {
+  checkLatestVersions,
+  getStoreTargets,
+  type StoreType,
+} from "@packages/common";
+import { findApp } from "@packages/utils";
 
 interface CheckVersionsOptions {
   app?: string; // Registered app slug
@@ -9,10 +13,11 @@ interface CheckVersionsOptions {
 }
 
 export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
-  const { app, store = "both" } = options;
+  const { app, store } = options;
   let { packageName, bundleId } = options;
+  const { store: selectedStore } = getStoreTargets(store);
 
-  console.error(`[MCP] 🔍 Checking latest versions (store: ${store})`);
+  console.error(`[MCP] 🔍 Checking latest versions (store: ${selectedStore})`);
 
   // Determine bundleId and packageName
   let registeredApp = app ? findApp(app) : undefined;
@@ -62,7 +67,7 @@ export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
     console.error(`[MCP]   Google Play packageName: ${packageName}`);
 
   const versionInfo = await checkLatestVersions({
-    store,
+    store: selectedStore,
     bundleId,
     packageName,
     includePrompt: false,

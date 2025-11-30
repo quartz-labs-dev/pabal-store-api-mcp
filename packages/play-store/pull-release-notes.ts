@@ -3,7 +3,7 @@
  */
 
 import type { GooglePlayClient } from "./client";
-import type { GooglePlayReleaseNote } from "@packages/aso-core/types";
+import type { GooglePlayReleaseNote } from "@packages/aso/types";
 
 export interface PullGooglePlayReleaseNotesOptions {
   client: GooglePlayClient;

@@ -1,5 +1,5 @@
 import { AppStoreClient } from "./client";
-import type { AppStoreConfig } from "@packages/shared/config";
+import type { AppStoreConfig } from "@packages/common/config";
 
 interface CheckAppStoreLatestVersionOptions {
   bundleId: string;
