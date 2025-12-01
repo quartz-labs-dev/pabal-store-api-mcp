@@ -4,11 +4,8 @@
  */
 
 import { type AppStoreClient } from "@packages/app-store";
-import {
-  createAppStoreClient,
-  createGooglePlayClient,
-} from "@servers/mcp/core/clients";
-import type { AppStoreConfig, PlayStoreConfig } from "@packages/common/config";
+import { AppStoreService } from "@servers/mcp/core/services/app-store-service";
+import { GooglePlayService } from "@servers/mcp/core/services/google-play-service";
 import type {
   RegisteredAppStoreInfo,
   RegisteredGooglePlayInfo,
@@ -19,12 +16,14 @@ export interface AppStoreAppInfo {
   appId?: string;
   name?: string;
   supportedLocales?: string[];
+  error?: string;
 }
 
 export interface GooglePlayAppInfo {
   found: boolean;
   name?: string;
   supportedLocales?: string[];
+  error?: string;
 }
 
 /**
@@ -32,53 +31,24 @@ export interface GooglePlayAppInfo {
  */
 export async function fetchAppStoreAppInfo({
   bundleId,
-  config,
   client,
 }: {
   bundleId: string;
-  config?: AppStoreConfig;
   client?: AppStoreClient;
 }): Promise<AppStoreAppInfo> {
-  if (!config && !client) {
-    return { found: false };
+  const service = new AppStoreService();
+
+  const result = await service.fetchAppInfo(bundleId, client);
+  if (!result.found) {
+    return { found: false, error: result.error };
   }
 
-  try {
-    let appStoreClient: AppStoreClient;
-
-    if (client) {
-      appStoreClient = client;
-    } else {
-      const clientResult = createAppStoreClient({
-        bundleId: "dummy", // listAllApps() does not use bundleId
-      });
-
-      if (!clientResult.success) {
-        return { found: false };
-      }
-
-      appStoreClient = clientResult.client;
-    }
-
-    const apps = await appStoreClient.listAllApps({ onlyReleased: true });
-    const app = apps.find((a) => a.bundleId === bundleId);
-
-    if (!app) {
-      return { found: false };
-    }
-
-    // 지원 언어 정보 가져오기
-    const supportedLocales = await appStoreClient.getSupportedLocales(app.id);
-
-    return {
-      found: true,
-      appId: app.id,
-      name: app.name,
-      supportedLocales,
-    };
-  } catch {
-    return { found: false };
-  }
+  return {
+    found: true,
+    appId: result.appId,
+    name: result.name,
+    supportedLocales: result.supportedLocales,
+  };
 }
 
 /**
@@ -86,32 +56,21 @@ export async function fetchAppStoreAppInfo({
  */
 export async function fetchGooglePlayAppInfo({
   packageName,
-  config,
 }: {
   packageName: string;
-  config?: PlayStoreConfig;
 }): Promise<GooglePlayAppInfo> {
-  if (!config?.serviceAccountJson) {
-    return { found: false };
+  const service = new GooglePlayService();
+
+  const result = await service.fetchAppInfo(packageName);
+  if (!result.found) {
+    return { found: false, error: result.error };
   }
 
-  try {
-    const clientResult = createGooglePlayClient({ packageName });
-
-    if (!clientResult.success) {
-      return { found: false };
-    }
-
-    const appInfo = await clientResult.client.verifyAppAccess();
-
-    return {
-      found: true,
-      name: appInfo.title,
-      supportedLocales: appInfo.supportedLocales,
-    };
-  } catch {
-    return { found: false };
-  }
+  return {
+    found: true,
+    name: result.name,
+    supportedLocales: result.supportedLocales,
+  };
 }
 
 /**

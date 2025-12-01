@@ -11,12 +11,15 @@ import {
   separateTranslationsByStore,
   collectSupportedLocales,
 } from "@packages/utils/translate-release-notes";
-import { updateAppStoreReleaseNotes } from "@packages/app-store/update-release-notes";
-import { updateGooglePlayReleaseNotes } from "@packages/play-store/update-release-notes";
-import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
+import {
+  AppResolutionService,
+  AppStoreService,
+  GooglePlayService,
+} from "@servers/mcp/core/services";
 
 const appStoreService = new AppStoreService();
 const googlePlayService = new GooglePlayService();
+const appResolutionService = new AppResolutionService();
 
 interface UpdateNotesOptions {
   app?: string;
@@ -41,63 +44,38 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   let { bundleId, packageName } = options;
 
   const { loadConfig } = await import("@packages/common");
-  const { findApp } = await import("@packages/utils");
 
-  // Determine slug
-  let slug: string;
-  let registeredApp = app ? findApp(app) : undefined;
+  const resolved = appResolutionService.resolve({
+    slug: app,
+    bundleId,
+    packageName,
+  });
 
-  if (app && registeredApp) {
-    // Successfully retrieved app info by app slug
-    slug = app;
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-  } else if (packageName || bundleId) {
-    // Find app by bundleId or packageName
-    const identifier = packageName || bundleId || "";
-    registeredApp = findApp(identifier);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
-          },
-        ],
-      };
-    }
-    slug = registeredApp.slug;
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-  } else {
+  if (!resolved.success) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
+          text: resolved.error,
         },
       ],
     };
   }
 
-  if (!registeredApp) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `❌ App information not found.`,
-        },
-      ],
-    };
-  }
+  const {
+    slug,
+    bundleId: resolvedBundleId,
+    packageName: resolvedPackageName,
+    hasAppStore,
+    hasGooglePlay,
+    app: registeredApp,
+  } = resolved.data;
+
+  bundleId = resolvedBundleId;
+  packageName = resolvedPackageName;
+
+  const includeAppStore = store === "both" || store === "appStore";
+  const includeGooglePlay = store === "both" || store === "googlePlay";
 
   // Determine what to update
   let finalWhatsNew: Record<string, string> = {};
@@ -115,18 +93,21 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
     } = collectSupportedLocales({ app: registeredApp, store });
 
     // If locales are missing, fetch from API
-    if ((store === "both" || store === "appStore") && bundleId) {
+    if (includeAppStore && hasAppStore && bundleId) {
       if (existingAppStoreLocales.length > 0) {
         appStoreLocales = existingAppStoreLocales;
       } else if (config.appStore) {
         // Fetch from App Store API
         const appInfo = await appStoreService.fetchAppInfo(bundleId);
 
-        if (appInfo.found && appInfo.supportedLocales) {
-          appStoreLocales = appInfo.supportedLocales;
-          // Update registered app with fetched locales
-          if (registeredApp.appStore) {
-            registeredApp.appStore.supportedLocales = appInfo.supportedLocales;
+        if (appInfo.found) {
+          if (appInfo.supportedLocales) {
+            appStoreLocales = appInfo.supportedLocales;
+            // Update registered app with fetched locales
+            if (registeredApp.appStore) {
+              registeredApp.appStore.supportedLocales =
+                appInfo.supportedLocales;
+            }
           }
         } else if (appInfo.error) {
           console.error(
@@ -136,19 +117,21 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       }
     }
 
-    if ((store === "both" || store === "googlePlay") && packageName) {
+    if (includeGooglePlay && hasGooglePlay && packageName) {
       if (existingGooglePlayLocales.length > 0) {
         googlePlayLocales = existingGooglePlayLocales;
       } else if (config.playStore?.serviceAccountJson) {
         // Fetch from Google Play API
         const appInfo = await googlePlayService.fetchAppInfo(packageName);
 
-        if (appInfo.found && appInfo.supportedLocales) {
-          googlePlayLocales = appInfo.supportedLocales;
-          // Update registered app with fetched locales
-          if (registeredApp.googlePlay) {
-            registeredApp.googlePlay.supportedLocales =
-              appInfo.supportedLocales;
+        if (appInfo.found) {
+          if (appInfo.supportedLocales) {
+            googlePlayLocales = appInfo.supportedLocales;
+            // Update registered app with fetched locales
+            if (registeredApp.googlePlay) {
+              registeredApp.googlePlay.supportedLocales =
+                appInfo.supportedLocales;
+            }
           }
         } else if (appInfo.error) {
           console.error(
@@ -337,18 +320,21 @@ Note: Provide translations for ALL supported locales. Include the already provid
     } = collectSupportedLocales({ app: registeredApp, store });
 
     // If locales are missing, fetch from API
-    if ((store === "both" || store === "appStore") && bundleId) {
+    if (includeAppStore && hasAppStore && bundleId) {
       if (existingAppStoreLocales.length > 0) {
         appStoreLocales = existingAppStoreLocales;
       } else if (config.appStore) {
         // Fetch from App Store API
         const appInfo = await appStoreService.fetchAppInfo(bundleId);
 
-        if (appInfo.found && appInfo.supportedLocales) {
-          appStoreLocales = appInfo.supportedLocales;
-          // Update registered app with fetched locales
-          if (registeredApp.appStore) {
-            registeredApp.appStore.supportedLocales = appInfo.supportedLocales;
+        if (appInfo.found) {
+          if (appInfo.supportedLocales) {
+            appStoreLocales = appInfo.supportedLocales;
+            // Update registered app with fetched locales
+            if (registeredApp.appStore) {
+              registeredApp.appStore.supportedLocales =
+                appInfo.supportedLocales;
+            }
           }
         } else if (appInfo.error) {
           console.error(
@@ -358,19 +344,21 @@ Note: Provide translations for ALL supported locales. Include the already provid
       }
     }
 
-    if ((store === "both" || store === "googlePlay") && packageName) {
+    if (includeGooglePlay && hasGooglePlay && packageName) {
       if (existingGooglePlayLocales.length > 0) {
         googlePlayLocales = existingGooglePlayLocales;
       } else if (config.playStore?.serviceAccountJson) {
         // Fetch from Google Play API
         const appInfo = await googlePlayService.fetchAppInfo(packageName);
 
-        if (appInfo.found && appInfo.supportedLocales) {
-          googlePlayLocales = appInfo.supportedLocales;
-          // Update registered app with fetched locales
-          if (registeredApp.googlePlay) {
-            registeredApp.googlePlay.supportedLocales =
-              appInfo.supportedLocales;
+        if (appInfo.found) {
+          if (appInfo.supportedLocales) {
+            googlePlayLocales = appInfo.supportedLocales;
+            // Update registered app with fetched locales
+            if (registeredApp.googlePlay) {
+              registeredApp.googlePlay.supportedLocales =
+                appInfo.supportedLocales;
+            }
           }
         } else if (appInfo.error) {
           console.error(
@@ -553,38 +541,29 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
         "⚠️ No translations available for App Store locales."
       );
     } else {
-      try {
-        const clientResult = appStoreService.createClient(bundleId);
+      const updateResult = await appStoreService.updateReleaseNotes(
+        bundleId,
+        appStoreTranslations,
+        versionId,
+        registeredApp.appStore?.supportedLocales
+      );
 
-        if (!clientResult.success) {
-          throw new Error(
-            `Failed to create App Store client: ${clientResult.error}`
-          );
-        }
-
-        const client = clientResult.data;
-
-        const updateResult = await updateAppStoreReleaseNotes({
-          client,
-          releaseNotes: appStoreTranslations,
-          versionId,
-          supportedLocales: registeredApp.appStore?.supportedLocales,
-        });
-
-        console.error(
-          `[MCP]     ✅ Updated ${updateResult.updated.length} locales`
+      if (!updateResult.success) {
+        appStoreResults.push(
+          `❌ App Store release notes update failed: ${updateResult.error}`
         );
-        for (const locale of updateResult.updated) {
+      } else {
+        console.error(
+          `[MCP]     ✅ Updated ${updateResult.data.updated.length} locales`
+        );
+        for (const locale of updateResult.data.updated) {
           appStoreResults.push(`✅ ${locale}`);
           console.error(`[MCP]       ✅ ${locale}`);
         }
-        for (const fail of updateResult.failed) {
+        for (const fail of updateResult.data.failed) {
           appStoreResults.push(`❌ ${fail.locale}: ${fail.error}`);
           console.error(`[MCP]       ❌ ${fail.locale}: ${fail.error}`);
         }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        appStoreResults.push(`❌ App Store error: ${msg}`);
       }
     }
   }
@@ -599,38 +578,29 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
       );
     } else {
       console.error(`[MCP]   📤 Updating Google Play release notes...`);
-      try {
-        const clientResult = googlePlayService.createClient(packageName);
+      const updateResult = await googlePlayService.updateReleaseNotes(
+        packageName,
+        googlePlayTranslations,
+        "production",
+        registeredApp.googlePlay?.supportedLocales
+      );
 
-        if (!clientResult.success) {
-          throw new Error(
-            `Failed to create Google Play client: ${clientResult.error}`
-          );
-        }
-
-        const client = clientResult.data;
-
-        const updateResult = await updateGooglePlayReleaseNotes({
-          client,
-          releaseNotes: googlePlayTranslations,
-          track: "production",
-          supportedLocales: registeredApp.googlePlay?.supportedLocales,
-        });
-
-        console.error(
-          `[MCP]     ✅ Updated ${updateResult.updated.length} locales`
+      if (!updateResult.success) {
+        googlePlayResults.push(
+          `❌ Google Play release notes update failed: ${updateResult.error}`
         );
-        for (const locale of updateResult.updated) {
+      } else {
+        console.error(
+          `[MCP]     ✅ Updated ${updateResult.data.updated.length} locales`
+        );
+        for (const locale of updateResult.data.updated) {
           googlePlayResults.push(`✅ ${locale}`);
           console.error(`[MCP]       ✅ ${locale}`);
         }
-        for (const fail of updateResult.failed) {
+        for (const fail of updateResult.data.failed) {
           googlePlayResults.push(`❌ ${fail.locale}: ${fail.error}`);
           console.error(`[MCP]       ❌ ${fail.locale}: ${fail.error}`);
         }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        googlePlayResults.push(`❌ Google Play error: ${msg}`);
       }
     }
   }

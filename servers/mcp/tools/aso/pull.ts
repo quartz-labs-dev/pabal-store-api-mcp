@@ -17,10 +17,12 @@ import {
   getScreenshotFilePath,
 } from "@packages/aso";
 import { getStoreTargets, loadConfig } from "@packages/common";
-import { findApp, updateAppSupportedLocales } from "@packages/utils";
+import { updateAppSupportedLocales } from "@packages/utils";
+import { AppResolutionService } from "@servers/mcp/core/services";
 
 const appStoreService = new AppStoreService();
 const googlePlayService = new GooglePlayService();
+const appResolutionService = new AppResolutionService();
 
 interface AsoPullOptions {
   app?: string; // Registered app slug
@@ -155,50 +157,33 @@ export async function handleAsoPull(options: AsoPullOptions) {
     includeGooglePlay,
   } = getStoreTargets(store);
 
-  // Determine slug
-  let slug: string;
-  let registeredApp = app ? findApp(app) : undefined;
+  const resolved = appResolutionService.resolve({
+    slug: app,
+    packageName,
+    bundleId,
+  });
 
-  if (app && registeredApp) {
-    // Successfully retrieved app info by app slug
-    slug = app;
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else if (packageName || bundleId) {
-    // Find app by bundleId or packageName
-    const identifier = packageName || bundleId || "";
-    registeredApp = findApp(identifier);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
-          },
-        ],
-      };
-    }
-    slug = registeredApp.slug;
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else {
+  if (!resolved.success) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
+          text: resolved.error,
         },
       ],
     };
   }
+
+  const {
+    slug,
+    bundleId: resolvedBundleId,
+    packageName: resolvedPackageName,
+    hasAppStore,
+    hasGooglePlay,
+  } = resolved.data;
+
+  bundleId = resolvedBundleId;
+  packageName = resolvedPackageName;
 
   console.error(`[MCP] 📥 Pulling ASO data`);
   console.error(`[MCP]   Store: ${targetStore}`);
@@ -212,7 +197,11 @@ export async function handleAsoPull(options: AsoPullOptions) {
   const pullDir = getAsoPullDir();
 
   if (includeGooglePlay) {
-    if (!config.playStore) {
+    if (!hasGooglePlay) {
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play (not registered for Google Play)`
+      );
+    } else if (!config.playStore) {
       console.error(
         `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
@@ -256,7 +245,11 @@ export async function handleAsoPull(options: AsoPullOptions) {
   }
 
   if (includeAppStore) {
-    if (!config.appStore) {
+    if (!hasAppStore) {
+      console.error(
+        `[MCP]   ⏭️  Skipping App Store (not registered for App Store)`
+      );
+    } else if (!config.appStore) {
       console.error(
         `[MCP]   ⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
       );

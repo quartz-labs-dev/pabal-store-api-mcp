@@ -9,14 +9,16 @@ import {
   getReleaseNotesPath,
 } from "@packages/aso";
 import { getStoreTargets, loadConfig } from "@packages/common";
-import { findApp } from "@packages/utils";
-import { pullAppStoreReleaseNotes } from "@packages/app-store/pull-release-notes";
-import { pullGooglePlayReleaseNotes } from "@packages/play-store/pull-release-notes";
-import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
+import {
+  AppResolutionService,
+  AppStoreService,
+  GooglePlayService,
+} from "@servers/mcp/core/services";
 import { writeFileSync } from "node:fs";
 
 const appStoreService = new AppStoreService();
 const googlePlayService = new GooglePlayService();
+const appResolutionService = new AppResolutionService();
 
 interface AsoPullReleaseNotesOptions {
   app?: string; // Registered app slug
@@ -37,50 +39,33 @@ export async function handleAsoPullReleaseNotes(
     includeGooglePlay,
   } = getStoreTargets(store);
 
-  // Determine slug
-  let slug: string;
-  let registeredApp = app ? findApp(app) : undefined;
+  const resolved = appResolutionService.resolve({
+    slug: app,
+    packageName,
+    bundleId,
+  });
 
-  if (app && registeredApp) {
-    // Successfully retrieved app info by app slug
-    slug = app;
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else if (packageName || bundleId) {
-    // Find app by bundleId or packageName
-    const identifier = packageName || bundleId || "";
-    registeredApp = findApp(identifier);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
-          },
-        ],
-      };
-    }
-    slug = registeredApp.slug;
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else {
+  if (!resolved.success) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
+          text: resolved.error,
         },
       ],
     };
   }
+
+  const {
+    slug,
+    bundleId: resolvedBundleId,
+    packageName: resolvedPackageName,
+    hasAppStore,
+    hasGooglePlay,
+  } = resolved.data;
+
+  bundleId = resolvedBundleId;
+  packageName = resolvedPackageName;
 
   console.error(`[MCP] 📥 Pulling release notes`);
   console.error(`[MCP]   Store: ${targetStore}`);
@@ -97,7 +82,11 @@ export async function handleAsoPullReleaseNotes(
   } = {};
 
   if (includeGooglePlay) {
-    if (!config.playStore) {
+    if (!hasGooglePlay) {
+      console.error(
+        `[MCP]   ⏭️  Skipping Google Play (not registered for Google Play)`
+      );
+    } else if (!config.playStore) {
       console.error(
         `[MCP]   ⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
@@ -106,78 +95,58 @@ export async function handleAsoPullReleaseNotes(
         `[MCP]   ⏭️  Skipping Google Play (no packageName provided)`
       );
     } else {
-      const clientResult = googlePlayService.createClient(packageName);
-
-      if (!clientResult.success) {
+      const notesResult = await googlePlayService.pullReleaseNotes(packageName);
+      if (!notesResult.success) {
         console.error(
-          `[MCP]   ❌ Failed to create Google Play client: ${clientResult.error}`
+          `[MCP]   ❌ Failed to fetch Google Play release notes: ${notesResult.error}`
         );
       } else {
-        try {
+        releaseNotes.googlePlay = notesResult.data;
+        console.error(`[MCP]   📊 Google Play Release Notes:`);
+        console.error(`[MCP]     Total versions: ${notesResult.data.length}`);
+        for (const rn of notesResult.data) {
+          const code = (rn as any).versionCode ?? "N/A";
           console.error(
-            `[MCP]   📥 Fetching release notes from Google Play...`
+            `[MCP]     Version ${rn.versionName} (${code}): ${
+              Object.keys(rn.releaseNotes).length
+            } languages`
           );
-          const result = await pullGooglePlayReleaseNotes({
-            client: clientResult.data,
-          });
-          releaseNotes.googlePlay = result.releaseNotes;
-
-          console.error(`[MCP]   📊 Google Play Release Notes:`);
-          console.error(
-            `[MCP]     Total versions: ${result.releaseNotes.length}`
-          );
-          for (const rn of result.releaseNotes) {
-            console.error(
-              `[MCP]     Version ${rn.versionName} (${rn.versionCode}): ${
-                Object.keys(rn.releaseNotes).length
-              } languages`
-            );
-          }
-          console.error(`[MCP]   ✅ Google Play release notes fetched`);
-        } catch (error) {
-          console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
         }
+        console.error(`[MCP]   ✅ Google Play release notes fetched`);
       }
     }
   }
 
   if (includeAppStore) {
-    if (!config.appStore) {
+    if (!hasAppStore) {
+      console.error(
+        `[MCP]   ⏭️  Skipping App Store (not registered for App Store)`
+      );
+    } else if (!config.appStore) {
       console.error(
         `[MCP]   ⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
       );
     } else if (!bundleId) {
       console.error(`[MCP]   ⏭️  Skipping App Store (no bundleId provided)`);
     } else {
-      const clientResult = appStoreService.createClient(bundleId);
-
-      if (!clientResult.success) {
+      const notesResult = await appStoreService.pullReleaseNotes(bundleId);
+      if (!notesResult.success) {
         console.error(
-          `[MCP]   ❌ Failed to create App Store client: ${clientResult.error}`
+          `[MCP]   ❌ Failed to fetch App Store release notes: ${notesResult.error}`
         );
       } else {
-        try {
-          console.error(`[MCP]   📥 Fetching release notes from App Store...`);
-          const result = await pullAppStoreReleaseNotes({
-            client: clientResult.data,
-          });
-          releaseNotes.appStore = result.releaseNotes;
+        releaseNotes.appStore = notesResult.data;
 
-          console.error(`[MCP]   📊 App Store Release Notes:`);
+        console.error(`[MCP]   📊 App Store Release Notes:`);
+        console.error(`[MCP]     Total versions: ${notesResult.data.length}`);
+        for (const rn of notesResult.data) {
           console.error(
-            `[MCP]     Total versions: ${result.releaseNotes.length}`
+            `[MCP]     Version ${rn.versionString}: ${
+              Object.keys(rn.releaseNotes).length
+            } locales`
           );
-          for (const rn of result.releaseNotes) {
-            console.error(
-              `[MCP]     Version ${rn.versionString}: ${
-                Object.keys(rn.releaseNotes).length
-              } locales`
-            );
-          }
-          console.error(`[MCP]   ✅ App Store release notes fetched`);
-        } catch (error) {
-          console.error(`[MCP]   ❌ App Store fetch failed:`, error);
         }
+        console.error(`[MCP]   ✅ App Store release notes fetched`);
       }
     }
   }

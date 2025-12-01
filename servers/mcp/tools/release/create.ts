@@ -1,12 +1,15 @@
 import { type StoreType } from "@packages/common/types";
-import { loadConfig, checkLatestVersions } from "@packages/common";
-import { findApp } from "@packages/utils";
-import { createAppStoreVersion } from "@packages/app-store/create-version";
-import { createGooglePlayVersion } from "@packages/play-store/create-version";
-import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
+import { loadConfig } from "@packages/common";
+import {
+  AppResolutionService,
+  AppStoreService,
+  GooglePlayService,
+} from "@servers/mcp/core/services";
+import { getLatestVersions } from "./version-info";
 
 const appStoreService = new AppStoreService();
 const googlePlayService = new GooglePlayService();
+const appResolutionService = new AppResolutionService();
 
 interface AsoCreateVersionOptions {
   app?: string; // Registered app slug
@@ -21,66 +24,51 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
   const { app, version, store = "both", versionCodes } = options;
   let { packageName, bundleId } = options;
 
-  // Determine slug
-  let slug: string;
-  let registeredApp = app ? findApp(app) : undefined;
+  const resolved = appResolutionService.resolve({
+    slug: app,
+    packageName,
+    bundleId,
+  });
 
-  if (app && registeredApp) {
-    // Successfully retrieved app info by app slug
-    slug = app;
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else if (packageName || bundleId) {
-    // Find app by bundleId or packageName
-    const identifier = packageName || bundleId || "";
-    registeredApp = findApp(identifier);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
-          },
-        ],
-      };
-    }
-    slug = registeredApp.slug;
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else {
+  if (!resolved.success) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
+          text: resolved.error,
         },
       ],
     };
   }
 
+  const {
+    slug,
+    bundleId: resolvedBundleId,
+    packageName: resolvedPackageName,
+    hasAppStore,
+    hasGooglePlay,
+  } = resolved.data;
+
+  bundleId = resolvedBundleId;
+  packageName = resolvedPackageName;
+
   const config = loadConfig();
 
   // If version is not provided, check latest versions and prompt user
   if (!version) {
-    const versionInfo = await checkLatestVersions({
+    const versionInfo = await getLatestVersions({
       store,
       bundleId,
       packageName,
+      hasAppStore,
+      hasGooglePlay,
     });
 
     return {
       content: [
         {
           type: "text" as const,
-          text: versionInfo.join("\n"),
+          text: versionInfo.messages.join("\n"),
         },
       ],
     };
@@ -99,46 +87,36 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
   const results: string[] = [];
 
   if (store === "appStore" || store === "both") {
-    if (!config.appStore) {
+    if (!hasAppStore) {
+      results.push(`⏭️  Skipping App Store (not registered for App Store)`);
+    } else if (!config.appStore) {
       results.push(
         `⏭️  Skipping App Store (not configured in secrets/aso-config.json)`
       );
     } else if (!bundleId) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
-      const clientResult = appStoreService.createClient(bundleId);
-
-      if (!clientResult.success) {
+      const createResult = await appStoreService.createVersion(
+        bundleId,
+        version
+      );
+      if (!createResult.success) {
         results.push(
-          `❌ App Store version creation failed: ${clientResult.error}`
+          `❌ App Store version creation failed: ${createResult.error}`
         );
       } else {
-        try {
-          console.error(`[MCP]   📦 Creating App Store version ${version}...`);
-          const result = await createAppStoreVersion({
-            client: clientResult.data,
-            versionString: version,
-          });
-          const state = result.version.attributes.appStoreState?.toUpperCase();
-          console.error(
-            `[MCP]     ✅ App Store version created (${state || "UNKNOWN"})`
-          );
-
-          results.push(
-            `✅ App Store version ${result.version.attributes.versionString} created` +
-              (state ? ` (${state})` : "")
-          );
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          results.push(`❌ App Store version creation failed: ${msg}`);
-          console.error(`❌ App Store error:`, error);
-        }
+        const state = createResult.data.state?.toUpperCase() || "UNKNOWN";
+        results.push(
+          `✅ App Store version ${createResult.data.versionString} created (${state})`
+        );
       }
     }
   }
 
   if (store === "googlePlay" || store === "both") {
-    if (!config.playStore) {
+    if (!hasGooglePlay) {
+      results.push(`⏭️  Skipping Google Play (not registered for Google Play)`);
+    } else if (!config.playStore) {
       results.push(
         `⏭️  Skipping Google Play (not configured in secrets/aso-config.json)`
       );
@@ -147,34 +125,21 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
     } else if (!versionCodes || versionCodes.length === 0) {
       results.push(`⏭️  Skipping Google Play (no version codes provided)`);
     } else {
-      const clientResult = googlePlayService.createClient(packageName);
-
-      if (!clientResult.success) {
+      const createResult = await googlePlayService.createVersion(
+        packageName,
+        version,
+        versionCodes
+      );
+      if (!createResult.success) {
         results.push(
-          `❌ Google Play version creation failed: ${clientResult.error}`
+          `❌ Google Play version creation failed: ${createResult.error}`
         );
       } else {
-        try {
-          console.error(
-            `[MCP]   📦 Creating Google Play production release ${version}...`
-          );
-          await createGooglePlayVersion({
-            client: clientResult.data,
-            versionString: version,
-            versionCodes,
-          });
-          console.error(`[MCP]     ✅ Google Play version created`);
-
-          results.push(
-            `✅ Google Play production draft created with versionCodes: ${versionCodes.join(
-              ", "
-            )}`
-          );
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          results.push(`❌ Google Play version creation failed: ${msg}`);
-          console.error(`❌ Google Play error:`, error);
-        }
+        results.push(
+          `✅ Google Play production draft created with versionCodes: ${versionCodes.join(
+            ", "
+          )}`
+        );
       }
     }
   }

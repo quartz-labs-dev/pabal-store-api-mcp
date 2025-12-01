@@ -11,8 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --write --ignore-unknown .",
     "format:check": "prettier --check --ignore-unknown .",
-    "prepare": "husky",
-    "tools": "tsx scripts/list-mcp-tools.ts"
+    "prepare": "husky"
   },
   "keywords": [
     "mcp",

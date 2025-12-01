@@ -13,3 +13,77 @@ export interface StoreAppSummary {
   sku: string;
   isReleased: boolean;
 }
+
+export interface AppStoreVersionInfo {
+  versionString: string;
+  state: string;
+}
+
+export interface GooglePlayReleaseInfo {
+  versionName?: string;
+  releaseName?: string;
+  status?: string;
+  versionCodes: number[];
+}
+
+export interface CreatedAppStoreVersion {
+  id: string;
+  versionString: string;
+  state?: string;
+  releaseType?: string;
+}
+
+export interface CreatedGooglePlayRelease {
+  versionName: string;
+  versionCodes: number[];
+  status: string;
+}
+
+export interface UpdatedReleaseNotesResult {
+  updated: string[];
+  failed: Array<{ locale: string; error: string }>;
+}
+
+export interface PushFailedFields {
+  locale: string;
+  fields: string[];
+}
+
+export type PushAsoResult =
+  | {
+      success: true;
+      localesPushed: string[];
+      failedFields?: PushFailedFields[];
+    }
+  | {
+      success: false;
+      error: string;
+      needsNewVersion?: boolean;
+      versionInfo?: {
+        versionId: string;
+        versionString: string;
+        locales: string[];
+      };
+    };
+
+export interface CreatedAppStoreVersion {
+  id: string;
+  versionString: string;
+  state?: string;
+}
+
+export interface CreatedGooglePlayVersion {
+  versionName: string;
+  versionCodes: number[];
+  status: string;
+}
+
+export interface ResolvedAppContext {
+  app: RegisteredApp;
+  slug: string;
+  bundleId?: string;
+  packageName?: string;
+  hasAppStore: boolean;
+  hasGooglePlay: boolean;
+}
+import type { RegisteredApp } from "@packages/utils/registered-apps";

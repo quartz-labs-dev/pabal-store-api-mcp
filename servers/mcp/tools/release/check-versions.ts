@@ -1,9 +1,8 @@
-import {
-  checkLatestVersions,
-  getStoreTargets,
-  type StoreType,
-} from "@packages/common";
-import { findApp } from "@packages/utils";
+import { getStoreTargets, type StoreType } from "@packages/common";
+import { AppResolutionService } from "@servers/mcp/core/services";
+import { getLatestVersions } from "./version-info";
+
+const appResolutionService = new AppResolutionService();
 
 interface CheckVersionsOptions {
   app?: string; // Registered app slug
@@ -15,71 +14,78 @@ interface CheckVersionsOptions {
 export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
   const { app, store } = options;
   let { packageName, bundleId } = options;
-  const { store: selectedStore } = getStoreTargets(store);
+  const {
+    store: selectedStore,
+    includeAppStore,
+    includeGooglePlay,
+  } = getStoreTargets(store);
 
   console.error(`[MCP] 🔍 Checking latest versions (store: ${selectedStore})`);
 
-  // Determine bundleId and packageName
-  let registeredApp = app ? findApp(app) : undefined;
+  const resolved = appResolutionService.resolve({
+    slug: app,
+    packageName,
+    bundleId,
+  });
 
-  if (app && registeredApp) {
-    // Successfully retrieved app info by app slug
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else if (packageName || bundleId) {
-    // Find app by bundleId or packageName
-    const identifier = packageName || bundleId || "";
-    registeredApp = findApp(identifier);
-    if (!registeredApp) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`,
-          },
-        ],
-      };
-    }
-    if (!packageName && registeredApp.googlePlay) {
-      packageName = registeredApp.googlePlay.packageName;
-    }
-    if (!bundleId && registeredApp.appStore) {
-      bundleId = registeredApp.appStore.bundleId;
-    }
-  } else {
+  if (!resolved.success) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ App not found. Please provide app (slug), packageName, or bundleId.`,
+          text: resolved.error,
         },
       ],
     };
   }
 
+  const {
+    slug,
+    bundleId: resolvedBundleId,
+    packageName: resolvedPackageName,
+    hasAppStore,
+    hasGooglePlay,
+  } = resolved.data;
+
+  bundleId = resolvedBundleId;
+  packageName = resolvedPackageName;
+
   // Check latest versions (without prompt message since this is a dedicated check tool)
+  console.error(`[MCP]   App: ${slug}`);
   if (bundleId) console.error(`[MCP]   App Store bundleId: ${bundleId}`);
   if (packageName)
     console.error(`[MCP]   Google Play packageName: ${packageName}`);
 
-  const versionInfo = await checkLatestVersions({
-    store: selectedStore,
+  const skips: string[] = [];
+  if (includeAppStore && !hasAppStore) {
+    skips.push(`⏭️  Skipping App Store (not registered for App Store)`);
+  } else if (includeAppStore && !bundleId) {
+    skips.push(`⏭️  Skipping App Store (no bundleId provided)`);
+  }
+  if (includeGooglePlay && !hasGooglePlay) {
+    skips.push(`⏭️  Skipping Google Play (not registered for Google Play)`);
+  } else if (includeGooglePlay && !packageName) {
+    skips.push(`⏭️  Skipping Google Play (no packageName provided)`);
+  }
+
+  const versionInfo = await getLatestVersions({
     bundleId,
-    packageName,
     includePrompt: false,
+    store: selectedStore,
+    packageName,
+    hasAppStore,
+    hasGooglePlay,
   });
 
   console.error(`[MCP]   ✅ Version check completed`);
+
+  const contentLines = [...skips, ...versionInfo.messages];
 
   return {
     content: [
       {
         type: "text" as const,
-        text: versionInfo.join("\n"),
+        text: contentLines.join("\n"),
       },
     ],
   };

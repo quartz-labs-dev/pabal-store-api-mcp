@@ -21,14 +21,3 @@ export function getStoreTargets(store?: StoreType): StoreTargets {
       normalizedStore === "googlePlay" || normalizedStore === "both",
   };
 }
-
-/**
- * Helper for concise per-store branching.
- */
-export function shouldHandleStore(
-  store: StoreType | undefined,
-  target: "appStore" | "googlePlay"
-): boolean {
-  const { includeAppStore, includeGooglePlay } = getStoreTargets(store);
-  return target === "appStore" ? includeAppStore : includeGooglePlay;
-}

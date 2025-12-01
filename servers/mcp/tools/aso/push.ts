@@ -9,13 +9,17 @@ import {
   getAsoDataPaths,
   getAsoPushDir,
 } from "@packages/aso";
-import {
-  pushToAppStore,
-  pushToGooglePlay,
-  resolveAsoAppInfo,
-} from "@packages/aso/push";
 import { loadConfig } from "@packages/common";
 import { existsSync } from "node:fs";
+import {
+  AppResolutionService,
+  AppStoreService,
+  GooglePlayService,
+} from "@servers/mcp/core/services";
+
+const appResolutionService = new AppResolutionService();
+const appStoreService = new AppStoreService();
+const googlePlayService = new GooglePlayService();
 
 interface AsoPushOptions {
   app?: string; // Registered app slug
@@ -29,22 +33,25 @@ interface AsoPushOptions {
 export async function handleAsoPush(options: AsoPushOptions) {
   const { store = "both", uploadImages = false, dryRun = false } = options;
 
-  // Resolve app info
-  let appInfo;
-  try {
-    appInfo = resolveAsoAppInfo(options);
-  } catch (error) {
+  const resolved = appResolutionService.resolve({
+    slug: options.app,
+    packageName: options.packageName,
+    bundleId: options.bundleId,
+  });
+
+  if (!resolved.success) {
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ ${error instanceof Error ? error.message : String(error)}`,
+          text: resolved.error,
         },
       ],
     };
   }
 
-  const { slug, packageName, bundleId } = appInfo;
+  const { slug, packageName, bundleId, hasAppStore, hasGooglePlay } =
+    resolved.data;
 
   console.error(`[MCP] 📤 Pushing ASO data`);
   console.error(`[MCP]   Store: ${store}`);
@@ -189,32 +196,65 @@ export async function handleAsoPush(options: AsoPushOptions) {
 
   const results: string[] = [];
 
+  const formatPushResult = (
+    storeLabel: "App Store" | "Google Play",
+    result: import("@servers/mcp/core/services/types").PushAsoResult
+  ): string => {
+    if (!result.success) {
+      if (result.needsNewVersion && result.versionInfo) {
+        const { versionString, versionId } = result.versionInfo;
+        return `✅ New version ${versionString} created (Version ID: ${versionId})`;
+      }
+      return `❌ ${storeLabel} push failed: ${result.error}`;
+    }
+
+    if (result.failedFields && result.failedFields.length > 0) {
+      const fieldDisplayNames: Record<string, string> = {
+        name: "Name",
+        subtitle: "Subtitle",
+      };
+      const failedText = result.failedFields
+        .map((f) => {
+          const fieldNames = f.fields.map(
+            (field) => fieldDisplayNames[field] || field
+          );
+          return `   • ${f.locale}: ${fieldNames.join(", ")}`;
+        })
+        .join("\n");
+      return `⚠️  ${storeLabel} data pushed with partial failures (${result.localesPushed.length} locales)\n${failedText}`;
+    }
+
+    return `✅ ${storeLabel} data pushed (${result.localesPushed.length} locales)`;
+  };
+
   // Push to Google Play
   if (store === "googlePlay" || store === "both") {
-    const result = await pushToGooglePlay({
-      config,
-      packageName,
-      localAsoData,
-      googlePlayDataPath,
-    });
-    results.push(result);
+    if (!hasGooglePlay) {
+      results.push(`⏭️  Skipping Google Play (not registered for Google Play)`);
+    } else {
+      const result = await googlePlayService.pushAsoData({
+        config,
+        packageName,
+        localAsoData,
+        googlePlayDataPath,
+      });
+      results.push(formatPushResult("Google Play", result));
+    }
   }
 
   // Push to App Store
   if (store === "appStore" || store === "both") {
-    const appStoreResult = await pushToAppStore({
-      config,
-      bundleId,
-      localAsoData,
-      appStoreDataPath,
-    });
-
-    // Handle special case: version creation needed
-    if (appStoreResult && typeof appStoreResult === "object") {
-      return appStoreResult;
+    if (!hasAppStore) {
+      results.push(`⏭️  Skipping App Store (not registered for App Store)`);
+    } else {
+      const appStoreResult = await appStoreService.pushAsoData({
+        config,
+        bundleId,
+        localAsoData,
+        appStoreDataPath,
+      });
+      results.push(formatPushResult("App Store", appStoreResult));
     }
-
-    results.push(appStoreResult as string);
   }
 
   return {
