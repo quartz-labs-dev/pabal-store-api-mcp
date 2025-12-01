@@ -13,6 +13,7 @@ MCP server that provides App Store / Play Store ASO workflows as tools. Run it a
 
 ```json
 {
+  "dataDir": "/path/to/data/directory",
   "appStore": {
     "issuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     "keyId": "XXXXXXXXXX",
@@ -24,7 +25,7 @@ MCP server that provides App Store / Play Store ASO workflows as tools. Run it a
 }
 ```
 
-- Data directory: by default, files are written to the project root. Override with `PABAL_MCP_DATA_DIR` (absolute or repo-relative).
+- Data directory: by default, files are written to the project root. Override with `dataDir` in `secrets/aso-config.json` (absolute or repo-relative) or `PABAL_MCP_DATA_DIR` environment variable. Priority: config file > environment variable > project root.
 
 ## Run the MCP server
 
@@ -37,14 +38,13 @@ MCP server that provides App Store / Play Store ASO workflows as tools. Run it a
     "pabal-mcp": {
       "command": "bash",
       "args": ["/Users/you/path/to/pabal-mcp/run-mcp.sh"],
-      "cwd": "/Users/you/path/to/pabal-mcp",
-      "env": {
-        "PABAL_MCP_DATA_DIR": "/Users/you/path/to/pabal-web"
-      }
+      "cwd": "/Users/you/path/to/pabal-mcp"
     }
   }
 }
 ```
+
+Note: You can set `dataDir` in `secrets/aso-config.json` instead of using environment variables. If you prefer using environment variables, you can still set `PABAL_MCP_DATA_DIR` in the `env` section above.
 
 ## MCP tools (current)
 

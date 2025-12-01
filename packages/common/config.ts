@@ -7,7 +7,7 @@ import { ConfigError } from "@packages/common/errors";
 export const DATA_DIR_ENV_KEY = "PABAL_MCP_DATA_DIR";
 
 // Find project root path
-// From packages/core/config.ts, go up 2 levels to reach project root
+// From packages/common/config.ts, go up 2 levels to reach project root
 export const getProjectRoot = (): string => {
   try {
     // For ES modules
@@ -22,23 +22,58 @@ export const getProjectRoot = (): string => {
   return process.cwd();
 };
 
+function readConfigFile(): any {
+  const projectRoot = getProjectRoot();
+  const configPath = resolve(projectRoot, "secrets/aso-config.json");
+
+  if (!existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    const configContent = readFileSync(configPath, "utf-8");
+    return JSON.parse(configContent);
+  } catch (error) {
+    console.error(
+      `[Config]   ⚠️  Failed to read config file: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return null;
+  }
+}
+
 export function getDataDir(): string {
   const projectRoot = getProjectRoot();
-  const override = process.env[DATA_DIR_ENV_KEY];
 
   console.error(`[Config] 🔍 Checking data directory config...`);
   console.error(`[Config]   Project Root: ${projectRoot}`);
-  console.error(`[Config]   ${DATA_DIR_ENV_KEY}: ${override || "(not set)"}`);
 
+  // 1. Check config file first
+  const config = readConfigFile();
+  if (config?.dataDir && typeof config.dataDir === "string") {
+    const normalized = config.dataDir.trim();
+    if (normalized) {
+      const resultDir = isAbsolute(normalized)
+        ? normalized
+        : resolve(projectRoot, normalized);
+      console.error(`[Config]   ✅ Using config file dataDir: ${resultDir}`);
+      return resultDir;
+    }
+  }
+
+  // 2. Check environment variable
+  const override = process.env[DATA_DIR_ENV_KEY];
   if (override && override.trim()) {
     const normalized = override.trim();
     const resultDir = isAbsolute(normalized)
       ? normalized
       : resolve(projectRoot, normalized);
-    console.error(`[Config]   ✅ Using override: ${resultDir}`);
+    console.error(`[Config]   ✅ Using environment variable: ${resultDir}`);
     return resultDir;
   }
 
+  // 3. Default to project root
   console.error(`[Config]   ✅ Using default (project root): ${projectRoot}`);
   return projectRoot;
 }
@@ -64,16 +99,16 @@ export type EnvConfig = {
 export function loadConfig(): EnvConfig {
   // Read secrets/aso-config.json file relative to project root
   const projectRoot = getProjectRoot();
-  const configPath = resolve(projectRoot, "secrets/aso-config.json");
+  const config = readConfigFile();
 
-  if (!existsSync(configPath)) {
-    throw new ConfigError("secrets/aso-config.json file not found.");
+  if (!config) {
+    const configPath = resolve(projectRoot, "secrets/aso-config.json");
+    throw new ConfigError(
+      `secrets/aso-config.json file not found or failed to parse: ${configPath}`
+    );
   }
 
   try {
-    const configContent = readFileSync(configPath, "utf-8");
-    const config = JSON.parse(configContent);
-
     const result: EnvConfig = {};
 
     // Load App Store configuration

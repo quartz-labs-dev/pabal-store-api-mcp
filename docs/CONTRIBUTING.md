@@ -12,6 +12,7 @@ This project runs as an MCP server for App Store / Play Store ASO workflows. Use
 
 ```json
 {
+  "dataDir": "/path/to/data/directory",
   "appStore": {
     "issuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     "keyId": "XXXXXXXXXX",
@@ -23,12 +24,12 @@ This project runs as an MCP server for App Store / Play Store ASO workflows. Use
 }
 ```
 
-- Data directory: outputs default to the project root. Override with `PABAL_MCP_DATA_DIR` (absolute or repo-relative).
+- Data directory: outputs default to the project root. Override with `dataDir` in `secrets/aso-config.json` (absolute or repo-relative) or `PABAL_MCP_DATA_DIR` environment variable. Priority: config file > environment variable > project root.
 
 ## Run locally
 
 - Start the MCP server with `npm run dev:mcp` from the project root (stdio server).
-- When connecting from an MCP client, call `run-mcp.sh` so paths resolve correctly and pass any env vars (e.g., `PABAL_MCP_DATA_DIR`).
+- When connecting from an MCP client, call `run-mcp.sh` so paths resolve correctly. Set `dataDir` in `secrets/aso-config.json` or pass `PABAL_MCP_DATA_DIR` environment variable if needed.
 
 ## Tool reference (current)
 
