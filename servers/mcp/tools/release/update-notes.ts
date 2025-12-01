@@ -121,13 +121,17 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       } else if (config.appStore) {
         // Fetch from App Store API
         try {
-          const { getAppStoreClient } = await import("@packages/app-store");
-          const client = getAppStoreClient({
-            bundleId,
-            issuerId: config.appStore.issuerId,
-            keyId: config.appStore.keyId,
-            privateKey: config.appStore.privateKey,
-          });
+          const { createAppStoreClient } =
+            await import("@servers/mcp/core/clients");
+          const clientResult = createAppStoreClient({ bundleId });
+
+          if (!clientResult.success) {
+            throw new Error(
+              `Failed to create App Store client: ${clientResult.error}`
+            );
+          }
+
+          const client = clientResult.client;
 
           const appInfo = await fetchAppStoreAppInfo({
             bundleId,
@@ -366,13 +370,17 @@ Note: Provide translations for ALL supported locales. Include the already provid
       } else if (config.appStore) {
         // Fetch from App Store API
         try {
-          const { getAppStoreClient } = await import("@packages/app-store");
-          const client = getAppStoreClient({
-            bundleId,
-            issuerId: config.appStore.issuerId,
-            keyId: config.appStore.keyId,
-            privateKey: config.appStore.privateKey,
-          });
+          const { createAppStoreClient } =
+            await import("@servers/mcp/core/clients");
+          const clientResult = createAppStoreClient({ bundleId });
+
+          if (!clientResult.success) {
+            throw new Error(
+              `Failed to create App Store client: ${clientResult.error}`
+            );
+          }
+
+          const client = clientResult.client;
 
           const appInfo = await fetchAppStoreAppInfo({
             bundleId,
@@ -600,13 +608,17 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
       );
     } else {
       try {
-        const { getAppStoreClient } = await import("@packages/app-store");
-        const client = getAppStoreClient({
-          bundleId,
-          issuerId: config.appStore.issuerId,
-          keyId: config.appStore.keyId,
-          privateKey: config.appStore.privateKey,
-        });
+        const { createAppStoreClient } =
+          await import("@servers/mcp/core/clients");
+        const clientResult = createAppStoreClient({ bundleId });
+
+        if (!clientResult.success) {
+          throw new Error(
+            `Failed to create App Store client: ${clientResult.error}`
+          );
+        }
+
+        const client = clientResult.client;
 
         const updateResult = await updateAppStoreReleaseNotes({
           client,
@@ -644,12 +656,17 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
     } else {
       console.error(`[MCP]   📤 Updating Google Play release notes...`);
       try {
-        const { GooglePlayClient } = await import("@packages/play-store");
-        const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
-        const client = new GooglePlayClient({
-          packageName,
-          serviceAccountKey: serviceAccount,
-        });
+        const { createGooglePlayClient } =
+          await import("@servers/mcp/core/clients");
+        const clientResult = createGooglePlayClient({ packageName });
+
+        if (!clientResult.success) {
+          throw new Error(
+            `Failed to create Google Play client: ${clientResult.error}`
+          );
+        }
+
+        const client = clientResult.client;
 
         const updateResult = await updateGooglePlayReleaseNotes({
           client,

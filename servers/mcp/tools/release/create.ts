@@ -3,8 +3,10 @@ import { loadConfig, checkLatestVersions } from "@packages/common";
 import { findApp } from "@packages/utils";
 import { createAppStoreVersion } from "@packages/app-store/create-version";
 import { createGooglePlayVersion } from "@packages/play-store/create-version";
-import { getAppStoreClient } from "@packages/app-store";
-import { GooglePlayClient } from "@packages/play-store";
+import {
+  createAppStoreClient,
+  createGooglePlayClient,
+} from "@servers/mcp/core/clients";
 
 interface AsoCreateVersionOptions {
   app?: string; // Registered app slug
@@ -104,32 +106,33 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
     } else if (!bundleId) {
       results.push(`⏭️  Skipping App Store (no bundleId provided)`);
     } else {
-      try {
-        const client = getAppStoreClient({
-          bundleId,
-          issuerId: config.appStore.issuerId,
-          keyId: config.appStore.keyId,
-          privateKey: config.appStore.privateKey,
-        });
+      const clientResult = createAppStoreClient({ bundleId });
 
-        console.error(`[MCP]   📦 Creating App Store version ${version}...`);
-        const result = await createAppStoreVersion({
-          client,
-          versionString: version,
-        });
-        const state = result.version.attributes.appStoreState?.toUpperCase();
-        console.error(
-          `[MCP]     ✅ App Store version created (${state || "UNKNOWN"})`
-        );
-
+      if (!clientResult.success) {
         results.push(
-          `✅ App Store version ${result.version.attributes.versionString} created` +
-            (state ? ` (${state})` : "")
+          `❌ App Store version creation failed: ${clientResult.error}`
         );
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        results.push(`❌ App Store version creation failed: ${msg}`);
-        console.error(`❌ App Store error:`, error);
+      } else {
+        try {
+          console.error(`[MCP]   📦 Creating App Store version ${version}...`);
+          const result = await createAppStoreVersion({
+            client: clientResult.client,
+            versionString: version,
+          });
+          const state = result.version.attributes.appStoreState?.toUpperCase();
+          console.error(
+            `[MCP]     ✅ App Store version created (${state || "UNKNOWN"})`
+          );
+
+          results.push(
+            `✅ App Store version ${result.version.attributes.versionString} created` +
+              (state ? ` (${state})` : "")
+          );
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          results.push(`❌ App Store version creation failed: ${msg}`);
+          console.error(`❌ App Store error:`, error);
+        }
       }
     }
   }
@@ -144,32 +147,34 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
     } else if (!versionCodes || versionCodes.length === 0) {
       results.push(`⏭️  Skipping Google Play (no version codes provided)`);
     } else {
-      try {
-        const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
-        const client = new GooglePlayClient({
-          packageName,
-          serviceAccountKey: serviceAccount,
-        });
+      const clientResult = createGooglePlayClient({ packageName });
 
-        console.error(
-          `[MCP]   📦 Creating Google Play production release ${version}...`
-        );
-        await createGooglePlayVersion({
-          client,
-          versionString: version,
-          versionCodes,
-        });
-        console.error(`[MCP]     ✅ Google Play version created`);
-
+      if (!clientResult.success) {
         results.push(
-          `✅ Google Play production draft created with versionCodes: ${versionCodes.join(
-            ", "
-          )}`
+          `❌ Google Play version creation failed: ${clientResult.error}`
         );
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        results.push(`❌ Google Play version creation failed: ${msg}`);
-        console.error(`❌ Google Play error:`, error);
+      } else {
+        try {
+          console.error(
+            `[MCP]   📦 Creating Google Play production release ${version}...`
+          );
+          await createGooglePlayVersion({
+            client: clientResult.client,
+            versionString: version,
+            versionCodes,
+          });
+          console.error(`[MCP]     ✅ Google Play version created`);
+
+          results.push(
+            `✅ Google Play production draft created with versionCodes: ${versionCodes.join(
+              ", "
+            )}`
+          );
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          results.push(`❌ Google Play version creation failed: ${msg}`);
+          console.error(`❌ Google Play error:`, error);
+        }
       }
     }
   }

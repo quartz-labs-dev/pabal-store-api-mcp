@@ -2,9 +2,11 @@
  * setup-apps: Query apps from store and auto-register
  */
 
-import { getAppStoreClient } from "@packages/app-store";
-import { getPlayStoreClient } from "@packages/play-store";
 import { loadConfig } from "@packages/common";
+import {
+  createAppStoreClient,
+  createGooglePlayClient,
+} from "@servers/mcp/core/clients";
 import type { PlayStoreConfig } from "@packages/common/config";
 import {
   registerApp,
@@ -34,12 +36,13 @@ async function checkPlayStoreAccess(
   title?: string;
   supportedLocales?: string[];
 }> {
+  const clientResult = createGooglePlayClient({ packageName });
+  if (!clientResult.success) {
+    return { accessible: false };
+  }
+
   try {
-    const client = getPlayStoreClient({
-      ...playStoreConfig,
-      packageName,
-    });
-    const appInfo = await client.verifyAppAccess();
+    const appInfo = await clientResult.client.verifyAppAccess();
     return {
       accessible: true,
       title: appInfo.title,
@@ -69,21 +72,45 @@ export async function handleSetupApps(options: SetupAppsOptions) {
       };
     }
 
-    try {
-      const client = getAppStoreClient({
-        ...config.appStore,
-        bundleId: "dummy", // listAllApps() does not use bundleId
-      });
+    const clientResult = createAppStoreClient({
+      bundleId: "dummy", // listAllApps() does not use bundleId
+    });
 
+    if (!clientResult.success) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ Failed to create App Store client: ${clientResult.error}`,
+          },
+        ],
+      };
+    }
+
+    try {
       console.error(`[MCP]   📋 Fetching app list from App Store...`);
-      const apps = await client.listAllApps({ onlyReleased: true });
+      const apps = await clientResult.client.listAllApps({
+        onlyReleased: true,
+      });
       console.error(`[MCP]   ✅ Found ${apps.length} apps`);
 
       // 모든 앱의 언어 정보를 미리 가져오기 위한 클라이언트 인스턴스
-      const appInfoClient = getAppStoreClient({
-        ...config.appStore,
+      const appInfoClientResult = createAppStoreClient({
         bundleId: "dummy",
       });
+
+      if (!appInfoClientResult.success) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `❌ Failed to create App Store info client: ${appInfoClientResult.error}`,
+            },
+          ],
+        };
+      }
+
+      const appInfoClient = appInfoClientResult.client;
 
       if (apps.length === 0) {
         return {

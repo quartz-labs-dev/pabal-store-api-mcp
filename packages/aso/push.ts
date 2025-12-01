@@ -3,8 +3,12 @@ import {
   type GooglePlayMultilingualAsoData,
 } from "./types";
 import { prepareAsoDataForPush, type PreparedAsoData } from "./utils";
-import { pushAppStoreAso, getAppStoreClient } from "@packages/app-store";
-import { pushGooglePlayAso, getPlayStoreClient } from "@packages/play-store";
+import { pushAppStoreAso } from "@packages/app-store";
+import { pushGooglePlayAso } from "@packages/play-store";
+import {
+  createAppStoreClient,
+  createGooglePlayClient,
+} from "@servers/mcp/core/clients";
 import type { EnvConfig } from "@packages/common/config";
 import { findApp, updateAppSupportedLocales } from "@packages/utils";
 
@@ -35,10 +39,11 @@ export async function pushToGooglePlay({
     return `⏭️  Skipping Google Play (no data found)`;
   }
 
-  const client = getPlayStoreClient({
-    ...config.playStore,
-    packageName,
-  });
+  const clientResult = createGooglePlayClient({ packageName });
+
+  if (!clientResult.success) {
+    return `❌ Google Play push failed: ${clientResult.error}`;
+  }
 
   // prepareAsoDataForPush always returns multilingual data
   const googlePlayData: GooglePlayMultilingualAsoData =
@@ -47,7 +52,10 @@ export async function pushToGooglePlay({
   console.error(`[MCP]   📤 Pushing to Google Play...`);
   console.error(`[MCP]     Package: ${packageName}`);
 
-  const result = await pushGooglePlayAso({ client, asoData: googlePlayData });
+  const result = await pushGooglePlayAso({
+    client: clientResult.client,
+    asoData: googlePlayData,
+  });
 
   if (
     result.success &&
@@ -100,10 +108,11 @@ export async function pushToAppStore({
     return `⏭️  Skipping App Store (no data found)`;
   }
 
-  const client = getAppStoreClient({
-    ...config.appStore,
-    bundleId,
-  });
+  const clientResult = createAppStoreClient({ bundleId });
+
+  if (!clientResult.success) {
+    return `❌ App Store push failed: ${clientResult.error}`;
+  }
 
   // prepareAsoDataForPush always returns multilingual data
   const appStoreData: AppStoreMultilingualAsoData = localAsoData.appStore!;
@@ -111,7 +120,10 @@ export async function pushToAppStore({
   console.error(`[MCP]   📤 Pushing to App Store...`);
   console.error(`[MCP]     Bundle ID: ${bundleId}`);
 
-  const result = await pushAppStoreAso({ client, asoData: appStoreData });
+  const result = await pushAppStoreAso({
+    client: clientResult.client,
+    asoData: appStoreData,
+  });
 
   if (
     result.success &&

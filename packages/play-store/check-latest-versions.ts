@@ -1,5 +1,5 @@
 import type { PlayStoreConfig } from "@packages/common/config";
-import { getPlayStoreClient } from "./client-factory";
+import { createGooglePlayClient } from "@servers/mcp/core/clients";
 
 interface CheckGooglePlayLatestVersionOptions {
   packageName: string;
@@ -15,12 +15,14 @@ export async function checkGooglePlayLatestVersion({
   config,
 }: CheckGooglePlayLatestVersionOptions): Promise<string | null> {
   try {
-    const client = getPlayStoreClient({
-      ...config,
-      packageName,
-    });
+    const clientResult = createGooglePlayClient({ packageName });
 
-    const latestRelease = await client.getLatestProductionRelease();
+    if (!clientResult.success) {
+      return `🤖 Google Play: Client creation failed - ${clientResult.error}`;
+    }
+
+    const latestRelease =
+      await clientResult.client.getLatestProductionRelease();
     if (latestRelease) {
       const versionName =
         latestRelease.versionName || latestRelease.releaseName || "N/A";

@@ -1,5 +1,5 @@
-import { AppStoreClient } from "./client";
 import type { AppStoreConfig } from "@packages/common/config";
+import { createAppStoreClient } from "@servers/mcp/core/clients";
 
 interface CheckAppStoreLatestVersionOptions {
   bundleId: string;
@@ -15,14 +15,13 @@ export async function checkAppStoreLatestVersion({
   config,
 }: CheckAppStoreLatestVersionOptions): Promise<string | null> {
   try {
-    const client = new AppStoreClient({
-      bundleId,
-      issuerId: config.issuerId,
-      keyId: config.keyId,
-      privateKey: config.privateKey,
-    });
+    const clientResult = createAppStoreClient({ bundleId });
 
-    const latestVersion = await client.getLatestVersion();
+    if (!clientResult.success) {
+      return `🍎 App Store: Client creation failed - ${clientResult.error}`;
+    }
+
+    const latestVersion = await clientResult.client.getLatestVersion();
     if (latestVersion) {
       const versionString = latestVersion.attributes.versionString;
       const state =

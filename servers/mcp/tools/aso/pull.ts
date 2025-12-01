@@ -1,5 +1,7 @@
-import { GooglePlayClient } from "@packages/play-store";
-import { AppStoreClient } from "@packages/app-store";
+import {
+  createGooglePlayClient,
+  createAppStoreClient,
+} from "@servers/mcp/core/clients";
 import {
   type AsoData,
   type StoreType,
@@ -219,34 +221,36 @@ export async function handleAsoPull(options: AsoPullOptions) {
         `[MCP]   ⏭️  Skipping Google Play (no packageName provided)`
       );
     } else {
-      try {
-        const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
-        const client = new GooglePlayClient({
-          packageName,
-          serviceAccountKey: serviceAccount,
-        });
+      const clientResult = createGooglePlayClient({ packageName });
 
-        console.error(`[MCP]   📥 Fetching from Google Play...`);
-        const data = await client.pullAllLanguagesAsoData();
-        syncedData.googlePlay = data;
-        console.error(`[MCP]   ✅ Google Play data fetched`);
+      if (!clientResult.success) {
+        console.error(
+          `[MCP]   ❌ Failed to create Google Play client: ${clientResult.error}`
+        );
+      } else {
+        try {
+          console.error(`[MCP]   📥 Fetching from Google Play...`);
+          const data = await clientResult.client.pullAllLanguagesAsoData();
+          syncedData.googlePlay = data;
+          console.error(`[MCP]   ✅ Google Play data fetched`);
 
-        // Update registered-apps.json with pulled locales
-        if (data.locales && Object.keys(data.locales).length > 0) {
-          const locales = Object.keys(data.locales);
-          const updated = updateAppSupportedLocales({
-            identifier: packageName,
-            store: "googlePlay",
-            locales,
-          });
-          if (updated) {
-            console.error(
-              `[MCP]   ✅ Updated registered-apps.json with ${locales.length} Google Play locales`
-            );
+          // Update registered-apps.json with pulled locales
+          if (data.locales && Object.keys(data.locales).length > 0) {
+            const locales = Object.keys(data.locales);
+            const updated = updateAppSupportedLocales({
+              identifier: packageName,
+              store: "googlePlay",
+              locales,
+            });
+            if (updated) {
+              console.error(
+                `[MCP]   ✅ Updated registered-apps.json with ${locales.length} Google Play locales`
+              );
+            }
           }
+        } catch (error) {
+          console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
         }
-      } catch (error) {
-        console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
       }
     }
   }
@@ -259,35 +263,36 @@ export async function handleAsoPull(options: AsoPullOptions) {
     } else if (!bundleId) {
       console.error(`[MCP]   ⏭️  Skipping App Store (no bundleId provided)`);
     } else {
-      try {
-        const client = new AppStoreClient({
-          bundleId,
-          issuerId: config.appStore.issuerId,
-          keyId: config.appStore.keyId,
-          privateKey: config.appStore.privateKey,
-        });
+      const clientResult = createAppStoreClient({ bundleId });
 
-        console.error(`[MCP]   📥 Fetching from App Store...`);
-        const data = await client.pullAllLocalesAsoData();
-        syncedData.appStore = data;
-        console.error(`[MCP]   ✅ App Store data fetched`);
+      if (!clientResult.success) {
+        console.error(
+          `[MCP]   ❌ Failed to create App Store client: ${clientResult.error}`
+        );
+      } else {
+        try {
+          console.error(`[MCP]   📥 Fetching from App Store...`);
+          const data = await clientResult.client.pullAllLocalesAsoData();
+          syncedData.appStore = data;
+          console.error(`[MCP]   ✅ App Store data fetched`);
 
-        // Update registered-apps.json with pulled locales
-        if (data.locales && Object.keys(data.locales).length > 0) {
-          const locales = Object.keys(data.locales);
-          const updated = updateAppSupportedLocales({
-            identifier: bundleId,
-            store: "appStore",
-            locales,
-          });
-          if (updated) {
-            console.error(
-              `[MCP]   ✅ Updated registered-apps.json with ${locales.length} App Store locales`
-            );
+          // Update registered-apps.json with pulled locales
+          if (data.locales && Object.keys(data.locales).length > 0) {
+            const locales = Object.keys(data.locales);
+            const updated = updateAppSupportedLocales({
+              identifier: bundleId,
+              store: "appStore",
+              locales,
+            });
+            if (updated) {
+              console.error(
+                `[MCP]   ✅ Updated registered-apps.json with ${locales.length} App Store locales`
+              );
+            }
           }
+        } catch (error) {
+          console.error(`[MCP]   ❌ App Store fetch failed:`, error);
         }
-      } catch (error) {
-        console.error(`[MCP]   ❌ App Store fetch failed:`, error);
       }
     }
   }

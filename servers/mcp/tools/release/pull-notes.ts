@@ -12,8 +12,10 @@ import { getStoreTargets, loadConfig } from "@packages/common";
 import { findApp } from "@packages/utils";
 import { pullAppStoreReleaseNotes } from "@packages/app-store/pull-release-notes";
 import { pullGooglePlayReleaseNotes } from "@packages/play-store/pull-release-notes";
-import { getAppStoreClient } from "@packages/app-store";
-import { GooglePlayClient } from "@packages/play-store";
+import {
+  createAppStoreClient,
+  createGooglePlayClient,
+} from "@servers/mcp/core/clients";
 import { writeFileSync } from "node:fs";
 
 interface AsoPullReleaseNotesOptions {
@@ -104,31 +106,37 @@ export async function handleAsoPullReleaseNotes(
         `[MCP]   ⏭️  Skipping Google Play (no packageName provided)`
       );
     } else {
-      try {
-        const serviceAccount = JSON.parse(config.playStore.serviceAccountJson);
-        const client = new GooglePlayClient({
-          packageName,
-          serviceAccountKey: serviceAccount,
-        });
+      const clientResult = createGooglePlayClient({ packageName });
 
-        console.error(`[MCP]   📥 Fetching release notes from Google Play...`);
-        const result = await pullGooglePlayReleaseNotes({ client });
-        releaseNotes.googlePlay = result.releaseNotes;
-
-        console.error(`[MCP]   📊 Google Play Release Notes:`);
+      if (!clientResult.success) {
         console.error(
-          `[MCP]     Total versions: ${result.releaseNotes.length}`
+          `[MCP]   ❌ Failed to create Google Play client: ${clientResult.error}`
         );
-        for (const rn of result.releaseNotes) {
+      } else {
+        try {
           console.error(
-            `[MCP]     Version ${rn.versionName} (${rn.versionCode}): ${
-              Object.keys(rn.releaseNotes).length
-            } languages`
+            `[MCP]   📥 Fetching release notes from Google Play...`
           );
+          const result = await pullGooglePlayReleaseNotes({
+            client: clientResult.client,
+          });
+          releaseNotes.googlePlay = result.releaseNotes;
+
+          console.error(`[MCP]   📊 Google Play Release Notes:`);
+          console.error(
+            `[MCP]     Total versions: ${result.releaseNotes.length}`
+          );
+          for (const rn of result.releaseNotes) {
+            console.error(
+              `[MCP]     Version ${rn.versionName} (${rn.versionCode}): ${
+                Object.keys(rn.releaseNotes).length
+              } languages`
+            );
+          }
+          console.error(`[MCP]   ✅ Google Play release notes fetched`);
+        } catch (error) {
+          console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
         }
-        console.error(`[MCP]   ✅ Google Play release notes fetched`);
-      } catch (error) {
-        console.error(`[MCP]   ❌ Google Play fetch failed:`, error);
       }
     }
   }
@@ -141,32 +149,35 @@ export async function handleAsoPullReleaseNotes(
     } else if (!bundleId) {
       console.error(`[MCP]   ⏭️  Skipping App Store (no bundleId provided)`);
     } else {
-      try {
-        const client = getAppStoreClient({
-          bundleId,
-          issuerId: config.appStore.issuerId,
-          keyId: config.appStore.keyId,
-          privateKey: config.appStore.privateKey,
-        });
+      const clientResult = createAppStoreClient({ bundleId });
 
-        console.error(`[MCP]   📥 Fetching release notes from App Store...`);
-        const result = await pullAppStoreReleaseNotes({ client });
-        releaseNotes.appStore = result.releaseNotes;
-
-        console.error(`[MCP]   📊 App Store Release Notes:`);
+      if (!clientResult.success) {
         console.error(
-          `[MCP]     Total versions: ${result.releaseNotes.length}`
+          `[MCP]   ❌ Failed to create App Store client: ${clientResult.error}`
         );
-        for (const rn of result.releaseNotes) {
+      } else {
+        try {
+          console.error(`[MCP]   📥 Fetching release notes from App Store...`);
+          const result = await pullAppStoreReleaseNotes({
+            client: clientResult.client,
+          });
+          releaseNotes.appStore = result.releaseNotes;
+
+          console.error(`[MCP]   📊 App Store Release Notes:`);
           console.error(
-            `[MCP]     Version ${rn.versionString}: ${
-              Object.keys(rn.releaseNotes).length
-            } locales`
+            `[MCP]     Total versions: ${result.releaseNotes.length}`
           );
+          for (const rn of result.releaseNotes) {
+            console.error(
+              `[MCP]     Version ${rn.versionString}: ${
+                Object.keys(rn.releaseNotes).length
+              } locales`
+            );
+          }
+          console.error(`[MCP]   ✅ App Store release notes fetched`);
+        } catch (error) {
+          console.error(`[MCP]   ❌ App Store fetch failed:`, error);
         }
-        console.error(`[MCP]   ✅ App Store release notes fetched`);
-      } catch (error) {
-        console.error(`[MCP]   ❌ App Store fetch failed:`, error);
       }
     }
   }

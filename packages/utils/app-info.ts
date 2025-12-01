@@ -3,8 +3,11 @@
  * App Store와 Google Play에서 앱 정보 및 지원 언어 정보를 가져옵니다.
  */
 
-import { getAppStoreClient, type AppStoreClient } from "@packages/app-store";
-import { getPlayStoreClient } from "@packages/play-store";
+import { type AppStoreClient } from "@packages/app-store";
+import {
+  createAppStoreClient,
+  createGooglePlayClient,
+} from "@servers/mcp/core/clients";
 import type { AppStoreConfig, PlayStoreConfig } from "@packages/common/config";
 import type {
   RegisteredAppStoreInfo,
@@ -41,12 +44,21 @@ export async function fetchAppStoreAppInfo({
   }
 
   try {
-    const appStoreClient =
-      client ||
-      getAppStoreClient({
-        ...config!,
+    let appStoreClient: AppStoreClient;
+
+    if (client) {
+      appStoreClient = client;
+    } else {
+      const clientResult = createAppStoreClient({
         bundleId: "dummy", // listAllApps() does not use bundleId
       });
+
+      if (!clientResult.success) {
+        return { found: false };
+      }
+
+      appStoreClient = clientResult.client;
+    }
 
     const apps = await appStoreClient.listAllApps({ onlyReleased: true });
     const app = apps.find((a) => a.bundleId === bundleId);
@@ -84,12 +96,13 @@ export async function fetchGooglePlayAppInfo({
   }
 
   try {
-    const client = getPlayStoreClient({
-      serviceAccountJson: config.serviceAccountJson,
-      packageName,
-    });
+    const clientResult = createGooglePlayClient({ packageName });
 
-    const appInfo = await client.verifyAppAccess();
+    if (!clientResult.success) {
+      return { found: false };
+    }
+
+    const appInfo = await clientResult.client.verifyAppAccess();
 
     return {
       found: true,
