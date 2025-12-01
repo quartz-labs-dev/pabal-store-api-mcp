@@ -134,6 +134,32 @@ export async function pushToAppStore({
         );
       }
     }
+
+    // Check for failed fields (Name/Subtitle)
+    if (result.failedFields && result.failedFields.length > 0) {
+      const fieldDisplayNames: Record<string, string> = {
+        name: "Name",
+        subtitle: "Subtitle",
+      };
+
+      return `⚠️  App Store data pushed with partial failures (${result.localesPushed.length} locales)
+
+❌ **Failed Fields (Bug - Fixing):**
+${result.failedFields
+  .map((f) => {
+    const fieldNames = f.fields.map(
+      (field) => fieldDisplayNames[field] || field
+    );
+    return `   • ${f.locale}: ${fieldNames.join(", ")} - Cannot be updated in current app state (requires new version)`;
+  })
+  .join("\n")}
+
+✅ **Successfully Updated:**
+   • Description, Keywords, Promotional Text, URLs for all ${result.localesPushed.length} locales
+
+🔧 **Status:** This is a known limitation. We're working on a fix to handle this automatically.`;
+    }
+
     return `✅ App Store data pushed (${result.localesPushed.length} locales)`;
   }
 

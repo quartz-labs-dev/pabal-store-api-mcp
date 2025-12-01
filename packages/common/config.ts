@@ -26,13 +26,20 @@ export function getDataDir(): string {
   const projectRoot = getProjectRoot();
   const override = process.env[DATA_DIR_ENV_KEY];
 
+  console.error(`[Config] 🔍 Checking data directory config...`);
+  console.error(`[Config]   Project Root: ${projectRoot}`);
+  console.error(`[Config]   ${DATA_DIR_ENV_KEY}: ${override || "(not set)"}`);
+
   if (override && override.trim()) {
     const normalized = override.trim();
-    return isAbsolute(normalized)
+    const resultDir = isAbsolute(normalized)
       ? normalized
       : resolve(projectRoot, normalized);
+    console.error(`[Config]   ✅ Using override: ${resultDir}`);
+    return resultDir;
   }
 
+  console.error(`[Config]   ✅ Using default (project root): ${projectRoot}`);
   return projectRoot;
 }
 

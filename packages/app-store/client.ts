@@ -546,7 +546,9 @@ export class AppStoreClient {
     return { locales, defaultLocale: defaultLocale || DEFAULT_LOCALE };
   }
 
-  async pushAsoData(data: Partial<AppStoreAsoData>): Promise<void> {
+  async pushAsoData(data: Partial<AppStoreAsoData>): Promise<{
+    failedFields?: string[];
+  }> {
     const appId = await this.findAppId();
     const appInfoId = await this.findAppInfoId(appId);
     const locale = data.locale || "en-US";
@@ -556,9 +558,17 @@ export class AppStoreClient {
     >(`/appInfos/${appInfoId}/appInfoLocalizations?filter[locale]=${locale}`);
 
     const appInfoAttributes: Record<string, string> = {};
-    if (typeof data.name === "string") appInfoAttributes.name = data.name;
-    if (typeof data.subtitle === "string")
+    const attemptedFields: string[] = [];
+    if (typeof data.name === "string") {
+      appInfoAttributes.name = data.name;
+      attemptedFields.push("name");
+    }
+    if (typeof data.subtitle === "string") {
       appInfoAttributes.subtitle = data.subtitle;
+      attemptedFields.push("subtitle");
+    }
+
+    const failedFields: string[] = [];
 
     if (Object.keys(appInfoAttributes).length > 0) {
       try {
@@ -596,16 +606,18 @@ export class AppStoreClient {
         // App Info fields (name/subtitle) require a new version to be updated
         // They are locked when app is in certain states (e.g. submitted for review, approved)
         if (msg.includes("STATE_ERROR") || msg.includes("409 Conflict")) {
+          failedFields.push(...attemptedFields);
           console.error(
             `[AppStore] ⚠️  Name/Subtitle update failed for ${locale}: ${msg}`
           );
           console.error(
             `[AppStore]   ℹ️  Name and Subtitle can only be updated when a new version is created.`
           );
-          // Throw error to trigger new version creation in push.ts
-          throw new Error(
-            `409 Conflict: STATE_ERROR - Name/Subtitle update requires a new version. ${msg}`
+          console.error(
+            `[AppStore]   ⏭️  Continuing with other ASO fields (description, keywords, etc.)...`
           );
+          // Don't throw error - continue with version localization updates
+          // Name/subtitle will be skipped but other fields can still be updated
         } else {
           throw error;
         }
@@ -673,6 +685,8 @@ export class AppStoreClient {
 
       localizationId = createResponse.data.id;
     }
+
+    return failedFields.length > 0 ? { failedFields } : {};
   }
 
   async getAllVersions(limit = 50): Promise<AppStoreVersion[]> {

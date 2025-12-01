@@ -20,6 +20,10 @@ export interface PushAppStoreAsoResult {
     versionString: string;
     locales: string[];
   };
+  failedFields?: {
+    locale: string;
+    fields: string[];
+  }[];
 }
 
 /**
@@ -37,11 +41,23 @@ export async function pushAppStoreAso({
       `[AppStore]   Locales: ${localesToPush.join(", ")} (${localesToPush.length} total)`
     );
 
+    const failedFieldsList: { locale: string; fields: string[] }[] = [];
+
     for (const [locale, localeData] of Object.entries(asoData.locales)) {
       console.error(`[AppStore]   📤 Pushing ${locale}...`);
       try {
-        await client.pushAsoData(localeData);
-        console.error(`[AppStore]   ✅ ${locale} uploaded successfully`);
+        const result = await client.pushAsoData(localeData);
+        if (result.failedFields && result.failedFields.length > 0) {
+          failedFieldsList.push({
+            locale,
+            fields: result.failedFields,
+          });
+          console.error(
+            `[AppStore]   ⚠️  ${locale} partially updated (failed fields: ${result.failedFields.join(", ")})`
+          );
+        } else {
+          console.error(`[AppStore]   ✅ ${locale} uploaded successfully`);
+        }
       } catch (localeError) {
         const localeMsg =
           localeError instanceof Error
@@ -55,6 +71,7 @@ export async function pushAppStoreAso({
     return {
       success: true,
       localesPushed: localesToPush,
+      failedFields: failedFieldsList.length > 0 ? failedFieldsList : undefined,
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
