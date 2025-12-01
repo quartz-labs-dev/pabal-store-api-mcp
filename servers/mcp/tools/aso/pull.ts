@@ -1,7 +1,6 @@
 import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
+import type { AsoData, StoreType } from "@/packages/aso-config/types";
 import {
-  type AsoData,
-  type StoreType,
   isGooglePlayMultilingual,
   isAppStoreMultilingual,
   saveAsoData,
@@ -15,9 +14,10 @@ import {
   getPullProductAsoDir,
   getScreenshotDir,
   getScreenshotFilePath,
-} from "@packages/aso";
-import { getStoreTargets, loadConfig } from "@packages/common";
-import { updateAppSupportedLocales } from "@packages/utils";
+} from "@/packages/aso-config/utils";
+import { getStoreTargets } from "@packages/aso-config/store";
+import { loadConfig } from "@packages/secrets-config/config";
+import { updateAppSupportedLocales } from "@/packages/secrets-config/registered-apps";
 import { AppResolutionService } from "@servers/mcp/core/services";
 
 const appStoreService = new AppStoreService();

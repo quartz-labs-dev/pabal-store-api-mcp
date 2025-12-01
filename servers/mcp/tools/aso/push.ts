@@ -1,5 +1,5 @@
+import type { StoreType } from "@/packages/aso-config/types";
 import {
-  type StoreType,
   isGooglePlayMultilingual,
   isAppStoreMultilingual,
   loadAsoData,
@@ -8,8 +8,8 @@ import {
   getAsoDir,
   getAsoDataPaths,
   getAsoPushDir,
-} from "@packages/aso";
-import { loadConfig } from "@packages/common";
+} from "@/packages/aso-config/utils";
+import { loadConfig } from "@packages/secrets-config/config";
 import { existsSync } from "node:fs";
 import {
   AppResolutionService,

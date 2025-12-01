@@ -5,12 +5,12 @@
  * Automatically translates to all supported languages if text is provided.
  */
 
-import { type StoreType } from "@packages/common/types";
+import { type StoreType } from "@packages/aso-config/types";
 import {
   createTranslationRequests,
   separateTranslationsByStore,
   collectSupportedLocales,
-} from "@packages/utils/translate-release-notes";
+} from "@servers/mcp/core/helpers/translate-release-notes";
 import {
   AppResolutionService,
   AppStoreService,
@@ -44,7 +44,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
   } = options;
   let { bundleId, packageName } = options;
 
-  const { loadConfig } = await import("@packages/common");
+  const { loadConfig } = await import("@packages/secrets-config/config");
 
   const resolved = appResolutionService.resolve({
     slug: app,

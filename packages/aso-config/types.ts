@@ -1,117 +1,13 @@
-/**
- * ASO (App Store Optimization) data type definitions
- */
-
-// ============================================================================
-// Supported Language Lists
-// ============================================================================
-
-/**
- * App Store Connect supported locale list
- * Reference: https://developer.apple.com/documentation/appstoreconnectapi
- */
-export const APP_STORE_SUPPORTED_LOCALES = [
-  "en-US",
-  "en-AU",
-  "en-CA",
-  "en-GB",
-  "ko-KR",
-  "ja-JP",
-  "zh-Hans",
-  "zh-Hant",
-  "zh-HK",
-  "fr-FR",
-  "fr-CA",
-  "de-DE",
-  "it-IT",
-  "es-ES",
-  "es-MX",
-  "pt-BR",
-  "pt-PT",
-  "ru-RU",
-  "ar-SA",
-  "nl-NL",
-  "sv-SE",
-  "da-DK",
-  "no-NO",
-  "fi-FI",
-  "pl-PL",
-  "tr-TR",
-  "vi-VN",
-  "th-TH",
-  "id-ID",
-  "ms-MY",
-  "hi-IN",
-  "cs-CZ",
-  "sk-SK",
-  "hu-HU",
-  "ro-RO",
-  "uk-UA",
-  "he-IL",
-  "el-GR",
-] as const;
-
-/**
- * Google Play Console supported language list
- * Reference: https://support.google.com/googleplay/android-developer/answer/9844778
- */
-export const GOOGLE_PLAY_SUPPORTED_LANGUAGES = [
-  "en-US",
-  "en-AU",
-  "en-CA",
-  "en-GB",
-  "en-IN",
-  "en-SG",
-  "ko-KR",
-  "ja-JP",
-  "zh-CN",
-  "zh-TW",
-  "zh-HK",
-  "fr-FR",
-  "fr-CA",
-  "de-DE",
-  "it-IT",
-  "es-ES",
-  "es-419",
-  "es-US",
-  "pt-BR",
-  "pt-PT",
-  "ru-RU",
-  "ar-SA",
-  "nl-NL",
-  "sv-SE",
-  "da-DK",
-  "no-NO",
-  "fi-FI",
-  "pl-PL",
-  "tr-TR",
-  "vi-VN",
-  "th-TH",
-  "id-ID",
-  "ms-MY",
-  "hi-IN",
-  "cs-CZ",
-  "sk-SK",
-  "hu-HU",
-  "ro-RO",
-  "uk-UA",
-  "he-IL",
-  "el-GR",
-  "bg-BG",
-  "hr-HR",
-  "sr-RS",
-  "sl-SI",
-  "et-EE",
-  "lv-LV",
-  "lt-LT",
-] as const;
+import {
+  APP_STORE_SUPPORTED_LOCALES,
+  DEFAULT_LOCALE,
+  GOOGLE_PLAY_SUPPORTED_LANGUAGES,
+} from "./constants";
 
 export type AppStoreLocale = (typeof APP_STORE_SUPPORTED_LOCALES)[number];
 export type GooglePlayLanguage =
   (typeof GOOGLE_PLAY_SUPPORTED_LANGUAGES)[number];
 export type SupportedLocale = AppStoreLocale | GooglePlayLanguage;
-
-export const DEFAULT_LOCALE = "en-US" as const;
 
 // ============================================================================
 // Type Guards
@@ -239,7 +135,7 @@ export interface AsoData {
 // Sync Options
 // ============================================================================
 
-import { type StoreType } from "@packages/common/types";
+export type StoreType = "googlePlay" | "appStore" | "both";
 
 export type SyncDirection = "pull" | "push" | "sync";
 
@@ -252,4 +148,3 @@ export interface SyncOptions {
 }
 
 // Re-export StoreType for backward compatibility
-export type { StoreType } from "@packages/common/types";

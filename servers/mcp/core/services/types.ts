@@ -1,4 +1,4 @@
-import type { RegisteredApp } from "@packages/utils/registered-apps";
+import type { RegisteredApp } from "@/packages/secrets-config/registered-apps";
 
 export type ServiceResult<T> =
   | { success: true; data: T }

@@ -2,7 +2,8 @@
  * auth-check: Check App Store / Google Play authentication status
  */
 
-import { getStoreTargets, type StoreType } from "@packages/common";
+import { getStoreTargets } from "@packages/aso-config/store";
+import { type StoreType } from "@packages/aso-config/types";
 import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
 
 const appStoreService = new AppStoreService();

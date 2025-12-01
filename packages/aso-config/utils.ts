@@ -6,15 +6,15 @@ import {
   copyFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { getDataDir } from "@packages/common/config";
+import { getDataDir } from "@packages/secrets-config/config";
 import {
   type AsoData,
   type GooglePlayAsoData,
   type GooglePlayMultilingualAsoData,
   type AppStoreAsoData,
   type AppStoreMultilingualAsoData,
-  DEFAULT_LOCALE,
 } from "./types";
+import { DEFAULT_LOCALE } from "./constants";
 
 // ============================================================================
 // ASO Directory Path Utilities

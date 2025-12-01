@@ -1,4 +1,4 @@
-import { type StoreType } from "./types";
+import type { StoreType } from "./types";
 
 export type StoreTargets = {
   /** Normalized store value (defaults to "both") */

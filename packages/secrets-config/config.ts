@@ -2,29 +2,29 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { ConfigError } from "@packages/common/errors";
+import { ConfigError } from "./errors";
 
 export const DATA_DIR_ENV_KEY = "PABAL_MCP_DATA_DIR";
 
-// Find project root path
-// From packages/common/config.ts, go up 2 levels to reach project root
+// From packages/secrets-config/config.ts, go up 2 levels to reach project root
 export const getProjectRoot = (): string => {
   try {
-    // For ES modules
     if (typeof import.meta !== "undefined" && import.meta.url) {
       const currentFile = fileURLToPath(import.meta.url);
       return resolve(dirname(currentFile), "../..");
     }
   } catch {
-    // For CommonJS or when import.meta is not available
+    // ignore
   }
-  // fallback: use process.cwd()
   return process.cwd();
 };
 
-function readConfigFile(): any {
-  const projectRoot = getProjectRoot();
-  const configPath = resolve(projectRoot, "secrets/aso-config.json");
+export function getConfigPath(): string {
+  return resolve(getProjectRoot(), "secrets/aso-config.json");
+}
+
+export function readConfigFile(): any {
+  const configPath = getConfigPath();
 
   if (!existsSync(configPath)) {
     return null;
@@ -97,12 +97,11 @@ export type EnvConfig = {
 };
 
 export function loadConfig(): EnvConfig {
-  // Read secrets/aso-config.json file relative to project root
   const projectRoot = getProjectRoot();
   const config = readConfigFile();
 
   if (!config) {
-    const configPath = resolve(projectRoot, "secrets/aso-config.json");
+    const configPath = getConfigPath();
     throw new ConfigError(
       `secrets/aso-config.json file not found or failed to parse: ${configPath}`
     );
@@ -111,11 +110,9 @@ export function loadConfig(): EnvConfig {
   try {
     const result: EnvConfig = {};
 
-    // Load App Store configuration
     if (config.appStore) {
       const { issuerId, keyId, privateKeyPath } = config.appStore;
       if (issuerId && keyId && privateKeyPath) {
-        // Resolve relative path relative to project root
         const keyPath = resolve(projectRoot, privateKeyPath);
         const privateKey = readFileSafe(keyPath);
         if (privateKey) {
@@ -128,9 +125,7 @@ export function loadConfig(): EnvConfig {
       }
     }
 
-    // Load Play Store configuration
     if (config.googlePlay?.serviceAccountKeyPath) {
-      // Resolve relative path relative to project root
       const jsonPath = resolve(
         projectRoot,
         config.googlePlay.serviceAccountKeyPath

@@ -3,9 +3,9 @@ import type { AppStoreClient } from "@packages/app-store/client";
 import type {
   AppStoreMultilingualAsoData,
   AppStoreReleaseNote,
-} from "@packages/aso/types";
-import type { PreparedAsoData } from "@packages/aso/utils";
-import type { EnvConfig } from "@packages/common/config";
+} from "@/packages/aso-config/types";
+import type { PreparedAsoData } from "@/packages/aso-config/utils";
+import type { EnvConfig } from "@packages/secrets-config/config";
 import { verifyAppStoreAuth } from "@packages/app-store/verify-auth";
 import {
   checkPushPrerequisites,

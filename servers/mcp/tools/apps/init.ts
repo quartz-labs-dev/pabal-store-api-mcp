@@ -2,16 +2,18 @@
  * setup-apps: Query apps from store and auto-register
  */
 
-import { loadConfig } from "@packages/common";
+import { loadConfig } from "@packages/secrets-config/config";
 import {
   registerApp,
   findApp,
   loadRegisteredApps,
   saveRegisteredApps,
+  type RegisteredApp,
+} from "@/packages/secrets-config/registered-apps";
+import {
   toRegisteredAppStoreInfo,
   toRegisteredGooglePlayInfo,
-  type RegisteredApp,
-} from "@packages/utils";
+} from "@servers/mcp/core/helpers/registration";
 import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
 
 const appStoreService = new AppStoreService();

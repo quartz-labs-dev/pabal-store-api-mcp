@@ -11,8 +11,8 @@ import type {
   AppStoreMultilingualAsoData,
   AppStoreReleaseNote,
   AppStoreScreenshots,
-} from "@packages/aso/types";
-import { DEFAULT_LOCALE } from "@packages/aso/types";
+} from "@packages/aso-config/types";
+import { DEFAULT_LOCALE } from "@packages/aso-config/constants";
 
 export interface AppStoreClientConfig {
   issuerId: string;

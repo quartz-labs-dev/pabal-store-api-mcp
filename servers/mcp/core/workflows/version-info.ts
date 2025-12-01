@@ -1,5 +1,6 @@
-import { loadConfig, getStoreTargets } from "@packages/common";
-import { type StoreType } from "@packages/common/types";
+import { loadConfig } from "@packages/secrets-config/config";
+import { getStoreTargets } from "@packages/aso-config/store";
+import { type StoreType } from "@packages/aso-config/types";
 import { AppStoreService, GooglePlayService } from "@servers/mcp/core/services";
 
 const appStoreService = new AppStoreService();

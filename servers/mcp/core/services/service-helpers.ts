@@ -1,6 +1,6 @@
 import type { ClientFactoryResult } from "../clients/types";
 import type { ServiceResult } from "./types";
-import { updateAppSupportedLocales } from "@packages/utils";
+import { updateAppSupportedLocales } from "@/packages/secrets-config/registered-apps";
 
 export { toErrorMessage } from "../clients/client-factory-helpers";
 
