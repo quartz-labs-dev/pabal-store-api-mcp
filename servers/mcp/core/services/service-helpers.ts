@@ -1,6 +1,8 @@
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
+import { updateAppSupportedLocales } from "@/packages/configs/secrets-config/registered-apps";
 import type { ClientFactoryResult } from "../clients/types";
 import type { ServiceResult } from "./types";
-import { updateAppSupportedLocales } from "@/packages/configs/secrets-config/registered-apps";
 
 export const toServiceResult = <T>(
   clientResult: ClientFactoryResult<T>
@@ -14,7 +16,9 @@ export const serviceSuccess = <T>(data: T): ServiceResult<T> => ({
   data,
 });
 
-export const serviceFailure = <T = never>(error: string): ServiceResult<T> => ({
+export const serviceFailure = <T = never>(
+  error: AppError
+): ServiceResult<T> => ({
   success: false,
   error,
 });
@@ -39,12 +43,18 @@ export const checkPushPrerequisites = ({
   identifier?: string;
   hasData: boolean;
   dataPath?: string;
-}): string | null => {
+}): AppError | null => {
   if (!configured) {
-    return `⏭️  Skipping ${storeLabel} (not configured in secrets/aso-config.json)`;
+    return AppError.badRequest(
+      ERROR_CODES.CONFIG_NOT_FOUND_SKIP,
+      `⏭️  Skipping ${storeLabel} (not configured in secrets/aso-config.json)`
+    );
   }
   if (!identifier) {
-    return `⏭️  Skipping ${storeLabel} (no ${identifierLabel} provided)`;
+    return AppError.validation(
+      ERROR_CODES.IDENTIFIER_MISSING,
+      `⏭️  Skipping ${storeLabel} (no ${identifierLabel} provided)`
+    );
   }
   if (!hasData) {
     console.error(
@@ -53,7 +63,10 @@ export const checkPushPrerequisites = ({
     if (dataPath) {
       console.error(`[MCP]     Check if data exists in: ${dataPath}`);
     }
-    return `⏭️  Skipping ${storeLabel} (no data found)`;
+    return AppError.validation(
+      ERROR_CODES.NO_DATA_FOUND,
+      `⏭️  Skipping ${storeLabel} (no data found)`
+    );
   }
   return null;
 };

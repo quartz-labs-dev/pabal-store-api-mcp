@@ -1,15 +1,18 @@
-import { createAppStoreClient } from "@servers/mcp/core/clients/app-store-factory";
-import type { AppStoreClient } from "@/packages/stores/app-store/client";
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
+import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
 import type {
   AppStoreMultilingualAsoData,
   AppStoreReleaseNote,
 } from "@/packages/configs/aso-config/types";
 import type { PreparedAsoData } from "@/packages/configs/aso-config/utils";
 import type { EnvConfig } from "@/packages/configs/secrets-config/types";
+import type { AppStoreClient } from "@/packages/stores/app-store/client";
 import { verifyAppStoreAuth } from "@/packages/stores/app-store/verify-auth";
-import { toErrorMessage } from "@servers/mcp/core/clients/client-factory-helpers";
+import { createAppStoreClient } from "@servers/mcp/core/clients/app-store-factory";
 import {
   checkPushPrerequisites,
+  serviceFailure,
   toServiceResult,
   updateRegisteredLocales,
 } from "./service-helpers";
@@ -42,7 +45,7 @@ export class AppStoreService {
     if (existingClient) return existingClient;
     const clientResult = this.createClient(bundleId);
     if (!clientResult.success) {
-      throw new Error(clientResult.error);
+      throw clientResult.error;
     }
     return clientResult.data;
   }
@@ -60,7 +63,13 @@ export class AppStoreService {
       const apps = await client.listAllApps({ onlyReleased: true });
       return { success: true, data: apps };
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_LIST_APPS_FAILED
+        )
+      );
     }
   }
 
@@ -89,7 +98,15 @@ export class AppStoreService {
         supportedLocales,
       };
     } catch (error) {
-      return { found: false, error: toErrorMessage(error) };
+      return {
+        found: false,
+        error: AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_FETCH_APP_INFO_FAILED,
+          "Failed to fetch App Store app info"
+        ),
+      };
     }
   }
 
@@ -113,7 +130,15 @@ export class AppStoreService {
         state: appStoreState ?? "UNKNOWN",
       };
     } catch (error) {
-      return { found: false, error: toErrorMessage(error) };
+      return {
+        found: false,
+        error: AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_GET_LATEST_VERSION_FAILED,
+          "Failed to fetch latest App Store version"
+        ),
+      };
     }
   }
 
@@ -134,10 +159,12 @@ export class AppStoreService {
           (v) => v.attributes.appStoreState === "PREPARE_FOR_SUBMISSION"
         );
         if (!editableVersion) {
-          return {
-            success: false,
-            error: "No editable version found for release notes update",
-          };
+          return serviceFailure(
+            AppError.notFound(
+              ERROR_CODES.APP_STORE_VERSION_NOT_EDITABLE,
+              "No editable version found for release notes update"
+            )
+          );
         }
         targetVersionId = editableVersion.id;
       }
@@ -167,13 +194,36 @@ export class AppStoreService {
       }
 
       const success = failed.length === 0;
+      const partialError = !success
+        ? AppError.wrap(
+            failed[0]?.error ?? "Failed to update some release notes",
+            HTTP_STATUS.INTERNAL_SERVER_ERROR,
+            ERROR_CODES.APP_STORE_UPDATE_RELEASE_NOTES_PARTIAL
+          )
+        : undefined;
+      if (!success) {
+        return serviceFailure(
+          partialError ??
+            AppError.internal(
+              ERROR_CODES.APP_STORE_UPDATE_RELEASE_NOTES_FAILED,
+              "Failed to update App Store release notes"
+            )
+        );
+      }
+
       return {
-        success,
+        success: true,
         data: { updated, failed },
-        ...(!success ? { error: failed[0]?.error } : {}),
-      } as ServiceResult<UpdatedReleaseNotesResult>;
+      };
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_UPDATE_RELEASE_NOTES_FAILED,
+          "Failed to update App Store release notes"
+        )
+      );
     }
   }
 
@@ -185,7 +235,14 @@ export class AppStoreService {
       const releaseNotes = await client.pullReleaseNotes();
       return { success: true, data: releaseNotes };
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_PULL_RELEASE_NOTES_FAILED,
+          "Failed to pull App Store release notes"
+        )
+      );
     }
   }
 
@@ -209,7 +266,14 @@ export class AppStoreService {
         },
       };
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_CREATE_VERSION_FAILED,
+          "Failed to create App Store version"
+        )
+      );
     }
   }
 
@@ -261,14 +325,24 @@ export class AppStoreService {
         }
       }
 
-      const updated = updateRegisteredLocales(
-        ensuredBundleId,
-        "appStore",
-        localesToPush
-      );
-      if (updated) {
+      try {
+        const updated = updateRegisteredLocales(
+          ensuredBundleId,
+          "appStore",
+          localesToPush
+        );
+        if (updated) {
+          console.error(
+            `[MCP]   ✅ Updated registered-apps.json with ${localesToPush.length} App Store locales`
+          );
+        }
+      } catch (updateError) {
         console.error(
-          `[MCP]   ✅ Updated registered-apps.json with ${localesToPush.length} App Store locales`
+          `[MCP]   ⚠️ Failed to update registered-apps.json: ${
+            updateError instanceof Error
+              ? updateError.message
+              : String(updateError)
+          }`
         );
       }
 
@@ -285,9 +359,17 @@ export class AppStoreService {
         localesPushed: localesToPush,
       };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const wrapped = AppError.wrap(
+        error,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_CODES.APP_STORE_PUSH_FAILED,
+        error instanceof Error ? error.message : String(error)
+      );
 
-      if (msg.includes("409 Conflict") && msg.includes("STATE_ERROR")) {
+      if (
+        wrapped.message.includes("409 Conflict") &&
+        wrapped.message.includes("STATE_ERROR")
+      ) {
         console.error(
           `[AppStore]   🔄 STATE_ERROR detected. New version needed.`
         );
@@ -304,7 +386,10 @@ export class AppStoreService {
 
           return {
             success: false,
-            error: `New version required`,
+            error: AppError.conflict(
+              ERROR_CODES.APP_STORE_STATE_ERROR,
+              "New version required"
+            ),
             needsNewVersion: true,
             versionInfo: {
               versionId,
@@ -319,13 +404,18 @@ export class AppStoreService {
               : String(versionError);
           return {
             success: false,
-            error: `Failed to create new version: ${versionMsg}`,
+            error: AppError.wrap(
+              versionError,
+              HTTP_STATUS.INTERNAL_SERVER_ERROR,
+              ERROR_CODES.APP_STORE_CREATE_VERSION_FOR_STATE_ERROR_FAILED,
+              `Failed to create new version: ${versionMsg}`
+            ),
           };
         }
       }
 
       console.error(`[AppStore]   ❌ Push failed`, error);
-      return { success: false, error: msg };
+      return { success: false, error: wrapped };
     }
   }
 
@@ -335,6 +425,20 @@ export class AppStoreService {
       payload: Record<string, unknown>;
     }>
   > {
-    return verifyAppStoreAuth({ expirationSeconds });
+    const result = await verifyAppStoreAuth({ expirationSeconds });
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: AppError.wrap(
+          result.error ?? "Unknown error",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_STORE_VERIFY_AUTH_FAILED,
+          "Failed to verify App Store auth"
+        ),
+      };
+    }
+
+    return { success: true, data: result.data };
   }
 }

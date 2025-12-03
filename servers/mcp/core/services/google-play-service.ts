@@ -1,11 +1,18 @@
-import { createGooglePlayClient } from "@servers/mcp/core/clients/google-play-factory";
-import type { GooglePlayClient } from "@packages/stores/play-store/client";
-import type { GooglePlayMultilingualAsoData } from "@/packages/configs/aso-config/types";
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
+import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
+import type {
+  GooglePlayMultilingualAsoData,
+  GooglePlayReleaseNote,
+} from "@/packages/configs/aso-config/types";
 import type { PreparedAsoData } from "@/packages/configs/aso-config/utils";
 import type { EnvConfig } from "@/packages/configs/secrets-config/types";
-import { toErrorMessage } from "@servers/mcp/core/clients/client-factory-helpers";
+import type { GooglePlayClient } from "@packages/stores/play-store/client";
+import { verifyPlayStoreAuth } from "@packages/stores/play-store/verify-auth";
+import { createGooglePlayClient } from "@servers/mcp/core/clients/google-play-factory";
 import {
   checkPushPrerequisites,
+  serviceFailure,
   toServiceResult,
   updateRegisteredLocales,
 } from "./service-helpers";
@@ -18,8 +25,6 @@ import {
   type CreatedGooglePlayVersion,
   type VerifyAuthResult,
 } from "./types";
-import type { GooglePlayReleaseNote } from "@/packages/configs/aso-config/types";
-import { verifyPlayStoreAuth } from "@packages/stores/play-store/verify-auth";
 
 interface GooglePlayAppInfo {
   name?: string;
@@ -38,7 +43,7 @@ export class GooglePlayService {
     if (existingClient) return existingClient;
     const clientResult = this.createClient(packageName);
     if (!clientResult.success) {
-      throw new Error(clientResult.error);
+      throw clientResult.error;
     }
     return clientResult.data;
   }
@@ -62,7 +67,15 @@ export class GooglePlayService {
         supportedLocales: appInfo.supportedLocales,
       };
     } catch (error) {
-      return { found: false, error: toErrorMessage(error) };
+      return {
+        found: false,
+        error: AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.GOOGLE_PLAY_FETCH_APP_INFO_FAILED,
+          "Failed to fetch Google Play app info"
+        ),
+      };
     }
   }
 
@@ -86,7 +99,15 @@ export class GooglePlayService {
         versionCodes,
       };
     } catch (error) {
-      return { found: false, error: toErrorMessage(error) };
+      return {
+        found: false,
+        error: AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.GOOGLE_PLAY_GET_LATEST_RELEASE_FAILED,
+          "Failed to fetch latest Google Play release"
+        ),
+      };
     }
   }
 
@@ -110,10 +131,12 @@ export class GooglePlayService {
       }
 
       if (Object.keys(filteredReleaseNotes).length === 0) {
-        return {
-          success: false,
-          error: "No supported locales found in release notes",
-        };
+        return serviceFailure(
+          AppError.validation(
+            ERROR_CODES.GOOGLE_PLAY_RELEASE_NOTES_EMPTY,
+            "No supported locales found in release notes"
+          )
+        );
       }
 
       try {
@@ -123,20 +146,53 @@ export class GooglePlayService {
         });
 
         const success = updateResult.failed.length === 0;
+        const partialError = !success
+          ? AppError.wrap(
+              updateResult.failed[0]?.error ??
+                "Failed to update some release notes",
+              HTTP_STATUS.INTERNAL_SERVER_ERROR,
+              ERROR_CODES.GOOGLE_PLAY_UPDATE_RELEASE_NOTES_PARTIAL
+            )
+          : undefined;
+        if (!success) {
+          return {
+            success: false,
+            error:
+              partialError ??
+              AppError.internal(
+                ERROR_CODES.GOOGLE_PLAY_UPDATE_RELEASE_NOTES_FAILED,
+                "Failed to update Google Play release notes"
+              ),
+          };
+        }
+
         return {
-          success,
+          success: true,
           data: {
             updated: updateResult.updated,
             failed: updateResult.failed,
           },
-          ...(!success ? { error: updateResult.failed[0]?.error } : {}),
-        } as ServiceResult<UpdatedReleaseNotesResult>;
+        };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        return { success: false, error: msg };
+        return serviceFailure(
+          AppError.wrap(
+            error,
+            HTTP_STATUS.INTERNAL_SERVER_ERROR,
+            ERROR_CODES.GOOGLE_PLAY_UPDATE_RELEASE_NOTES_FAILED,
+            msg
+          )
+        );
       }
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.GOOGLE_PLAY_UPDATE_RELEASE_NOTES_FAILED,
+          "Failed to update Google Play release notes"
+        )
+      );
     }
   }
 
@@ -148,7 +204,14 @@ export class GooglePlayService {
       const releaseNotes = await client.pullProductionReleaseNotes();
       return { success: true, data: releaseNotes };
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.GOOGLE_PLAY_PULL_RELEASE_NOTES_FAILED,
+          "Failed to pull Google Play release notes"
+        )
+      );
     }
   }
 
@@ -173,7 +236,14 @@ export class GooglePlayService {
         },
       };
     } catch (error) {
-      return { success: false, error: toErrorMessage(error) };
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.GOOGLE_PLAY_CREATE_VERSION_FAILED,
+          "Failed to create Google Play version"
+        )
+      );
     }
   }
 
@@ -215,14 +285,24 @@ export class GooglePlayService {
 
       await client.pushMultilingualAsoData(googlePlayData);
 
-      const updated = updateRegisteredLocales(
-        ensuredPackage,
-        "googlePlay",
-        localesToPush
-      );
-      if (updated) {
+      try {
+        const updated = updateRegisteredLocales(
+          ensuredPackage,
+          "googlePlay",
+          localesToPush
+        );
+        if (updated) {
+          console.error(
+            `[MCP]   ✅ Updated registered-apps.json with ${localesToPush.length} Google Play locales`
+          );
+        }
+      } catch (updateError) {
         console.error(
-          `[MCP]   ✅ Updated registered-apps.json with ${localesToPush.length} Google Play locales`
+          `[MCP]   ⚠️ Failed to update registered-apps.json: ${
+            updateError instanceof Error
+              ? updateError.message
+              : String(updateError)
+          }`
         );
       }
 
@@ -231,15 +311,34 @@ export class GooglePlayService {
         localesPushed: localesToPush,
       };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[GooglePlay] ❌ Push failed: ${msg}`, error);
-      return { success: false, error: msg };
+      const wrapped = AppError.wrap(
+        error,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_CODES.GOOGLE_PLAY_PUSH_FAILED,
+        error instanceof Error ? error.message : String(error)
+      );
+      console.error(`[GooglePlay] ❌ Push failed: ${wrapped.message}`, error);
+      return { success: false, error: wrapped };
     }
   }
 
   async verifyAuth(): Promise<
     VerifyAuthResult<{ client_email: string; project_id: string }>
   > {
-    return verifyPlayStoreAuth();
+    const result = verifyPlayStoreAuth();
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: AppError.wrap(
+          result.error ?? "Unknown error",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.GOOGLE_PLAY_VERIFY_AUTH_FAILED,
+          "Failed to verify Google Play auth"
+        ),
+      };
+    }
+
+    return { success: true, data: result.data };
   }
 }

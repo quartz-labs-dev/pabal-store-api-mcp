@@ -5,6 +5,8 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
 import { getProjectRoot } from "@/packages/configs/secrets-config/config";
 
 // ============================================================================
@@ -65,8 +67,13 @@ export function loadRegisteredApps(): RegisteredAppsConfig {
     const content = readFileSync(filePath, "utf-8");
     return JSON.parse(content) as RegisteredAppsConfig;
   } catch (error) {
-    console.error("❌ Failed to load registered apps:", error);
-    return { apps: [] };
+    throw AppError.validation(
+      ERROR_CODES.REGISTERED_APPS_READ_FAILED,
+      `Failed to load registered apps: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { filePath }
+    );
   }
 }
 
@@ -79,8 +86,13 @@ export function saveRegisteredApps(config: RegisteredAppsConfig): void {
   try {
     writeFileSync(filePath, JSON.stringify(config, null, 2));
   } catch (error) {
-    console.error("❌ Failed to save registered apps:", error);
-    throw error;
+    throw AppError.io(
+      ERROR_CODES.REGISTERED_APPS_WRITE_FAILED,
+      `Failed to save registered apps: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { filePath }
+    );
   }
 }
 
@@ -93,7 +105,10 @@ export function registerApp(app: RegisteredApp): RegisteredApp {
   // Check for duplicates
   const existing = config.apps.find((a) => a.slug === app.slug);
   if (existing) {
-    throw new Error(`App with slug "${app.slug}" already exists`);
+    throw AppError.conflict(
+      ERROR_CODES.REGISTERED_APP_DUPLICATE,
+      `App with slug "${app.slug}" already exists`
+    );
   }
 
   config.apps.push(app);
@@ -137,7 +152,10 @@ export function updateAppSupportedLocales({
   );
 
   if (appIndex === -1) {
-    return false;
+    throw AppError.notFound(
+      ERROR_CODES.REGISTERED_APP_NOT_FOUND,
+      `App "${identifier}" not found in registered apps`
+    );
   }
 
   const app = config.apps[appIndex];
@@ -155,12 +173,18 @@ export function updateAppSupportedLocales({
   // Update the app
   if (store === "appStore") {
     if (!app.appStore) {
-      return false;
+      throw AppError.validation(
+        ERROR_CODES.REGISTERED_APP_STORE_INFO_MISSING,
+        `App "${identifier}" is missing App Store info`
+      );
     }
     app.appStore.supportedLocales = mergedLocales;
   } else {
     if (!app.googlePlay) {
-      return false;
+      throw AppError.validation(
+        ERROR_CODES.REGISTERED_APP_STORE_INFO_MISSING,
+        `App "${identifier}" is missing Google Play info`
+      );
     }
     app.googlePlay.supportedLocales = mergedLocales;
   }

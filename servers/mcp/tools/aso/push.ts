@@ -43,7 +43,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
       content: [
         {
           type: "text" as const,
-          text: resolved.error,
+          text: resolved.error.message,
         },
       ],
     };
@@ -60,7 +60,18 @@ export async function handleAsoPush(options: AsoPushOptions) {
   console.error(`[MCP]   Upload Images: ${uploadImages ? "Yes" : "No"}`);
   console.error(`[MCP]   Mode: ${dryRun ? "Dry run" : "Actual push"}`);
 
-  const config = loadConfig();
+  let config;
+  try {
+    config = loadConfig();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        { type: "text" as const, text: `❌ Failed to load config: ${message}` },
+      ],
+      isError: true,
+    };
+  }
 
   // Load local data from ASO directory
   const asoDir = getAsoPushDir();
@@ -79,7 +90,21 @@ export async function handleAsoPush(options: AsoPushOptions) {
     `[MCP]       Exists: ${existsSync(appStoreDataPath) ? "✅ Yes" : "❌ No"}`
   );
 
-  const configData = loadAsoData(slug, { asoDir });
+  let configData;
+  try {
+    configData = loadAsoData(slug, { asoDir });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ Failed to load ASO data: ${message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
 
   console.error(`[MCP]   📊 Loaded data status:`);
   console.error(

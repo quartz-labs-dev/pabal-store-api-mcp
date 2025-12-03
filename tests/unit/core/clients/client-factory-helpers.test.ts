@@ -6,6 +6,8 @@ import {
   toErrorMessage,
   isNonEmptyString,
 } from "@servers/mcp/core/clients/client-factory-helpers";
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
 
 describe("client-factory-helpers", () => {
   describe("success", () => {
@@ -45,33 +47,28 @@ describe("client-factory-helpers", () => {
   });
 
   describe("failure", () => {
-    it("should create failure result with error message", () => {
-      const errorMessage = "Connection failed";
-      const result = failure(errorMessage);
+    it("should create failure result with AppError", () => {
+      const appError = AppError.internal(
+        ERROR_CODES.CLIENT_FACTORY_ERROR,
+        "Connection failed"
+      );
+      const result = failure(appError);
 
       assert.equal(result.success, false);
       if (!result.success) {
-        assert.equal(result.error, errorMessage);
+        assert.strictEqual(result.error, appError);
         assert.ok(!("client" in result));
       }
     });
 
-    it("should handle different error messages", () => {
-      const result1 = failure("Error 1");
-      const result2 = failure("Error 2");
-
-      if (!result1.success && !result2.success) {
-        assert.equal(result1.error, "Error 1");
-        assert.equal(result2.error, "Error 2");
-      }
-    });
-
-    it("should handle empty error message", () => {
-      const result = failure("");
-
-      assert.equal(result.success, false);
+    it("should preserve error instance", () => {
+      const err = AppError.validation(
+        ERROR_CODES.CLIENT_FACTORY_ERROR,
+        "invalid"
+      );
+      const result = failure(err);
       if (!result.success) {
-        assert.equal(result.error, "");
+        assert.strictEqual(result.error, err);
       }
     });
   });
@@ -142,7 +139,6 @@ describe("client-factory-helpers", () => {
       it("should return true for non-empty string", () => {
         assert.equal(isNonEmptyString("hello"), true);
       });
-
       it("should return true for string with multiple words", () => {
         assert.equal(isNonEmptyString("hello world"), true);
       });
@@ -235,9 +231,10 @@ describe("client-factory-helpers", () => {
   describe("Result Type Discrimination", () => {
     it("success and failure should have different discriminated types", () => {
       const successResult = success({ id: 1 });
-      const failureResult = failure("error");
+      const failureResult = failure(
+        AppError.internal(ERROR_CODES.CLIENT_FACTORY_ERROR, "error")
+      );
 
-      // Type guard test
       if (successResult.success) {
         assert.ok("client" in successResult);
         assert.ok(!("error" in successResult));
@@ -250,12 +247,15 @@ describe("client-factory-helpers", () => {
     });
 
     it("should work with type narrowing", () => {
-      const result = Math.random() > 0.5 ? success("data") : failure("error");
+      const failureResult = failure(
+        AppError.internal(ERROR_CODES.CLIENT_FACTORY_ERROR, "error")
+      );
+      const result = Math.random() > 0.5 ? success("data") : failureResult;
 
       if (result.success) {
         assert.ok(typeof result.client === "string");
       } else {
-        assert.ok(typeof result.error === "string");
+        assert.ok(result.error instanceof AppError);
       }
     });
   });

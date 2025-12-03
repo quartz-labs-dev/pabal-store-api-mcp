@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { checkPushPrerequisites } from "@servers/mcp/core/services/service-helpers";
+import { AppError } from "@/packages/common/errors/app-error";
 
 describe("service-helpers", () => {
   describe("checkPushPrerequisites", () => {
@@ -46,11 +47,12 @@ describe("service-helpers", () => {
         });
 
         assert.ok(result !== null);
-        assert.ok(result!.includes("⏭️"));
-        assert.ok(result!.includes("Skipping"));
-        assert.ok(result!.includes("App Store"));
-        assert.ok(result!.includes("not configured"));
-        assert.ok(result!.includes("secrets/aso-config.json"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result.message.includes("⏭️"));
+        assert.ok(result.message.includes("Skipping"));
+        assert.ok(result.message.includes("App Store"));
+        assert.ok(result.message.includes("not configured"));
+        assert.ok(result.message.includes("secrets/aso-config.json"));
       });
 
       it("should use correct store label in skip message", () => {
@@ -66,10 +68,12 @@ describe("service-helpers", () => {
           configured: false,
         });
 
-        assert.ok(appStoreResult!.includes("App Store"));
-        assert.ok(!appStoreResult!.includes("Google Play"));
-        assert.ok(googlePlayResult!.includes("Google Play"));
-        assert.ok(!googlePlayResult!.includes("App Store"));
+        assert.ok(appStoreResult instanceof AppError);
+        assert.ok(googlePlayResult instanceof AppError);
+        assert.ok(appStoreResult!.message.includes("App Store"));
+        assert.ok(!appStoreResult!.message.includes("Google Play"));
+        assert.ok(googlePlayResult!.message.includes("Google Play"));
+        assert.ok(!googlePlayResult!.message.includes("App Store"));
       });
 
       it("should skip further checks when not configured", () => {
@@ -81,9 +85,10 @@ describe("service-helpers", () => {
           hasData: false,
         });
 
-        assert.ok(result!.includes("not configured"));
-        assert.ok(!result!.includes("no Bundle ID"));
-        assert.ok(!result!.includes("no data"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("not configured"));
+        assert.ok(!result!.message.includes("no Bundle ID"));
+        assert.ok(!result!.message.includes("no data"));
       });
     });
 
@@ -95,10 +100,11 @@ describe("service-helpers", () => {
         });
 
         assert.ok(result !== null);
-        assert.ok(result!.includes("⏭️"));
-        assert.ok(result!.includes("Skipping"));
-        assert.ok(result!.includes("App Store"));
-        assert.ok(result!.includes("no Bundle ID provided"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("⏭️"));
+        assert.ok(result!.message.includes("Skipping"));
+        assert.ok(result!.message.includes("App Store"));
+        assert.ok(result!.message.includes("no Bundle ID provided"));
       });
 
       it("should use correct identifier label in skip message", () => {
@@ -114,10 +120,12 @@ describe("service-helpers", () => {
           identifier: undefined,
         });
 
-        assert.ok(bundleIdResult!.includes("Bundle ID"));
-        assert.ok(!bundleIdResult!.includes("Package Name"));
-        assert.ok(packageNameResult!.includes("Package Name"));
-        assert.ok(!packageNameResult!.includes("Bundle ID"));
+        assert.ok(bundleIdResult instanceof AppError);
+        assert.ok(packageNameResult instanceof AppError);
+        assert.ok(bundleIdResult!.message.includes("Bundle ID"));
+        assert.ok(!bundleIdResult!.message.includes("Package Name"));
+        assert.ok(packageNameResult!.message.includes("Package Name"));
+        assert.ok(!packageNameResult!.message.includes("Bundle ID"));
       });
 
       it("should skip data check when identifier is missing", () => {
@@ -128,8 +136,9 @@ describe("service-helpers", () => {
           hasData: false,
         });
 
-        assert.ok(result!.includes("no Bundle ID"));
-        assert.ok(!result!.includes("no data"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("no Bundle ID"));
+        assert.ok(!result!.message.includes("no data"));
       });
     });
 
@@ -141,10 +150,11 @@ describe("service-helpers", () => {
         });
 
         assert.ok(result !== null);
-        assert.ok(result!.includes("⏭️"));
-        assert.ok(result!.includes("Skipping"));
-        assert.ok(result!.includes("App Store"));
-        assert.ok(result!.includes("no data found"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("⏭️"));
+        assert.ok(result!.message.includes("Skipping"));
+        assert.ok(result!.message.includes("App Store"));
+        assert.ok(result!.message.includes("no data found"));
       });
 
       it("should include store label in data missing message", () => {
@@ -160,10 +170,12 @@ describe("service-helpers", () => {
           hasData: false,
         });
 
-        assert.ok(appStoreResult!.includes("App Store"));
-        assert.ok(!appStoreResult!.includes("Google Play"));
-        assert.ok(googlePlayResult!.includes("Google Play"));
-        assert.ok(!googlePlayResult!.includes("App Store"));
+        assert.ok(appStoreResult instanceof AppError);
+        assert.ok(googlePlayResult instanceof AppError);
+        assert.ok(appStoreResult!.message.includes("App Store"));
+        assert.ok(!appStoreResult!.message.includes("Google Play"));
+        assert.ok(googlePlayResult!.message.includes("Google Play"));
+        assert.ok(!googlePlayResult!.message.includes("App Store"));
       });
 
       it("should not reference dataPath when not provided", () => {
@@ -173,8 +185,7 @@ describe("service-helpers", () => {
           dataPath: undefined,
         });
 
-        assert.ok(result!.includes("no data found"));
-        // Should not throw, just return error message without path reference
+        assert.ok(result!.message.includes("no data found"));
         assert.ok(result !== null);
       });
     });
@@ -187,8 +198,9 @@ describe("service-helpers", () => {
           identifier: undefined,
         });
 
-        assert.ok(result!.includes("not configured"));
-        assert.ok(!result!.includes("Bundle ID"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("not configured"));
+        assert.ok(!result!.message.includes("Bundle ID"));
       });
 
       it("should check identifier second (before data)", () => {
@@ -198,8 +210,9 @@ describe("service-helpers", () => {
           hasData: false,
         });
 
-        assert.ok(result!.includes("Bundle ID"));
-        assert.ok(!result!.includes("data"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("Bundle ID"));
+        assert.ok(!result!.message.includes("data"));
       });
 
       it("should check data last", () => {
@@ -208,7 +221,8 @@ describe("service-helpers", () => {
           hasData: false,
         });
 
-        assert.ok(result!.includes("data"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("data"));
       });
     });
 
@@ -221,7 +235,8 @@ describe("service-helpers", () => {
 
         // Empty string is falsy in JavaScript, so it's treated as missing identifier
         assert.ok(result !== null);
-        assert.ok(result!.includes("no Bundle ID provided"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("no Bundle ID provided"));
       });
 
       it("should handle whitespace-only storeLabel", () => {
@@ -231,8 +246,9 @@ describe("service-helpers", () => {
           configured: false,
         });
 
-        assert.ok(result!.includes("Skipping"));
-        assert.ok(result!.includes("   "));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("Skipping"));
+        assert.ok(result!.message.includes("   "));
       });
 
       it("should return consistent results for same input", () => {
@@ -253,9 +269,10 @@ describe("service-helpers", () => {
         });
 
         // Should return first failure (configuration)
-        assert.ok(result!.includes("not configured"));
-        assert.ok(!result!.includes("Bundle ID"));
-        assert.ok(!result!.includes("data"));
+        assert.ok(result instanceof AppError);
+        assert.ok(result!.message.includes("not configured"));
+        assert.ok(!result!.message.includes("Bundle ID"));
+        assert.ok(!result!.message.includes("data"));
       });
     });
 
@@ -266,8 +283,8 @@ describe("service-helpers", () => {
           configured: false,
         });
 
-        assert.equal(typeof result, "string");
-        assert.ok(result!.length > 0);
+        assert.ok(result instanceof AppError);
+        assert.ok(result.message.length > 0);
       });
 
       it("should return null (not undefined or empty string) when prerequisites met", () => {

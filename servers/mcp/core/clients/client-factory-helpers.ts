@@ -1,3 +1,5 @@
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
 import type { ClientFactoryResult } from "./types";
 export type { ClientFactoryResult } from "./types";
 
@@ -9,7 +11,7 @@ export const success = <TClient>(
 });
 
 export const failure = <TClient>(
-  error: string
+  error: AppError
 ): ClientFactoryResult<TClient> => ({
   success: false,
   error,

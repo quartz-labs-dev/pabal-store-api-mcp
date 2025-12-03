@@ -47,7 +47,21 @@ async function checkPlayStoreAccess(packageName: string): Promise<{
 
 export async function handleSetupApps(options: SetupAppsOptions) {
   const { store = "both", packageName } = options;
-  const config = loadConfig();
+  let config;
+  try {
+    config = loadConfig();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ Failed to load config: ${message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
 
   console.error(`[MCP] 📱 Initializing apps (store: ${store})`);
 
@@ -71,7 +85,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         content: [
           {
             type: "text" as const,
-            text: `❌ Failed to create App Store client: ${clientResult.error}`,
+            text: `❌ Failed to create App Store client: ${clientResult.error.message}`,
           },
         ],
       };
@@ -92,7 +106,7 @@ export async function handleSetupApps(options: SetupAppsOptions) {
           content: [
             {
               type: "text" as const,
-              text: `❌ Failed to create App Store info client: ${appInfoClientResult.error}`,
+              text: `❌ Failed to create App Store info client: ${appInfoClientResult.error.message}`,
             },
           ],
         };
@@ -139,10 +153,30 @@ export async function handleSetupApps(options: SetupAppsOptions) {
         );
 
         // Check if already registered (findApp searches by slug, bundleId, packageName)
-        const existing = findApp(app.bundleId);
+        let existing;
+        try {
+          existing = findApp(app.bundleId);
+        } catch (error) {
+          console.error(
+            `[MCP]   ❌ Failed to load registered apps: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+          continue;
+        }
         if (existing) {
           // Update language info for existing apps
-          const appsConfig = loadRegisteredApps();
+          let appsConfig;
+          try {
+            appsConfig = loadRegisteredApps();
+          } catch (error) {
+            console.error(
+              `[MCP]   ❌ Failed to load registered apps: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+            continue;
+          }
           const appIndex = appsConfig.apps.findIndex(
             (a) => a.slug === existing.slug
           );

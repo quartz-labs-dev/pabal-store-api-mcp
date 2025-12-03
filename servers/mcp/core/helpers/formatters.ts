@@ -29,7 +29,7 @@ export function formatPushResult(
       const { versionString, versionId } = result.versionInfo;
       return `✅ New version ${versionString} created (Version ID: ${versionId})`;
     }
-    return `❌ ${storeLabel} push failed: ${result.error}`;
+    return `❌ ${storeLabel} push failed: ${result.error.message}`;
   }
 
   if (result.failedFields && result.failedFields.length > 0) {

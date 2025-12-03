@@ -6,6 +6,9 @@ import {
   copyFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
+import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
 import { getDataDir } from "@/packages/configs/secrets-config/config";
 import {
   type AsoData,
@@ -197,26 +200,34 @@ export function saveAsoData(
   const baseDir = options?.asoDir ?? getAsoDir();
   const productStoreDir = join(baseDir, "products", slug, "store");
 
-  if (asoData.googlePlay) {
-    const googlePlayDir = join(productStoreDir, "google-play");
-    ensureDir(googlePlayDir);
-    const filePath = join(googlePlayDir, "aso-data.json");
-    writeFileSync(
-      filePath,
-      JSON.stringify({ googlePlay: asoData.googlePlay }, null, 2)
-    );
-    console.log(`💾 Google Play data saved to ${filePath}`);
-  }
+  try {
+    if (asoData.googlePlay) {
+      const googlePlayDir = join(productStoreDir, "google-play");
+      ensureDir(googlePlayDir);
+      const filePath = join(googlePlayDir, "aso-data.json");
+      writeFileSync(
+        filePath,
+        JSON.stringify({ googlePlay: asoData.googlePlay }, null, 2)
+      );
+      console.log(`💾 Google Play data saved to ${filePath}`);
+    }
 
-  if (asoData.appStore) {
-    const appStoreDir = join(productStoreDir, "app-store");
-    ensureDir(appStoreDir);
-    const filePath = join(appStoreDir, "aso-data.json");
-    writeFileSync(
-      filePath,
-      JSON.stringify({ appStore: asoData.appStore }, null, 2)
+    if (asoData.appStore) {
+      const appStoreDir = join(productStoreDir, "app-store");
+      ensureDir(appStoreDir);
+      const filePath = join(appStoreDir, "aso-data.json");
+      writeFileSync(
+        filePath,
+        JSON.stringify({ appStore: asoData.appStore }, null, 2)
+      );
+      console.log(`💾 App Store data saved to ${filePath}`);
+    }
+  } catch (error) {
+    throw AppError.io(
+      ERROR_CODES.ASO_DATA_SAVE_FAILED,
+      `Failed to save ASO data for ${slug}`,
+      { slug, baseDir, cause: error }
     );
-    console.log(`💾 App Store data saved to ${filePath}`);
   }
 }
 
@@ -248,7 +259,11 @@ export function loadAsoData(
             );
       }
     } catch (error) {
-      console.error(`❌ Failed to read Google Play data:`, error);
+      throw AppError.validation(
+        ERROR_CODES.ASO_GOOGLE_PLAY_DATA_PARSE_FAILED,
+        `Failed to read Google Play ASO data for ${slug}`,
+        { path: googlePlayPath, error }
+      );
     }
   }
 
@@ -270,7 +285,11 @@ export function loadAsoData(
           : convertToMultilingual(data.appStore, data.appStore.locale);
       }
     } catch (error) {
-      console.error(`❌ Failed to read App Store data:`, error);
+      throw AppError.validation(
+        ERROR_CODES.ASO_APP_STORE_DATA_PARSE_FAILED,
+        `Failed to read App Store ASO data for ${slug}`,
+        { path: appStorePath, error }
+      );
     }
   }
 
@@ -307,8 +326,10 @@ export async function downloadImage(
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(
-        `Image download failed: ${response.status} ${response.statusText}`
+      throw AppError.io(
+        ERROR_CODES.ASO_IMAGE_DOWNLOAD_FAILED,
+        `Image download failed: ${response.status} ${response.statusText}`,
+        { url, status: response.status, statusText: response.statusText }
       );
     }
 
@@ -318,8 +339,12 @@ export async function downloadImage(
     ensureDir(dirname(outputPath));
     writeFileSync(outputPath, buffer);
   } catch (error) {
-    console.error(`❌ Image download failed (${url}):`, error);
-    throw error;
+    throw AppError.wrap(
+      error,
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      ERROR_CODES.ASO_IMAGE_DOWNLOAD_FAILED,
+      `Image download failed (${url})`
+    );
   }
 }
 
@@ -327,7 +352,7 @@ export function copyLocalAssetToAso(
   assetPath: string,
   outputPath: string,
   options?: { publicDir?: string }
-): boolean {
+): void {
   const publicDir = options?.publicDir ?? join(getDataDir(), "public");
   const trimmedPath = assetPath
     .replace(/^\.\//, "")
@@ -336,11 +361,13 @@ export function copyLocalAssetToAso(
   const sourcePath = join(publicDir, trimmedPath);
 
   if (!existsSync(sourcePath)) {
-    console.warn(`⚠️  Local image not found: ${sourcePath}`);
-    return false;
+    throw AppError.fileNotFound(
+      ERROR_CODES.ASO_LOCAL_ASSET_NOT_FOUND,
+      `Local image not found: ${sourcePath}`,
+      { sourcePath }
+    );
   }
 
   ensureDir(dirname(outputPath));
   copyFileSync(sourcePath, outputPath);
-  return true;
 }

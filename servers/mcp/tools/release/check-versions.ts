@@ -34,7 +34,7 @@ export async function handleCheckLatestVersions(options: CheckVersionsOptions) {
       content: [
         {
           type: "text" as const,
-          text: resolved.error,
+          text: resolved.error.message,
         },
       ],
     };

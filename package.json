@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev:mcp": "tsx servers/mcp/index.ts",
-    "test": "tsx --test tests/**/*.test.ts",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --write --ignore-unknown .",

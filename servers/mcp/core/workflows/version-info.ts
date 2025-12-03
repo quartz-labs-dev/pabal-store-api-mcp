@@ -71,11 +71,15 @@ export async function getLatestVersions(
     } else {
       const latest = await appStoreService.getLatestVersion(bundleId);
       if (!latest.found) {
-        const msg = latest.error
-          ? `🍎 App Store: Check failed - ${latest.error}`
+        const errMsg =
+          latest.error instanceof Error
+            ? latest.error.message
+            : (latest.error ?? "");
+        const msg = errMsg
+          ? `🍎 App Store: Check failed - ${errMsg}`
           : `🍎 App Store: No version found (can create first version)`;
         messages.push(msg);
-        result.appStore = { found: false, error: latest.error };
+        result.appStore = { found: false, error: errMsg || undefined };
       } else {
         const state = latest.state?.toUpperCase() || "UNKNOWN";
         messages.push(`🍎 App Store: ${latest.versionString} (${state})`);
@@ -105,11 +109,15 @@ export async function getLatestVersions(
       const latest =
         await googlePlayService.getLatestProductionRelease(packageName);
       if (!latest.found) {
-        const msg = latest.error
-          ? `🤖 Google Play: Check failed - ${latest.error}`
+        const errMsg =
+          latest.error instanceof Error
+            ? latest.error.message
+            : (latest.error ?? "");
+        const msg = errMsg
+          ? `🤖 Google Play: Check failed - ${errMsg}`
           : `🤖 Google Play: No version found (can create first version)`;
         messages.push(msg);
-        result.googlePlay = { found: false, error: latest.error };
+        result.googlePlay = { found: false, error: errMsg || undefined };
       } else {
         const versionName = latest.versionName || latest.releaseName || "N/A";
         const status = latest.status?.toUpperCase() || "UNKNOWN";

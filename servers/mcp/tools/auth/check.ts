@@ -35,7 +35,9 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
       results.push(`   JWT created successfully`);
     } else {
       results.push(`❌ **App Store Connect**`);
-      results.push(`   ${appStoreResult.error || "Authentication failed"}`);
+      results.push(
+        `   ${appStoreResult.error?.message || "Authentication failed"}`
+      );
     }
     results.push("");
   }
@@ -49,7 +51,9 @@ export async function handleAuthCheck(options: AuthCheckOptions) {
       results.push(`   Service Account: ${playStoreResult.data.client_email}`);
     } else {
       results.push(`❌ **Google Play Console**`);
-      results.push(`   ${playStoreResult.error || "Authentication failed"}`);
+      results.push(
+        `   ${playStoreResult.error?.message || "Authentication failed"}`
+      );
     }
   }
 

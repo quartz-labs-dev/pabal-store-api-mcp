@@ -1,11 +1,9 @@
-import { GooglePlayClient } from "@packages/stores/play-store/client";
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
+import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
 import { loadConfig } from "@/packages/configs/secrets-config/config";
-import {
-  failure,
-  isNonEmptyString,
-  success,
-  toErrorMessage,
-} from "./client-factory-helpers";
+import { GooglePlayClient } from "@packages/stores/play-store/client";
+import { failure, isNonEmptyString, success } from "./client-factory-helpers";
 import type { ClientFactoryResult } from "./types";
 
 /**
@@ -41,13 +39,23 @@ export function createGooglePlayClient(
 ): GooglePlayClientResult {
   // Validate input
   if (!config) {
-    return failure("Google Play client configuration is missing");
+    return failure(
+      AppError.badRequest(
+        ERROR_CODES.GOOGLE_PLAY_CLIENT_CONFIG_MISSING,
+        "Google Play client configuration is missing"
+      )
+    );
   }
 
   const { packageName } = config;
 
   if (!isNonEmptyString(packageName)) {
-    return failure("Package name is required and must be a non-empty string");
+    return failure(
+      AppError.validation(
+        ERROR_CODES.GOOGLE_PLAY_PACKAGE_NAME_INVALID,
+        "Package name is required and must be a non-empty string"
+      )
+    );
   }
 
   // Load fresh config (stateless - works from any directory)
@@ -57,20 +65,33 @@ export function createGooglePlayClient(
     playStoreConfig = fullConfig.playStore;
   } catch (error) {
     return failure(
-      `Failed to load Google Play configuration: ${toErrorMessage(error)}`
+      AppError.wrap(
+        error,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_CODES.GOOGLE_PLAY_CONFIG_LOAD_FAILED,
+        "Failed to load Google Play configuration"
+      )
     );
   }
 
   // Validate required credentials
   if (!playStoreConfig) {
-    return failure("Google Play configuration is missing in config file");
+    return failure(
+      AppError.configMissing(
+        ERROR_CODES.GOOGLE_PLAY_CONFIG_MISSING,
+        "Google Play configuration is missing in config file"
+      )
+    );
   }
 
   const { serviceAccountJson } = playStoreConfig;
 
   if (!isNonEmptyString(serviceAccountJson)) {
     return failure(
-      "Google Play service account JSON is required in configuration"
+      AppError.validation(
+        ERROR_CODES.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_INVALID,
+        "Google Play service account JSON is required in configuration"
+      )
     );
   }
 
@@ -79,12 +100,22 @@ export function createGooglePlayClient(
   try {
     const parsed = JSON.parse(serviceAccountJson);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return failure("Service account JSON must be a valid JSON object");
+      return failure(
+        AppError.validation(
+          ERROR_CODES.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_FORMAT_INVALID,
+          "Service account JSON must be a valid JSON object"
+        )
+      );
     }
     serviceAccountKey = parsed;
   } catch (error) {
     return failure(
-      `Invalid Google Play service account JSON: ${toErrorMessage(error)}`
+      AppError.wrap(
+        error,
+        HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        ERROR_CODES.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PARSE_FAILED,
+        "Invalid Google Play service account JSON"
+      )
     );
   }
 
@@ -98,7 +129,12 @@ export function createGooglePlayClient(
     return success(client);
   } catch (error) {
     return failure(
-      `Failed to create Google Play client: ${toErrorMessage(error)}`
+      AppError.wrap(
+        error,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_CODES.GOOGLE_PLAY_CLIENT_CREATE_FAILED,
+        "Failed to create Google Play client"
+      )
     );
   }
 }

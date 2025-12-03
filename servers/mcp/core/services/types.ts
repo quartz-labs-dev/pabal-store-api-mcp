@@ -1,12 +1,13 @@
+import type { AppError } from "@/packages/common/errors/app-error";
 import type { RegisteredApp } from "@/packages/configs/secrets-config/registered-apps";
 
 export type ServiceResult<T> =
   | { success: true; data: T }
-  | { success: false; error: string };
+  | { success: false; error: AppError };
 
 export type MaybeResult<T> =
   | ({ found: true } & T)
-  | { found: false; error?: string };
+  | { found: false; error?: AppError };
 
 export interface StoreAppSummary {
   id: string;
@@ -59,7 +60,7 @@ export type PushAsoResult =
     }
   | {
       success: false;
-      error: string;
+      error: AppError;
       needsNewVersion?: boolean;
       versionInfo?: {
         versionId: string;
@@ -70,7 +71,7 @@ export type PushAsoResult =
 
 export interface VerifyAuthResult<TPayload = Record<string, unknown>> {
   success: boolean;
-  error?: string;
+  error?: AppError;
   data?: TPayload;
 }
 

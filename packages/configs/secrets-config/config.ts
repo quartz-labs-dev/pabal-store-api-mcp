@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
+import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
 import { ConfigError } from "./errors";
 import { DATA_DIR_ENV_KEY } from "./constants";
 import { appStoreSchema, playStoreSchema } from "./schemas";
@@ -85,7 +87,8 @@ export function loadConfig(): EnvConfig {
   if (!config) {
     const configPath = getConfigPath();
     throw new ConfigError(
-      `secrets/aso-config.json file not found or failed to parse: ${configPath}`
+      `secrets/aso-config.json file not found or failed to parse: ${configPath}`,
+      { status: HTTP_STATUS.NOT_FOUND, code: ERROR_CODES.CONFIG_NOT_FOUND }
     );
   }
 
@@ -122,7 +125,11 @@ export function loadConfig(): EnvConfig {
 
     if (!result.appStore && !result.playStore) {
       throw new ConfigError(
-        "secrets/aso-config.json file does not contain App Store or Play Store authentication information."
+        "secrets/aso-config.json file does not contain App Store or Play Store authentication information.",
+        {
+          status: HTTP_STATUS.UNAUTHORIZED,
+          code: ERROR_CODES.CONFIG_AUTH_NOT_FOUND,
+        }
       );
     }
 
@@ -134,7 +141,12 @@ export function loadConfig(): EnvConfig {
     throw new ConfigError(
       `Error reading secrets/aso-config.json file: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
+      {
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        code: ERROR_CODES.CONFIG_READ_FAILED,
+        cause: error,
+      }
     );
   }
 }

@@ -1,5 +1,7 @@
+import { AppError } from "@/packages/common/errors/app-error";
+import { ERROR_CODES } from "@/packages/common/errors/error-codes";
 import { findApp } from "@/packages/configs/secrets-config/registered-apps";
-import { toErrorMessage } from "@servers/mcp/core/clients/client-factory-helpers";
+import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
 import { serviceFailure, serviceSuccess } from "./service-helpers";
 import { type ResolvedAppContext, type ServiceResult } from "./types";
 
@@ -20,7 +22,10 @@ export class AppResolutionService {
 
     if (!identifier) {
       return serviceFailure(
-        `❌ App not found. Please provide app (slug), packageName, or bundleId.`
+        AppError.validation(
+          ERROR_CODES.APP_IDENTIFIER_MISSING,
+          "❌ App not found. Please provide app (slug), packageName, or bundleId."
+        )
       );
     }
 
@@ -28,7 +33,10 @@ export class AppResolutionService {
       const app = findApp(identifier);
       if (!app) {
         return serviceFailure(
-          `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`
+          AppError.notFound(
+            ERROR_CODES.APP_NOT_FOUND,
+            `❌ App registered with "${identifier}" not found. Check registered apps using apps-search.`
+          )
         );
       }
 
@@ -41,7 +49,14 @@ export class AppResolutionService {
         hasGooglePlay: Boolean(app.googlePlay),
       });
     } catch (error) {
-      return serviceFailure(toErrorMessage(error));
+      return serviceFailure(
+        AppError.wrap(
+          error,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_CODES.APP_RESOLUTION_FAILED,
+          "Failed to resolve app"
+        )
+      );
     }
   }
 }

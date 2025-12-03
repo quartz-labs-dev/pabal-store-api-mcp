@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { AppError } from "@/packages/common/errors/app-error";
 import {
   formatPushResult,
   formatReleaseNotesUpdate,
@@ -117,7 +118,7 @@ describe("formatters", () => {
       it("should format simple failure", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "Network timeout",
+          error: AppError.internal("TEST_ERROR", "Network timeout"),
         };
 
         const formatted = formatPushResult("App Store", result);
@@ -131,7 +132,7 @@ describe("formatters", () => {
       it("should format failure with different store label", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "Authentication failed",
+          error: AppError.internal("TEST_ERROR", "Authentication failed"),
         };
 
         const formatted = formatPushResult("Google Play", result);
@@ -144,7 +145,10 @@ describe("formatters", () => {
       it("should format failure due to missing version", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "No editable version found",
+          error: AppError.notFound(
+            "TEST_NOT_FOUND",
+            "No editable version found"
+          ),
           needsNewVersion: false,
         };
 
@@ -159,7 +163,7 @@ describe("formatters", () => {
       it("should format new version creation success", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "",
+          error: AppError.internal("TEST_ERROR", ""),
           needsNewVersion: true,
           versionInfo: {
             versionId: "abc123",
@@ -180,7 +184,7 @@ describe("formatters", () => {
       it("should not show version creation without versionInfo", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "Some error",
+          error: AppError.internal("TEST_ERROR", "Some error"),
           needsNewVersion: true,
         };
 
@@ -194,7 +198,7 @@ describe("formatters", () => {
       it("should not show version creation without needsNewVersion flag", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "Some error",
+          error: AppError.internal("TEST_ERROR", "Some error"),
           versionInfo: {
             versionId: "abc123",
             versionString: "1.2.3",
@@ -214,7 +218,7 @@ describe("formatters", () => {
       it("should handle empty error message", () => {
         const result: PushAsoResult = {
           success: false,
-          error: "",
+          error: AppError.internal("TEST_ERROR", ""),
         };
 
         const formatted = formatPushResult("App Store", result);

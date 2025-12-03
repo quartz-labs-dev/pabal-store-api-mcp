@@ -60,10 +60,36 @@ Usage:
   }
 
   // Check if already registered
-  const existing = findApp(identifier);
+  let existing;
+  try {
+    existing = findApp(identifier);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ Failed to load registered apps: ${message}`,
+        },
+      ],
+    };
+  }
   if (existing) {
     // Update language info for existing apps
-    const appsConfig = loadRegisteredApps();
+    let appsConfig;
+    try {
+      appsConfig = loadRegisteredApps();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ Failed to load registered apps: ${message}`,
+          },
+        ],
+      };
+    }
     const appIndex = appsConfig.apps.findIndex((a) => a.slug === existing.slug);
 
     if (appIndex >= 0) {

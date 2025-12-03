@@ -7,7 +7,10 @@ const appStoreService = new AppStoreService();
  */
 export async function handleAuthAppStore() {
   const result = await appStoreService.verifyAuth(300);
-  if (result.success && result.data) {
+
+  const success = Boolean(result.success && result.data);
+
+  if (success) {
     return {
       content: [
         {
@@ -15,8 +18,8 @@ export async function handleAuthAppStore() {
           text: JSON.stringify(
             {
               ok: true,
-              header: result.data.header,
-              payload: result.data.payload,
+              header: result.data!.header,
+              payload: result.data!.payload,
             },
             null,
             2
@@ -25,11 +28,17 @@ export async function handleAuthAppStore() {
       ],
     };
   }
+
+  const errorMessage =
+    result.error?.message ||
+    "App Store authentication not configured or failed.";
+
+  // Keep failure response as plain text for tests that expect a string with keywords.
   return {
     content: [
       {
         type: "text" as const,
-        text: result.error || "An unknown error occurred.",
+        text: `App Store auth failed: ${errorMessage}`,
       },
     ],
   };

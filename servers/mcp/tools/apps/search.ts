@@ -149,11 +149,12 @@ ${appList}`,
       _meta: { apps: results, count: results.length },
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ App search failed: ${error instanceof Error ? error.message : String(error)}`,
+          text: `❌ App search failed: ${message}`,
         },
       ],
       isError: true,

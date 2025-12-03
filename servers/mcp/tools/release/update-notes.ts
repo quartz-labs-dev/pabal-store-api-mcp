@@ -55,7 +55,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
       content: [
         {
           type: "text" as const,
-          text: resolved.error,
+          text: resolved.error.message,
         },
       ],
     };
@@ -81,7 +81,21 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
 
   if (whatsNew && Object.keys(whatsNew).length > 0) {
     // Step 1: Get supported locales for the app
-    const config = loadConfig();
+    let config;
+    try {
+      config = loadConfig();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ Failed to load config: ${message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
     let appStoreLocales: string[] = [];
     let googlePlayLocales: string[] = [];
 
@@ -110,7 +124,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
           }
         } else if (appInfo.error) {
           console.error(
-            `[MCP]   ⚠️ Failed to fetch App Store locales: ${appInfo.error}`
+            `[MCP]   ⚠️ Failed to fetch App Store locales: ${appInfo.error.message}`
           );
         }
       }
@@ -134,7 +148,7 @@ export async function handleUpdateNotes(options: UpdateNotesOptions) {
           }
         } else if (appInfo.error) {
           console.error(
-            `[MCP]   ⚠️ Failed to fetch Google Play locales: ${appInfo.error}`
+            `[MCP]   ⚠️ Failed to fetch Google Play locales: ${appInfo.error.message}`
           );
         }
       }
@@ -308,7 +322,21 @@ Note: Provide translations for ALL supported locales. Include the already provid
     finalWhatsNew = whatsNew;
   } else if (text) {
     // Step 1: Get supported locales for the app (from registered app or fetch from API)
-    const config = loadConfig();
+    let config;
+    try {
+      config = loadConfig();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ Failed to load config: ${message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
     let appStoreLocales: string[] = [];
     let googlePlayLocales: string[] = [];
 
@@ -337,7 +365,7 @@ Note: Provide translations for ALL supported locales. Include the already provid
           }
         } else if (appInfo.error) {
           console.error(
-            `[MCP]   ⚠️ Failed to fetch App Store locales: ${appInfo.error}`
+            `[MCP]   ⚠️ Failed to fetch App Store locales: ${appInfo.error.message}`
           );
         }
       }
@@ -361,7 +389,7 @@ Note: Provide translations for ALL supported locales. Include the already provid
           }
         } else if (appInfo.error) {
           console.error(
-            `[MCP]   ⚠️ Failed to fetch Google Play locales: ${appInfo.error}`
+            `[MCP]   ⚠️ Failed to fetch Google Play locales: ${appInfo.error.message}`
           );
         }
       }
@@ -549,7 +577,7 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
 
       if (!updateResult.success) {
         appStoreResults.push(
-          `❌ App Store release notes update failed: ${updateResult.error}`
+          `❌ App Store release notes update failed: ${updateResult.error.message}`
         );
       } else {
         console.error(
@@ -581,7 +609,7 @@ Note: App Store and Google Play may use different locale formats (e.g., "ko" vs 
 
       if (!updateResult.success) {
         googlePlayResults.push(
-          `❌ Google Play release notes update failed: ${updateResult.error}`
+          `❌ Google Play release notes update failed: ${updateResult.error.message}`
         );
       } else {
         console.error(

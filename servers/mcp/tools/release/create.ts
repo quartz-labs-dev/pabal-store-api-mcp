@@ -33,7 +33,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
       content: [
         {
           type: "text" as const,
-          text: resolved.error,
+          text: resolved.error.message,
         },
       ],
     };
@@ -50,7 +50,21 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
   bundleId = resolvedBundleId;
   packageName = resolvedPackageName;
 
-  const config = loadConfig();
+  let config;
+  try {
+    config = loadConfig();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ Failed to load config: ${message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
 
   // If version is not provided, check latest versions and prompt user
   if (!version) {
@@ -100,7 +114,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
       );
       if (!createResult.success) {
         results.push(
-          `❌ App Store version creation failed: ${createResult.error}`
+          `❌ App Store version creation failed: ${createResult.error.message}`
         );
       } else {
         const state = createResult.data.state?.toUpperCase() || "UNKNOWN";
@@ -130,7 +144,7 @@ export async function handleAsoCreateVersion(options: AsoCreateVersionOptions) {
       );
       if (!createResult.success) {
         results.push(
-          `❌ Google Play version creation failed: ${createResult.error}`
+          `❌ Google Play version creation failed: ${createResult.error.message}`
         );
       } else {
         results.push(

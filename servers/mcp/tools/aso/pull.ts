@@ -72,12 +72,20 @@ async function downloadScreenshotsToAso(
             screenshotDir,
             `phone-${i + 1}.png`
           );
-          if (isLocalAssetPath(url)) {
-            copyLocalAssetToAso(url, outputPath);
-          } else {
-            await downloadImage(url, outputPath);
+          try {
+            if (isLocalAssetPath(url)) {
+              copyLocalAssetToAso(url, outputPath);
+            } else {
+              await downloadImage(url, outputPath);
+            }
+            console.error(`[MCP]     ✅ phone-${i + 1}.png`);
+          } catch (error) {
+            console.error(
+              `[MCP]     ❌ Failed to handle screenshot ${url}: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
           }
-          console.error(`[MCP]     ✅ phone-${i + 1}.png`);
         }
       }
 
@@ -87,12 +95,20 @@ async function downloadScreenshotsToAso(
           screenshotDir,
           "feature-graphic.png"
         );
-        if (isLocalAssetPath(localeData.featureGraphic)) {
-          copyLocalAssetToAso(localeData.featureGraphic, outputPath);
-        } else {
-          await downloadImage(localeData.featureGraphic, outputPath);
+        try {
+          if (isLocalAssetPath(localeData.featureGraphic)) {
+            copyLocalAssetToAso(localeData.featureGraphic, outputPath);
+          } else {
+            await downloadImage(localeData.featureGraphic, outputPath);
+          }
+          console.error(`[MCP]     ✅ feature-graphic.png`);
+        } catch (error) {
+          console.error(
+            `[MCP]     ❌ Failed to handle feature graphic ${localeData.featureGraphic}: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
         }
-        console.error(`[MCP]     ✅ feature-graphic.png`);
       }
     }
   }
@@ -138,7 +154,15 @@ async function downloadScreenshotsToAso(
               if (url.includes("{w}") || url.includes("{h}")) {
                 url = resolveAppStoreImageUrl(url);
               }
-              await downloadImage(url, outputPath);
+              try {
+                await downloadImage(url, outputPath);
+              } catch (error) {
+                console.error(
+                  `[MCP]     ❌ Failed to handle screenshot ${url}: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`
+                );
+              }
             }
             console.error(`[MCP]     ✅ ${type}-${i + 1}.png`);
           }
@@ -168,7 +192,7 @@ export async function handleAsoPull(options: AsoPullOptions) {
       content: [
         {
           type: "text" as const,
-          text: resolved.error,
+          text: resolved.error.message,
         },
       ],
     };
@@ -192,7 +216,18 @@ export async function handleAsoPull(options: AsoPullOptions) {
   if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
   console.error(`[MCP]   Mode: ${dryRun ? "Dry run" : "Actual fetch"}`);
 
-  const config = loadConfig();
+  let config;
+  try {
+    config = loadConfig();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        { type: "text" as const, text: `❌ Failed to load config: ${message}` },
+      ],
+      isError: true,
+    };
+  }
   const syncedData: AsoData = {};
   const pullDir = getAsoPullDir();
 
@@ -214,7 +249,7 @@ export async function handleAsoPull(options: AsoPullOptions) {
 
       if (!clientResult.success) {
         console.error(
-          `[MCP]   ❌ Failed to create Google Play client: ${clientResult.error}`
+          `[MCP]   ❌ Failed to create Google Play client: ${clientResult.error.message}`
         );
       } else {
         try {
@@ -226,14 +261,24 @@ export async function handleAsoPull(options: AsoPullOptions) {
           // Update registered-apps.json with pulled locales
           if (data.locales && Object.keys(data.locales).length > 0) {
             const locales = Object.keys(data.locales);
-            const updated = updateAppSupportedLocales({
-              identifier: packageName,
-              store: "googlePlay",
-              locales,
-            });
-            if (updated) {
+            try {
+              const updated = updateAppSupportedLocales({
+                identifier: packageName,
+                store: "googlePlay",
+                locales,
+              });
+              if (updated) {
+                console.error(
+                  `[MCP]   ✅ Updated registered-apps.json with ${locales.length} Google Play locales`
+                );
+              }
+            } catch (updateError) {
               console.error(
-                `[MCP]   ✅ Updated registered-apps.json with ${locales.length} Google Play locales`
+                `[MCP]   ⚠️ Failed to update registered-apps.json: ${
+                  updateError instanceof Error
+                    ? updateError.message
+                    : String(updateError)
+                }`
               );
             }
           }
@@ -260,7 +305,7 @@ export async function handleAsoPull(options: AsoPullOptions) {
 
       if (!clientResult.success) {
         console.error(
-          `[MCP]   ❌ Failed to create App Store client: ${clientResult.error}`
+          `[MCP]   ❌ Failed to create App Store client: ${clientResult.error.message}`
         );
       } else {
         try {
@@ -272,14 +317,24 @@ export async function handleAsoPull(options: AsoPullOptions) {
           // Update registered-apps.json with pulled locales
           if (data.locales && Object.keys(data.locales).length > 0) {
             const locales = Object.keys(data.locales);
-            const updated = updateAppSupportedLocales({
-              identifier: bundleId,
-              store: "appStore",
-              locales,
-            });
-            if (updated) {
+            try {
+              const updated = updateAppSupportedLocales({
+                identifier: bundleId,
+                store: "appStore",
+                locales,
+              });
+              if (updated) {
+                console.error(
+                  `[MCP]   ✅ Updated registered-apps.json with ${locales.length} App Store locales`
+                );
+              }
+            } catch (updateError) {
               console.error(
-                `[MCP]   ✅ Updated registered-apps.json with ${locales.length} App Store locales`
+                `[MCP]   ⚠️ Failed to update registered-apps.json: ${
+                  updateError instanceof Error
+                    ? updateError.message
+                    : String(updateError)
+                }`
               );
             }
           }

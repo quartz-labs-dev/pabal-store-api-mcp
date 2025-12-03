@@ -51,7 +51,7 @@ export async function handleAsoPullReleaseNotes(
       content: [
         {
           type: "text" as const,
-          text: resolved.error,
+          text: resolved.error.message,
         },
       ],
     };
@@ -75,7 +75,21 @@ export async function handleAsoPullReleaseNotes(
   if (bundleId) console.error(`[MCP]   Bundle ID: ${bundleId}`);
   console.error(`[MCP]   Mode: ${dryRun ? "Dry run" : "Actual fetch"}`);
 
-  const config = loadConfig();
+  let config;
+  try {
+    config = loadConfig();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `❌ Failed to load config: ${message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
 
   const releaseNotes: {
     googlePlay?: GooglePlayReleaseNote[];
@@ -99,7 +113,7 @@ export async function handleAsoPullReleaseNotes(
       const notesResult = await googlePlayService.pullReleaseNotes(packageName);
       if (!notesResult.success) {
         console.error(
-          `[MCP]   ❌ Failed to fetch Google Play release notes: ${notesResult.error}`
+          `[MCP]   ❌ Failed to fetch Google Play release notes: ${notesResult.error.message}`
         );
       } else {
         releaseNotes.googlePlay = notesResult.data;
@@ -133,7 +147,7 @@ export async function handleAsoPullReleaseNotes(
       const notesResult = await appStoreService.pullReleaseNotes(bundleId);
       if (!notesResult.success) {
         console.error(
-          `[MCP]   ❌ Failed to fetch App Store release notes: ${notesResult.error}`
+          `[MCP]   ❌ Failed to fetch App Store release notes: ${notesResult.error.message}`
         );
       } else {
         releaseNotes.appStore = notesResult.data;
