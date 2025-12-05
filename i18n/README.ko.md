@@ -112,10 +112,27 @@
 
 ### Claude Code
 
-```sh
-claude mcp add pabal-mcp -- bash /ABSOLUTE/PATH/TO/pabal-mcp/run-mcp.sh
-claude mcp add pabal-mcp -- npx -y pabal-mcp@latest
+> [!TIP]
+> 자세한 설정 옵션은 [Claude Code MCP 공식 문서](https://code.claude.com/docs/en/mcp#setting-up-enterprise-mcp-configuration)를 참고하세요.
+
+Claude Code MCP 설정에 추가 (JSON 형식):
+
+```json
+{
+  "mcpServers": {
+    "pabal-mcp": {
+      "command": "bash",
+      "args": ["/ABSOLUTE/PATH/TO/pabal-mcp/run-mcp.sh"],
+      "cwd": "/ABSOLUTE/PATH/TO/pabal-mcp"
+    }
+  }
+}
 ```
+
+> [!NOTE]
+> CLI (`claude mcp add`)는 args와 cwd 설정을 지원하지 않으므로, 위의 JSON 설정을 직접 편집해야 합니다.
+
+`run-mcp.sh`는 TypeScript 경로를 프로젝트 루트에서 해결합니다.
 
 ### Windsurf
 

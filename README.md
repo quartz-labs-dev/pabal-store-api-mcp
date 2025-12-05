@@ -125,17 +125,27 @@ Switch `command` to `npx` and `args` to `["-y", "pabal-mcp@latest"]` to run the 
 <details>
 <summary><b>Install in Claude Code</b></summary>
 
-Local (bash) run:
+> [!TIP]
+> See the [official Claude Code MCP documentation](https://code.claude.com/docs/en/mcp#setting-up-enterprise-mcp-configuration) for detailed configuration options.
 
-```sh
-claude mcp add pabal-mcp -- bash /ABSOLUTE/PATH/TO/pabal-mcp/run-mcp.sh
+Add to Claude Code MCP settings (JSON format):
+
+```json
+{
+  "mcpServers": {
+    "pabal-mcp": {
+      "command": "bash",
+      "args": ["/ABSOLUTE/PATH/TO/pabal-mcp/run-mcp.sh"],
+      "cwd": "/ABSOLUTE/PATH/TO/pabal-mcp"
+    }
+  }
+}
 ```
 
-Published package (npx):
+> [!NOTE]
+> CLI (`claude mcp add`) does not support args and cwd settings, so you must edit the JSON configuration directly.
 
-```sh
-claude mcp add pabal-mcp -- npx -y pabal-mcp@latest
-```
+`run-mcp.sh` keeps TypeScript paths resolved from the repo root.
 
 </details>
 
