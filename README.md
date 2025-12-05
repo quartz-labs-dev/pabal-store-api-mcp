@@ -166,21 +166,19 @@ Set `dataDir` in `secrets/aso-config.json` to control where data is written.
 ## 🔧 MCP Tools
 
 - Authentication
-  - `auth-check`: Check App Store Connect / Google Play authentication (`store`: appStore | googlePlay | both).
+  - `auth-check`: Check App Store Connect / Google Play authentication.
 - App management
-  - `apps-init`: Fetch apps from the store API and auto-register them. For Google Play, provide `packageName`.
-  - `apps-add`: Register a single app by bundleId/packageName (`identifier`), with optional `slug` and `store`.
-  - `apps-search`: Search registered apps (`query`) with optional `store` filter.
+  - `apps-init`: Fetch apps from the store API and auto-register them (Google Play needs `packageName`).
+  - `apps-add`: Register a single app by bundleId/packageName.
+  - `apps-search`: Search registered apps.
 - ASO data sync
-  - `aso-pull`: Fetch ASO data to the local cache (`app`/`bundleId`/`packageName`, optional `store`, `dryRun`).
-  - `aso-push`: Push cached ASO data to the stores (same targeting options, optional `uploadImages`, `dryRun`).
+  - `aso-pull`: Fetch ASO data to the `.aso/` local cache.
+  - `aso-push`: Push ASO data from `.aso/` to the stores.
 - Release management
-  - `release-check-versions`: Show the latest versions per store for the specified app.
-  - `release-create`: Create a new version; accepts `version`, `versionCodes` (for Google Play), and standard app targeting options.
-  - `release-pull-notes`: Retrieve release notes to the local cache (`dryRun` supported).
-  - `release-update-notes`: Update release notes/what's new (`whatsNew` map or `text`+`sourceLocale`, standard targeting).
-
-Run `npm run tools` to print the current tool list directly from the server code.
+  - `release-check-versions`: Show the latest versions per store.
+  - `release-create`: Create a new version.
+  - `release-pull-notes`: Pull release notes to the `.aso/` cache.
+  - `release-update-notes`: Update release notes/what's new.
 
 ## ✅ Testing
 

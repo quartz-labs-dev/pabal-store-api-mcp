@@ -143,21 +143,19 @@ claude mcp add pabal-mcp -- npx -y pabal-mcp@latest
 ## 🔧 MCP 도구
 
 - 인증
-  - `auth-check`: App Store Connect / Google Play 인증 상태 확인 (`store`: appStore | googlePlay | both)
+  - `auth-check`: App Store Connect / Google Play 인증 상태 확인
 - 앱 관리
   - `apps-init`: 스토어 API에서 앱을 가져와 자동 등록 (Google Play는 `packageName` 필요)
-  - `apps-add`: bundleId/packageName(`identifier`)로 단일 앱 등록, `slug`/`store` 옵션
-  - `apps-search`: 앱 검색 (`query`, 선택적 `store`)
+  - `apps-add`: bundleId/packageName으로 단일 앱 등록
+  - `apps-search`: 등록된 앱 검색
 - ASO 동기화
-  - `aso-pull`: ASO 데이터를 로컬 캐시에 가져오기 (`app`/`bundleId`/`packageName`, 선택적 `store`, `dryRun`)
-  - `aso-push`: 캐시된 ASO를 스토어에 반영 (동일한 타겟 옵션, 선택적 `uploadImages`, `dryRun`)
+  - `aso-pull`: ASO 데이터를 로컬 캐시(.aso/)에 가져오기
+  - `aso-push`: 로컬 캐시(.aso/)의 ASO 데이터를 스토어에 반영
 - 릴리스 관리
   - `release-check-versions`: 앱별 최신 버전 조회
-  - `release-create`: 새 버전 생성 (`version`, Google Play의 `versionCodes`, 표준 타겟 옵션)
-  - `release-pull-notes`: 릴리스 노트를 로컬 캐시에 가져오기 (`dryRun` 지원)
-  - `release-update-notes`: 릴리스 노트/What’s New 업데이트 (`whatsNew` 맵 또는 `text`+`sourceLocale`, 표준 타겟팅)
-
-현재 도구 목록은 `npm run tools`로 확인할 수 있습니다.
+  - `release-create`: 새 버전 생성
+  - `release-pull-notes`: 릴리스 노트를 로컬 캐시(.aso/)에 가져오기
+  - `release-update-notes`: 릴리스 노트/What’s New 업데이트
 
 ## ✅ 테스트
 
