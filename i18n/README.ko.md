@@ -133,25 +133,6 @@ claude mcp add pabal-mcp -- npx -y pabal-mcp@latest
 
 다른 MCP 클라이언트도 `run-mcp.sh` 또는 `npx -y pabal-mcp@latest`를 `command`/`args`로 지정해 유사하게 설정할 수 있습니다.
 
-## 🚀 서버 실행
-
-- 로컬 개발: `npm run dev:mcp` (프로젝트 루트에서 stdio MCP 서버 실행)
-- MCP 클라이언트에서 `run-mcp.sh`를 호출하도록 설정하면 경로가 올바르게 잡힙니다. 예시:
-
-```json
-{
-  "mcpServers": {
-    "pabal-mcp": {
-      "command": "bash",
-      "args": ["/ABSOLUTE/PATH/TO/pabal-mcp/run-mcp.sh"],
-      "cwd": "/ABSOLUTE/PATH/TO/pabal-mcp"
-    }
-  }
-}
-```
-
-데이터 저장 위치는 `secrets/aso-config.json`의 `dataDir`로 지정하세요.
-
 ## 🔧 MCP 도구
 
 - 인증

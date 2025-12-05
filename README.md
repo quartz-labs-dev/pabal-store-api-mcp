@@ -160,25 +160,6 @@ You can swap `command`/`args` to `npx` + `pabal-mcp@latest` for direct package e
 
 > Other MCP clients generally work the same: point `command`/`args` to `run-mcp.sh` or `npx -y pabal-mcp@latest`.
 
-## 🚀 Run the MCP Server
-
-- Local development: `npm run dev:mcp` (starts a stdio MCP server in the project root).
-- From an MCP client, use the `run-mcp.sh` wrapper so paths resolve correctly. Example Claude Desktop config:
-
-```json
-{
-  "mcpServers": {
-    "pabal-mcp": {
-      "command": "bash",
-      "args": ["/ABSOLUTE/PATH/TO/pabal-mcp/run-mcp.sh"],
-      "cwd": "/ABSOLUTE/PATH/TO/pabal-mcp"
-    }
-  }
-}
-```
-
-Set `dataDir` in `secrets/aso-config.json` to control where data is written.
-
 ## 🔧 MCP Tools
 
 - Authentication

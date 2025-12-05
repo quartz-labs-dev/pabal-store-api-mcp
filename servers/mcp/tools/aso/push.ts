@@ -150,9 +150,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
 💡 To fix this:
    1. Run \`aso-pull\` to fetch data from stores
    2. Or ensure data exists at the paths above
-   3. Check that data directory is set correctly (current: ${getAsoDir()})
-      - Set \`dataDir\` in \`secrets/aso-config.json\` or
-      - Set \`PABAL_MCP_DATA_DIR\` environment variable`;
+   3. Check that data directory is set correctly (current: ${getAsoDir()})`;
 
     console.error(`[MCP]   ${errorDetails}`);
     return {
