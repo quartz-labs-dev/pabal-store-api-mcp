@@ -47,7 +47,6 @@
 
 ```json
 {
-  "dataDir": "/path/to/data/directory",
   "appStore": {
     "issuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     "keyId": "XXXXXXXXXX",
@@ -59,7 +58,7 @@
 }
 ```
 
-데이터 디렉터리 기본값은 프로젝트 루트입니다. `secrets/aso-config.json`의 `dataDir`(절대/상대 경로)로 변경할 수 있습니다.
+데이터 디렉터리 기본값은 프로젝트 루트입니다. `secrets/aso-config.json`의 `dataDir`(절대 경로)로 변경할 수 있습니다.
 
 ## 🛠️ 설치
 

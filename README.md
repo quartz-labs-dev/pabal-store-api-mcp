@@ -45,7 +45,6 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
 
    ```json
    {
-     "dataDir": "/ABSOLUTE/PATH/TO/DataDir",
      "appStore": {
        "issuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
        "keyId": "XXXXXXXXXX",
@@ -57,48 +56,13 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
    }
    ```
 
-Data directory: by default, files are written to the project root. Override with `dataDir` in `secrets/aso-config.json` (absolute or repo-relative).
+Data directory: by default, files are written to the project root. Override with `dataDir` in `secrets/aso-config.json` (absolute path).
 
 4. Pull store datas
 
    Use `apps-init` to fetch and auto-register existing apps from the store APIs
 
    This will populate your `secrets/registered-apps.json` with the apps available in your stores.
-
-### 🛠️ 빠른 시작 (한국어)
-
-1. 요구 사항: Node.js 18+
-2. 의존성 설치: `yarn install`
-3. `secrets/`(gitignore) 아래 자격 증명 추가:
-   1. App Store Connect API 키:
-      - App Store Connect → Users and Access → [Keys](https://appstoreconnect.apple.com/access/integrations/api) → “Generate API Key”에서 Admin/App Manager 권한으로 키 생성 후 `.p8`를 다운로드합니다(한 번만 가능). 파일명을 `secrets/app-store-key.p8`로 저장하세요.
-      - 키 상세 화면에서 Issuer ID와 Key ID를 복사해 `aso-config.json`에 넣을 준비를 합니다.
-   2. Google Play 서비스 계정 JSON:
-      - Play Console → API 액세스 → Google Cloud 프로젝트 연결/생성 → [서비스 계정 관리](https://console.cloud.google.com/projectselector2/iam-admin/serviceaccounts?supportedpurview=project) → 새 서비스 계정 생성(릴리스/스토어 권한 부여) → 키 생성 → JSON을 다운로드합니다.
-      - 다운로드한 JSON을 `secrets/google-play-service-account.json`으로 저장하고, 해당 서비스 계정이 필요한 앱에 접근 권한이 있는지 확인합니다.
-   3. `secrets/aso-config.json`으로 위 파일 경로를 지정합니다:
-
-   ```json
-   {
-     "dataDir": "/ABSOLUTE/PATH/TO/DataDir",
-     "appStore": {
-       "issuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-       "keyId": "XXXXXXXXXX",
-       "privateKeyPath": "./secrets/app-store-key.p8" // don't change this
-     },
-     "googlePlay": {
-       "serviceAccountKeyPath": "./secrets/google-play-service-account.json" // don't change this
-     }
-   }
-   ```
-
-데이터 디렉터리: 기본값은 프로젝트 루트이며, `secrets/aso-config.json`의 `dataDir`에 절대/저장소 상대 경로로 덮어쓸 수 있습니다.
-
-4. 스토어 데이터 불러오기
-
-   `apps-init`을 실행해 스토어 API에서 기존 앱을 가져와 자동 등록합니다.
-
-   실행하면 스토어에 있는 앱 목록이 `secrets/registered-apps.json`에 채워집니다.
 
 ## 🛠️ Installation
 
