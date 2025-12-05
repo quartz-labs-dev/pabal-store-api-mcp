@@ -32,7 +32,7 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
       - [App Store Connect > Users and Access > Keys](https://appstoreconnect.apple.com/access/integrations/api) → “Generate API Key.” Use Admin/App Manager, download the `.p8` (only downloadable once), and save it as `secrets/app-store-key.p8`.
       - Copy the Issuer ID and Key ID from the key details; you’ll paste them into `aso-config.json`.
    2. Google Play service account JSON:
-      - Play Console → API access → link/create a Google Cloud project → [Manage service accounts](https://console.cloud.google.com/projectselector2/iam-admin/serviceaccounts?supportedpurview=project) → create a service account (name it `pabal` for clarity) → Create key → JSON.
+      - [Google Cloud Manage service accounts](https://console.cloud.google.com/projectselector2/iam-admin/serviceaccounts?supportedpurview=project) → create a service account (name it `pabal` for clarity) → Create key → JSON.
       - Save the downloaded JSON as `secrets/google-play-service-account.json`.
       - Grant Play Console access to that service account email: go to [Users and permissions](https://play.google.com/console/u/0/developers/users-and-permissions) → Invite new user → enter the service account email → choose the ASO apps → enable:
         - View app information and download bulk reports (read-only)

@@ -32,7 +32,7 @@
       - App Store Connect → Users and Access → [Keys](https://appstoreconnect.apple.com/access/integrations/api) → “Generate API Key”에서 Admin/App Manager 권한으로 키 생성 후 `.p8`를 다운로드합니다(한 번만 가능). 파일명을 `secrets/app-store-key.p8`로 저장하세요.
       - 키 상세 화면에서 Issuer ID와 Key ID를 복사해 `aso-config.json`에 넣을 준비를 합니다.
    2. Google Play 서비스 계정 JSON:
-      - Play Console → API 액세스 → Google Cloud 프로젝트 연결/생성 → [서비스 계정 관리](https://console.cloud.google.com/projectselector2/iam-admin/serviceaccounts?supportedpurview=project) → 새 서비스 계정 생성(이름은 `pabal` 권장) → 키 생성 → JSON 다운로드.
+      - [Google Cloud 서비스 계정 관리](https://console.cloud.google.com/projectselector2/iam-admin/serviceaccounts?supportedpurview=project) → 새 서비스 계정 생성(이름은 `pabal` 권장) → 키 생성 → JSON 다운로드.
       - 다운로드한 JSON을 `secrets/google-play-service-account.json`으로 저장합니다.
       - Play Console → [사용자 및 권한](https://play.google.com/console/u/0/developers/users-and-permissions) → 새 사용자 초대 → 서비스 계정 이메일 입력.
         - 앱 권한: ASO 작업할 앱들을 선택.
