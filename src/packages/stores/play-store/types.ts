@@ -2,15 +2,39 @@
  * Google Play Console API Types
  *
  * Type definitions for Google Play Store operations.
- * Response types are from Discovery Document, Request attribute types are extracted.
+ * Types are derived from googleapis library types.
  *
  * @see https://developers.google.com/android-publisher
  */
 
-import type { Schemas } from "./generated-types";
+import type { androidpublisher_v3 } from "googleapis";
 
-// Schema type alias for convenience
-type GooglePlaySchemas = Schemas;
+// ============================================================================
+// Type Aliases (for convenience and internal use)
+// ============================================================================
+
+/**
+ * Auth type from googleapis
+ * Used internally for EditSession
+ */
+type AuthType = androidpublisher_v3.Params$Resource$Edits$Insert["auth"];
+
+/**
+ * Schema types from googleapis
+ * Re-exported for use across the codebase
+ */
+export type AppEdit = androidpublisher_v3.Schema$AppEdit;
+export type AppDetails = androidpublisher_v3.Schema$AppDetails;
+export type Listing = androidpublisher_v3.Schema$Listing;
+export type Image = androidpublisher_v3.Schema$Image;
+export type Track = androidpublisher_v3.Schema$Track;
+export type TrackRelease = androidpublisher_v3.Schema$TrackRelease;
+export type ListingsListResponse =
+  androidpublisher_v3.Schema$ListingsListResponse;
+export type ImagesListResponse = androidpublisher_v3.Schema$ImagesListResponse;
+export type TracksListResponse = androidpublisher_v3.Schema$TracksListResponse;
+export type ImagesUploadResponse =
+  androidpublisher_v3.Schema$ImagesUploadResponse;
 
 // ============================================================================
 // Custom Types (not from Discovery Document)
@@ -32,7 +56,7 @@ export interface GooglePlayClientConfig {
  * for convenience in API calls
  */
 export interface EditSession extends Pick<AppEdit, "id"> {
-  auth: unknown;
+  auth: AuthType;
   packageName: string;
   editId: string; // Alias for AppEdit.id
 }
@@ -131,59 +155,50 @@ export interface AppDetailsData {
 }
 
 // ============================================================================
-// Response Types (from Discovery Document)
+// Enum Types
 // ============================================================================
 
-export type AppEdit = GooglePlaySchemas["AppEdit"];
-export type Listing = GooglePlaySchemas["Listing"];
-export type AppDetails = GooglePlaySchemas["AppDetails"];
-export type Image = GooglePlaySchemas["Image"];
-export type Track = GooglePlaySchemas["Track"];
-export type TrackRelease = GooglePlaySchemas["TrackRelease"];
-export type LocalizedText = GooglePlaySchemas["LocalizedText"];
-export type CountryTargeting = GooglePlaySchemas["CountryTargeting"];
-export type ListingsListResponse = GooglePlaySchemas["ListingsListResponse"];
-export type TracksListResponse = GooglePlaySchemas["TracksListResponse"];
-export type ImagesListResponse = GooglePlaySchemas["ImagesListResponse"];
+export type ImageType =
+  | "appImageTypeUnspecified"
+  | "phoneScreenshots"
+  | "sevenInchScreenshots"
+  | "tenInchScreenshots"
+  | "tvScreenshots"
+  | "wearScreenshots"
+  | "icon"
+  | "featureGraphic"
+  | "tvBanner";
 
 // ============================================================================
-// Enum Types (from Discovery Document)
-// ============================================================================
-
-export type ImageType = import("./generated-types").ImageType;
-
-// ============================================================================
-// Request Attribute Types (extracted from Discovery Document)
+// Request Attribute Types
 // ============================================================================
 
 /**
  * Listing Update Request Attributes
  * @see https://developers.google.com/android-publisher/api-ref/rest/v3/edits.listings#Listing
  */
-export type ListingUpdateAttributes = {
-  language?: string;
-  title?: string;
-  shortDescription?: string;
-  fullDescription?: string;
-  video?: string;
-};
+export type ListingUpdateAttributes = Partial<
+  Pick<
+    androidpublisher_v3.Schema$Listing,
+    "language" | "title" | "shortDescription" | "fullDescription" | "video"
+  >
+>;
 
 /**
  * App Details Update Request Attributes
  * @see https://developers.google.com/android-publisher/api-ref/rest/v3/edits.details#AppDetails
  */
-export type AppDetailsUpdateAttributes = {
-  defaultLanguage?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  contactWebsite?: string;
-};
+export type AppDetailsUpdateAttributes = Partial<
+  Pick<
+    androidpublisher_v3.Schema$AppDetails,
+    "defaultLanguage" | "contactEmail" | "contactPhone" | "contactWebsite"
+  >
+>;
 
 /**
  * Track Update Request Attributes
  * @see https://developers.google.com/android-publisher/api-ref/rest/v3/edits.tracks#Track
  */
-export type TrackUpdateAttributes = {
-  track?: string;
-  releases?: TrackRelease[];
-};
+export type TrackUpdateAttributes = Partial<
+  Pick<androidpublisher_v3.Schema$Track, "track" | "releases">
+>;

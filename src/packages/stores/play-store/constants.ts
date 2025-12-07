@@ -4,7 +4,7 @@
  * Constant values for Google Play Store operations
  */
 
-import type { ImageType } from "./generated-types";
+import type { ImageType } from "./types";
 
 // Subset of ImageType enum values that are commonly used for screenshots
 export const IMAGE_TYPES: readonly ImageType[] = [

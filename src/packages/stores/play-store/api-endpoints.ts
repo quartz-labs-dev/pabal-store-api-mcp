@@ -4,105 +4,82 @@
  * Centralized API endpoint management for androidpublisher v3 API
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+import type { androidpublisher_v3 } from "googleapis";
 import type {
   EditSession,
-  AppEdit,
-  AppDetails,
-  Listing,
-  ListingsListResponse,
-  Image,
-  ImagesListResponse,
-  Track,
-  TracksListResponse,
   ListingUpdateAttributes,
   AppDetailsUpdateAttributes,
   TrackUpdateAttributes,
   ImageType,
+  AppEdit,
+  AppDetails,
+  Listing,
+  Image,
+  Track,
+  ListingsListResponse,
+  ImagesListResponse,
+  TracksListResponse,
+  ImagesUploadResponse,
 } from "./types";
-import type {
-  EditsInsertParams,
-  EditsDeleteParams,
-  EditsCommitParams,
-  EditsDetailsGetParams,
-  EditsDetailsUpdateParams,
-  EditsListingsListParams,
-  EditsListingsGetParams,
-  EditsListingsUpdateParams,
-  EditsImagesListParams,
-  EditsImagesUploadParams,
-  EditsTracksGetParams,
-  EditsTracksUpdateParams,
-  EditsTracksListParams,
-} from "./generated-types";
 
 export class GooglePlayApiEndpoints {
-  constructor(private androidPublisher: any) {}
+  constructor(private androidPublisher: androidpublisher_v3.Androidpublisher) {}
 
   /**
    * Edit Operations
    */
   async createEdit(
-    auth: unknown,
+    auth: EditSession["auth"],
     packageName: string
   ): Promise<{ data: AppEdit }> {
-    const params: EditsInsertParams = { packageName };
-    return this.androidPublisher.edits.insert({
+    const response = await this.androidPublisher.edits.insert({
       auth,
-      ...params,
+      packageName,
     });
+    return { data: response.data };
   }
 
   async deleteEdit(session: EditSession): Promise<{ data: void }> {
-    const params: EditsDeleteParams = {
+    await this.androidPublisher.edits.delete({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
-    };
-    return this.androidPublisher.edits.delete({
-      auth: session.auth,
-      ...params,
     });
+    return { data: undefined };
   }
 
   async commitEdit(session: EditSession): Promise<{ data: AppEdit }> {
-    const params: EditsCommitParams = {
+    const response = await this.androidPublisher.edits.commit({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
-    };
-    return this.androidPublisher.edits.commit({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   /**
    * App Details Operations
    */
   async getAppDetails(session: EditSession): Promise<{ data: AppDetails }> {
-    const params: EditsDetailsGetParams = {
+    const response = await this.androidPublisher.edits.details.get({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
-    };
-    return this.androidPublisher.edits.details.get({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   async updateAppDetails(
     session: EditSession,
     requestBody: AppDetailsUpdateAttributes
   ): Promise<{ data: AppDetails }> {
-    const params: EditsDetailsUpdateParams = {
+    const response = await this.androidPublisher.edits.details.update({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       requestBody,
-    };
-    return this.androidPublisher.edits.details.update({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   /**
@@ -111,29 +88,25 @@ export class GooglePlayApiEndpoints {
   async listListings(
     session: EditSession
   ): Promise<{ data: ListingsListResponse }> {
-    const params: EditsListingsListParams = {
+    const response = await this.androidPublisher.edits.listings.list({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
-    };
-    return this.androidPublisher.edits.listings.list({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   async getListing(
     session: EditSession,
     language: string
   ): Promise<{ data: Listing }> {
-    const params: EditsListingsGetParams = {
+    const response = await this.androidPublisher.edits.listings.get({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       language,
-    };
-    return this.androidPublisher.edits.listings.get({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   async updateListing(
@@ -141,16 +114,14 @@ export class GooglePlayApiEndpoints {
     language: string,
     requestBody: ListingUpdateAttributes
   ): Promise<{ data: Listing }> {
-    const params: EditsListingsUpdateParams = {
+    const response = await this.androidPublisher.edits.listings.update({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       language,
       requestBody,
-    };
-    return this.androidPublisher.edits.listings.update({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   /**
@@ -161,16 +132,14 @@ export class GooglePlayApiEndpoints {
     language: string,
     imageType: ImageType
   ): Promise<{ data: ImagesListResponse }> {
-    const params: EditsImagesListParams = {
+    const response = await this.androidPublisher.edits.images.list({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       language,
       imageType,
-    };
-    return this.androidPublisher.edits.images.list({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   async uploadImage(
@@ -179,17 +148,19 @@ export class GooglePlayApiEndpoints {
     imageType: ImageType,
     media: { mimeType: string; body: Buffer }
   ): Promise<{ data: Image }> {
-    const params: EditsImagesUploadParams = {
+    const response = await this.androidPublisher.edits.images.upload({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       language,
       imageType,
       media,
-    };
-    return this.androidPublisher.edits.images.upload({
-      auth: session.auth,
-      ...params,
     });
+    const uploadData: ImagesUploadResponse = response.data;
+    if (!uploadData?.image) {
+      throw new Error("Image upload failed: no image data returned");
+    }
+    return { data: uploadData.image };
   }
 
   /**
@@ -199,15 +170,13 @@ export class GooglePlayApiEndpoints {
     session: EditSession,
     track: string
   ): Promise<{ data: Track }> {
-    const params: EditsTracksGetParams = {
+    const response = await this.androidPublisher.edits.tracks.get({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       track,
-    };
-    return this.androidPublisher.edits.tracks.get({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   async updateTrack(
@@ -215,28 +184,24 @@ export class GooglePlayApiEndpoints {
     track: string,
     requestBody: TrackUpdateAttributes
   ): Promise<{ data: Track }> {
-    const params: EditsTracksUpdateParams = {
+    const response = await this.androidPublisher.edits.tracks.update({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
       track,
       requestBody,
-    };
-    return this.androidPublisher.edits.tracks.update({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 
   async listTracks(
     session: EditSession
   ): Promise<{ data: TracksListResponse }> {
-    const params: EditsTracksListParams = {
+    const response = await this.androidPublisher.edits.tracks.list({
+      auth: session.auth,
       packageName: session.packageName,
       editId: session.editId,
-    };
-    return this.androidPublisher.edits.tracks.list({
-      auth: session.auth,
-      ...params,
     });
+    return { data: response.data };
   }
 }
