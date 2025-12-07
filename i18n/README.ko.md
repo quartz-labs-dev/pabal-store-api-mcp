@@ -39,7 +39,7 @@
 > [!TIP]
 > ASO/스토어 작업을 자주 한다면 MCP 규칙에 "항상 pabal-mcp 사용" 같은 자동 호출 규칙을 추가하세요.
 
-### 전역 설치(선택)
+### 전역 설치(권장)
 
 ```bash
 npm install -g pabal-mcp
@@ -47,7 +47,7 @@ npm install -g pabal-mcp
 yarn global add pabal-mcp
 ```
 
-전역 설치 후 MCP 설정에서는 `command: "pabal-mcp"`로 바로 사용할 수 있습니다(`npx` 불필요).
+전역 설치를 먼저 권장합니다. 프록시/방화벽·오프라인 환경에서 npm 다운로드 문제를 피하고 더 빨리 시작할 수 있습니다. `npx -y pabal-mcp`도 가능하지만 전역 설치가 기본 권장 경로입니다. 전역 설치 후 MCP 설정에서는 `command: "pabal-mcp"`로 바로 사용할 수 있습니다(`npx` 불필요).
 
 ### Cursor
 

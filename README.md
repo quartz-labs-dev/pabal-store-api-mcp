@@ -39,7 +39,7 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
 > [!TIP]
 > If you repeatedly do ASO/store tasks, add a client rule like "always use pabal-mcp" so the MCP server auto-invokes without typing it every time.
 
-### Quick global install (optional)
+### Global install (recommended)
 
 ```bash
 npm install -g pabal-mcp
@@ -47,7 +47,7 @@ npm install -g pabal-mcp
 yarn global add pabal-mcp
 ```
 
-If installed globally, set your MCP config to use `command: "pabal-mcp"` (no `npx` needed).
+Install globally first for fastest starts and to avoid npm download issues (proxy/firewall/offline). You can still use `npx -y pabal-mcp`, but global install is recommended. After global install, set your MCP config to `command: "pabal-mcp"` (no `npx` needed).
 
 <details>
 <summary><b>Install in Cursor</b></summary>
