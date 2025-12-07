@@ -386,6 +386,11 @@ async function main() {
   console.error("[MCP] ✅ Server connected and ready");
 }
 
+// Exported for CLI entrypoint (bin/pabal-mcp.js) so npx can start the server
+export async function startServer() {
+  return main();
+}
+
 // Only start server if this file is run directly (not imported)
 // Check if the current file is the main module being executed
 const isMainModule =
@@ -393,7 +398,7 @@ const isMainModule =
   fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isMainModule) {
-  main().catch((error) => {
+  startServer().catch((error) => {
     console.error("MCP server failed to start", error);
     process.exit(1);
   });
