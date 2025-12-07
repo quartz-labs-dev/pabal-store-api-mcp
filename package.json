@@ -1,26 +1,53 @@
 {
   "name": "pabal-mcp",
-  "version": "0.0.1",
-  "description": "MCP server + scripts for App Store / Play Store ASO workflows",
-  "main": "dist/index.js",
+  "version": "1.0.0",
+  "description": "MCP server for App Store / Play Store ASO workflows",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "type": "module",
+  "bin": {
+    "pabal-mcp": "./bin/pabal-mcp.js"
+  },
+  "files": [
+    "dist/src",
+    "bin"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
   "scripts": {
-    "dev:mcp": "tsx servers/mcp/index.ts",
+    "dev:mcp": "tsx src/index.ts",
     "test": "tsx --test \"tests/**/*.test.ts\"",
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc && tsc-alias --resolve-full-paths",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write --ignore-unknown .",
     "format:check": "prettier --check --ignore-unknown .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepublishOnly": "yarn build"
   },
   "keywords": [
     "mcp",
     "app-store",
     "play-store",
-    "aso"
+    "aso",
+    "model-context-protocol"
   ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quartz-labs-dev/pabal-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/quartz-labs-dev/pabal-mcp/issues"
+  },
+  "homepage": "https://github.com/quartz-labs-dev/pabal-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.22.0",
     "googleapis": "^144.0.0",
@@ -32,6 +59,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.3",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },

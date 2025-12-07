@@ -4,8 +4,8 @@ import { AppError } from "@/packages/common/errors/app-error";
 import {
   formatPushResult,
   formatReleaseNotesUpdate,
-} from "@servers/mcp/core/helpers/formatters";
-import type { PushAsoResult } from "@servers/mcp/core/services/types";
+} from "@/core/helpers/formatters";
+import type { PushAsoResult } from "@/core/services/types";
 
 describe("formatters", () => {
   describe("formatPushResult", () => {

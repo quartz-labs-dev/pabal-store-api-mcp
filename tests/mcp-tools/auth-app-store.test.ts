@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { handleAuthAppStore } from "@servers/mcp/tools/auth/app-store";
+import { handleAuthAppStore } from "@/tools/auth/app-store";
 
 describe("MCP Tool: auth-app-store", () => {
   it("should return success response when authentication is configured", async () => {

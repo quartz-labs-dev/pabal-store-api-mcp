@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   toRegisteredAppStoreInfo,
   toRegisteredGooglePlayInfo,
-} from "@servers/mcp/core/helpers/registration";
+} from "@/core/helpers/registration";
 
 describe("registration", () => {
   describe("toRegisteredAppStoreInfo", () => {

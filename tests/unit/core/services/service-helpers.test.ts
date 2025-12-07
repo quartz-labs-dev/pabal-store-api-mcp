@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { checkPushPrerequisites } from "@servers/mcp/core/services/service-helpers";
+import { checkPushPrerequisites } from "@/core/services/service-helpers";
 import { AppError } from "@/packages/common/errors/app-error";
 
 describe("service-helpers", () => {
@@ -52,7 +52,7 @@ describe("service-helpers", () => {
         assert.ok(result.message.includes("Skipping"));
         assert.ok(result.message.includes("App Store"));
         assert.ok(result.message.includes("not configured"));
-        assert.ok(result.message.includes("secrets/aso-config.json"));
+        assert.ok(result.message.includes("~/.config/pabal-mcp/config.json"));
       });
 
       it("should use correct store label in skip message", () => {

@@ -4,7 +4,7 @@ import {
   collectSupportedLocales,
   createTranslationRequests,
   separateTranslationsByStore,
-} from "@servers/mcp/core/helpers/translate-release-notes";
+} from "@/core/helpers/translate-release-notes";
 import type { RegisteredApp } from "@/packages/configs/secrets-config/registered-apps";
 
 describe("translate-release-notes", () => {

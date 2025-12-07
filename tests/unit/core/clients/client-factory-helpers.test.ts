@@ -5,7 +5,7 @@ import {
   failure,
   toErrorMessage,
   isNonEmptyString,
-} from "@servers/mcp/core/clients/client-factory-helpers";
+} from "@/core/clients/client-factory-helpers";
 import { AppError } from "@/packages/common/errors/app-error";
 import { ERROR_CODES } from "@/packages/common/errors/error-codes";
 
