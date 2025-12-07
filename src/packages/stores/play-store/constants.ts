@@ -4,7 +4,10 @@
  * Constant values for Google Play Store operations
  */
 
-export const IMAGE_TYPES = [
+import type { ImageType } from "./generated-types";
+
+// Subset of ImageType enum values that are commonly used for screenshots
+export const IMAGE_TYPES: readonly ImageType[] = [
   "phoneScreenshots",
   "sevenInchScreenshots",
   "tenInchScreenshots",
@@ -12,8 +15,6 @@ export const IMAGE_TYPES = [
   "wearScreenshots",
   "featureGraphic",
 ] as const;
-
-export type ImageType = (typeof IMAGE_TYPES)[number];
 
 export const DEFAULT_TRACK = "production";
 export const DEFAULT_LANGUAGE = "en-US";

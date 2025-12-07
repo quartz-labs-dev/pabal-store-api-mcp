@@ -12,8 +12,14 @@ import type {
   GooglePlayReleaseNote,
 } from "@/packages/configs/aso-config/types";
 import { DEFAULT_LOCALE } from "@/packages/configs/aso-config/constants";
-import type { ScreenshotUrls } from "./types";
-import { IMAGE_TYPES, type ImageType } from "./constants";
+import type {
+  ScreenshotUrls,
+  ListingUpdateAttributes,
+  AppDetailsUpdateAttributes,
+  LatestReleaseInfo,
+  ImageType,
+} from "./types";
+import { IMAGE_TYPES } from "./constants";
 
 /**
  * Convert API image responses to screenshot URLs structure
@@ -157,8 +163,8 @@ export function buildListingRequestBody(data: {
   title?: string;
   shortDescription?: string;
   fullDescription?: string;
-}): Record<string, string> {
-  const body: Record<string, string> = {};
+}): ListingUpdateAttributes {
+  const body: ListingUpdateAttributes = {};
 
   if (data.title) body.title = data.title;
   if (data.shortDescription) body.shortDescription = data.shortDescription;
@@ -175,8 +181,8 @@ export function buildDetailsRequestBody(data: {
   contactPhone?: string;
   contactWebsite?: string;
   defaultLanguage?: string;
-}): Record<string, string> {
-  const body: Record<string, string> = {};
+}): AppDetailsUpdateAttributes {
+  const body: AppDetailsUpdateAttributes = {};
 
   if (data.defaultLanguage) body.defaultLanguage = data.defaultLanguage;
   if (data.contactEmail) body.contactEmail = data.contactEmail;
@@ -237,13 +243,9 @@ export function convertReleaseNotesToApiFormat(
 /**
  * Extract latest release from track releases
  */
-export function extractLatestRelease(releases: any[]): {
-  versionCodes: number[];
-  status?: string;
-  versionName?: string;
-  releaseName?: string;
-  releaseDate?: string;
-} | null {
+export function extractLatestRelease(
+  releases: any[]
+): LatestReleaseInfo | null {
   if (releases.length === 0) {
     return null;
   }
@@ -280,9 +282,11 @@ export function extractLatestRelease(releases: any[]): {
     versionCodes: (latestRelease.versionCodes || []).map(
       (code: string | number) => Number(code)
     ),
-    status: latestRelease.status ?? undefined,
-    versionName: latestRelease.name ?? undefined,
-    releaseName: latestRelease.name ?? undefined,
+    status: latestRelease.status
+      ? (latestRelease.status as LatestReleaseInfo["status"])
+      : undefined,
+    versionName: latestRelease.name ? String(latestRelease.name) : undefined,
+    releaseName: latestRelease.name ? String(latestRelease.name) : undefined,
     releaseDate,
   };
 }
