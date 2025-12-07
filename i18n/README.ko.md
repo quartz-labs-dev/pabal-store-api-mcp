@@ -139,6 +139,7 @@ chmod 700 ~/.config/pabal-mcp
 ```bash
 cat <<'EOF' > ~/.config/pabal-mcp/config.json
 {
+  "dataDir": "/ABSOLUTE/PATH/TO/pabal-web",
   "appStore": {
     "issuerId": "xxxx",
     "keyId": "xxxx",
@@ -152,6 +153,7 @@ EOF
 ```
 
 다음 단계에서 App Store Connect 키를 확인한 뒤 `issuerId`, `keyId` 값을 실제 값으로 바꿔주세요.
+`dataDir`는 각 스토어에서 내려받은 raw 데이터를 저장하는 절대 경로입니다 (예: `/ABSOLUTE/PATH/TO/pabal-web`).
 
 3. `~/.config/pabal-mcp/`에 자격 증명 추가:
 
@@ -176,6 +178,7 @@ EOF
 
    ```json
    {
+     "dataDir": "/ABSOLUTE/PATH/TO/pabal-web",
      "appStore": {
        "issuerId": "<your-issuer-id>",
        "keyId": "<your-key-id>",

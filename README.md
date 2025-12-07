@@ -151,6 +151,7 @@ chmod 700 ~/.config/pabal-mcp
 ```bash
 cat <<'EOF' > ~/.config/pabal-mcp/config.json
 {
+  "dataDir": "/ABSOLUTE/PATH/TO/pabal-web",
   "appStore": {
     "issuerId": "xxxx",
     "keyId": "xxxx",
@@ -164,6 +165,7 @@ EOF
 ```
 
 Replace the `issuerId` and `keyId` placeholders in the next step after you grab your App Store Connect keys.
+`dataDir` is the absolute path where raw data pulled from each store is stored (e.g., `/ABSOLUTE/PATH/TO/pabal-web`).
 
 3. Add your credentials to `~/.config/pabal-mcp/`:
 
@@ -186,6 +188,7 @@ Replace the `issuerId` and `keyId` placeholders in the next step after you grab 
 
    ```json
    {
+     "dataDir": "/ABSOLUTE/PATH/TO/pabal-web",
      "appStore": {
        "issuerId": "<your-issuer-id>",
        "keyId": "<your-key-id>",
