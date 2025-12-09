@@ -144,6 +144,7 @@ Or if installed globally (`npm install -g pabal-mcp`):
 ```bash
 mkdir -p ~/.config/pabal-mcp
 chmod 700 ~/.config/pabal-mcp
+open ~/.config/pabal-mcp
 ```
 
 2. Create the config file (pre-filled placeholders):
