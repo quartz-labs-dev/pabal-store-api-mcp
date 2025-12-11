@@ -15,7 +15,6 @@ import type {
   GooglePlayReleaseNote,
 } from "@/packages/configs/aso-config/types";
 import { DEFAULT_LOCALE } from "@/packages/configs/aso-config/constants";
-import { GooglePlayApiEndpoints } from "./api-endpoints";
 import {
   fetchScreenshotsAndFeatureGraphic,
   convertToAsoData,
@@ -37,6 +36,19 @@ import type {
   UploadScreenshotOptions,
   UpdateReleaseNotesOptions,
   AppDetailsData,
+  AppEdit,
+  AppDetails,
+  Listing,
+  ListingsListResponse,
+  Image,
+  ImagesListResponse,
+  Track,
+  TracksListResponse,
+  TrackUpdateAttributes,
+  ListingUpdateAttributes,
+  AppDetailsUpdateAttributes,
+  ImageType,
+  ImagesUploadResponse,
 } from "./types";
 import {
   DEFAULT_TRACK,
@@ -48,7 +60,6 @@ export class GooglePlayClient {
   private auth: any;
   private androidPublisher: any;
   private packageName: string;
-  private apiEndpoints: GooglePlayApiEndpoints;
 
   constructor(config: GooglePlayClientConfig) {
     this.packageName = config.packageName;
@@ -69,7 +80,6 @@ export class GooglePlayClient {
     });
 
     this.androidPublisher = google.androidpublisher("v3");
-    this.apiEndpoints = new GooglePlayApiEndpoints(this.androidPublisher);
   }
 
   /**
@@ -78,10 +88,7 @@ export class GooglePlayClient {
    */
   async verifyAppAccess(): Promise<AppAccessInfo> {
     const authClient = await this.auth.getClient();
-    const appResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const appResponse = await this.createEdit(authClient, this.packageName);
     const editId = appResponse.data.id!;
 
     const session: EditSession = {
@@ -91,8 +98,8 @@ export class GooglePlayClient {
     };
 
     try {
-      const appDetails = await this.apiEndpoints.getAppDetails(session);
-      const listingsResponse = await this.apiEndpoints.listListings(session);
+      const appDetails = await this.getAppDetails(session);
+      const listingsResponse = await this.listListings(session);
 
       const listings = listingsResponse.data.listings || [];
       const defaultListing = listings[0];
@@ -109,7 +116,7 @@ export class GooglePlayClient {
       };
     } finally {
       try {
-        await this.apiEndpoints.deleteEdit(session);
+        await this.deleteEdit(session);
       } catch {
         // Ignore deletion failure
       }
@@ -118,10 +125,7 @@ export class GooglePlayClient {
 
   async pullAllLanguagesAsoData(): Promise<GooglePlayMultilingualAsoData> {
     const authClient = await this.auth.getClient();
-    const appResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const appResponse = await this.createEdit(authClient, this.packageName);
     const editId = appResponse.data.id!;
 
     const session: EditSession = {
@@ -131,8 +135,8 @@ export class GooglePlayClient {
     };
 
     try {
-      const appDetails = await this.apiEndpoints.getAppDetails(session);
-      const listingsResponse = await this.apiEndpoints.listListings(session);
+      const appDetails = await this.getAppDetails(session);
+      const listingsResponse = await this.listListings(session);
 
       const allListings = listingsResponse.data.listings || [];
       console.log(
@@ -151,15 +155,11 @@ export class GooglePlayClient {
           continue;
         }
 
-        const listingDetail = await this.apiEndpoints.getListing(
-          session,
-          language
-        );
+        const listingDetail = await this.getListing(session, language);
 
         const { screenshots, featureGraphic } =
           await fetchScreenshotsAndFeatureGraphic(
-            (imageType) =>
-              this.apiEndpoints.listImages(session, language, imageType),
+            (imageType) => this.listImages(session, language, imageType),
             language
           );
 
@@ -179,16 +179,13 @@ export class GooglePlayClient {
 
       return convertToMultilingualAsoData(locales, defaultLanguage);
     } finally {
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
     }
   }
 
   async pullAsoData(): Promise<GooglePlayAsoData> {
     const authClient = await this.auth.getClient();
-    const appResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const appResponse = await this.createEdit(authClient, this.packageName);
     const editId = appResponse.data.id!;
 
     const session: EditSession = {
@@ -198,21 +195,17 @@ export class GooglePlayClient {
     };
 
     try {
-      const appDetails = await this.apiEndpoints.getAppDetails(session);
-      const listings = await this.apiEndpoints.listListings(session);
+      const appDetails = await this.getAppDetails(session);
+      const listings = await this.listListings(session);
 
       const defaultListing = listings.data.listings?.[0];
       const defaultLanguage = defaultListing?.language || DEFAULT_LANGUAGE;
 
-      const listing = await this.apiEndpoints.getListing(
-        session,
-        defaultLanguage
-      );
+      const listing = await this.getListing(session, defaultLanguage);
 
       const { screenshots, featureGraphic } =
         await fetchScreenshotsAndFeatureGraphic(
-          (imageType) =>
-            this.apiEndpoints.listImages(session, defaultLanguage, imageType),
+          (imageType) => this.listImages(session, defaultLanguage, imageType),
           defaultLanguage
         );
 
@@ -225,16 +218,13 @@ export class GooglePlayClient {
         defaultLanguage
       );
     } finally {
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
     }
   }
 
   async pushAsoData(data: Partial<GooglePlayAsoData>): Promise<void> {
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -259,7 +249,7 @@ export class GooglePlayClient {
         );
 
         try {
-          await this.apiEndpoints.updateListing(session, language, listingBody);
+          await this.updateListing(session, language, listingBody);
           console.error(
             `[GooglePlayClient] ✅ Listing updated for ${language}`
           );
@@ -301,7 +291,7 @@ export class GooglePlayClient {
         );
 
         try {
-          await this.apiEndpoints.updateAppDetails(session, detailsBody);
+          await this.updateAppDetails(session, detailsBody);
           console.error(`[GooglePlayClient] ✅ Details updated`);
         } catch (detailsError: any) {
           console.error(`[GooglePlayClient] ❌ Details update failed`);
@@ -327,11 +317,11 @@ export class GooglePlayClient {
       }
 
       console.error(`[GooglePlayClient] Committing edit...`);
-      await this.apiEndpoints.commitEdit(session);
+      await this.commitEdit(session);
       console.error(`[GooglePlayClient] ✅ Edit committed successfully`);
     } catch (error) {
       console.error(`[GooglePlayClient] Rolling back edit due to error...`);
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
       throw error;
     }
   }
@@ -344,10 +334,7 @@ export class GooglePlayClient {
     data: GooglePlayMultilingualAsoData
   ): Promise<void> {
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -381,11 +368,7 @@ export class GooglePlayClient {
           );
 
           try {
-            await this.apiEndpoints.updateListing(
-              session,
-              language,
-              listingBody
-            );
+            await this.updateListing(session, language, listingBody);
             console.error(
               `[GooglePlayClient] ✅ Listing prepared for ${language}`
             );
@@ -417,7 +400,7 @@ export class GooglePlayClient {
       // Commit all changes at once
       console.error(`[GooglePlayClient] Committing all changes...`);
       try {
-        await this.apiEndpoints.commitEdit(session);
+        await this.commitEdit(session);
         console.error(
           `[GooglePlayClient] ✅ All ${locales.length} locale(s) committed successfully`
         );
@@ -465,7 +448,7 @@ export class GooglePlayClient {
         JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
       );
       try {
-        await this.apiEndpoints.deleteEdit(session);
+        await this.deleteEdit(session);
       } catch {
         // Ignore deletion failure
       }
@@ -489,10 +472,7 @@ export class GooglePlayClient {
     }
 
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -509,7 +489,7 @@ export class GooglePlayClient {
       let defaultLanguage = details.defaultLanguage;
       if (!defaultLanguage) {
         console.error(`[GooglePlayClient] Fetching current defaultLanguage...`);
-        const currentDetails = await this.apiEndpoints.getAppDetails(session);
+        const currentDetails = await this.getAppDetails(session);
         defaultLanguage =
           currentDetails.data.defaultLanguage || DEFAULT_LANGUAGE;
         console.error(
@@ -529,11 +509,11 @@ export class GooglePlayClient {
         JSON.stringify(detailsBody, null, 2)
       );
 
-      await this.apiEndpoints.updateAppDetails(session, detailsBody);
+      await this.updateAppDetails(session, detailsBody);
       console.error(`[GooglePlayClient] ✅ Details prepared`);
 
       console.error(`[GooglePlayClient] Committing app details...`);
-      await this.apiEndpoints.commitEdit(session);
+      await this.commitEdit(session);
       console.error(`[GooglePlayClient] ✅ App details committed successfully`);
     } catch (error: any) {
       console.error(`[GooglePlayClient] Rolling back edit due to error...`);
@@ -545,7 +525,7 @@ export class GooglePlayClient {
         );
       }
       try {
-        await this.apiEndpoints.deleteEdit(session);
+        await this.deleteEdit(session);
       } catch {
         // Ignore deletion failure
       }
@@ -561,10 +541,7 @@ export class GooglePlayClient {
     }
 
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -576,24 +553,21 @@ export class GooglePlayClient {
     try {
       const imageBuffer = readFileSync(imagePath);
 
-      await this.apiEndpoints.uploadImage(session, language, imageType, {
+      await this.uploadImage(session, language, imageType, {
         mimeType: "image/png",
         body: imageBuffer,
       });
 
-      await this.apiEndpoints.commitEdit(session);
+      await this.commitEdit(session);
     } catch (error) {
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
       throw error;
     }
   }
 
   async getLatestProductionRelease(): Promise<LatestReleaseInfo | null> {
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -603,15 +577,12 @@ export class GooglePlayClient {
     };
 
     try {
-      const trackResponse = await this.apiEndpoints.getTrack(
-        session,
-        DEFAULT_TRACK
-      );
+      const trackResponse = await this.getTrack(session, DEFAULT_TRACK);
       const releases = trackResponse.data.releases || [];
 
       return extractLatestRelease(releases);
     } finally {
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
     }
   }
 
@@ -629,10 +600,7 @@ export class GooglePlayClient {
     }
 
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -642,7 +610,7 @@ export class GooglePlayClient {
     };
 
     try {
-      await this.apiEndpoints.updateTrack(session, DEFAULT_TRACK, {
+      await this.updateTrack(session, DEFAULT_TRACK, {
         track: DEFAULT_TRACK,
         releases: [
           {
@@ -653,9 +621,9 @@ export class GooglePlayClient {
         ],
       });
 
-      await this.apiEndpoints.commitEdit(session);
+      await this.commitEdit(session);
     } catch (error) {
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
       throw error;
     }
   }
@@ -669,10 +637,7 @@ export class GooglePlayClient {
     const { releaseNotes, track = DEFAULT_TRACK } = options;
 
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -683,7 +648,7 @@ export class GooglePlayClient {
 
     try {
       // Get current track information
-      const trackResponse = await this.apiEndpoints.getTrack(session, track);
+      const trackResponse = await this.getTrack(session, track);
 
       const releases = trackResponse.data.releases || [];
       if (releases.length === 0) {
@@ -695,7 +660,7 @@ export class GooglePlayClient {
       const releaseNotesArray = convertReleaseNotesToApiFormat(releaseNotes);
 
       // Update track
-      await this.apiEndpoints.updateTrack(session, track, {
+      await this.updateTrack(session, track, {
         track,
         releases: [
           {
@@ -706,7 +671,7 @@ export class GooglePlayClient {
       });
 
       // Commit
-      await this.apiEndpoints.commitEdit(session);
+      await this.commitEdit(session);
 
       return {
         updated: Object.keys(releaseNotes),
@@ -715,7 +680,7 @@ export class GooglePlayClient {
     } catch (error) {
       // Rollback on failure
       try {
-        await this.apiEndpoints.deleteEdit(session);
+        await this.deleteEdit(session);
       } catch {
         // Ignore deletion failure
       }
@@ -725,10 +690,7 @@ export class GooglePlayClient {
 
   async pullReleaseNotes(): Promise<GooglePlayReleaseNote[]> {
     const authClient = await this.auth.getClient();
-    const editResponse = await this.apiEndpoints.createEdit(
-      authClient,
-      this.packageName
-    );
+    const editResponse = await this.createEdit(authClient, this.packageName);
     const editId = editResponse.data.id!;
 
     const session: EditSession = {
@@ -738,7 +700,7 @@ export class GooglePlayClient {
     };
 
     try {
-      const tracksResponse = await this.apiEndpoints.listTracks(session);
+      const tracksResponse = await this.listTracks(session);
 
       const tracks = tracksResponse.data.tracks || [];
       const releaseNotes: GooglePlayReleaseNote[] = [];
@@ -746,10 +708,7 @@ export class GooglePlayClient {
       for (const track of tracks) {
         const trackName = track.track || DEFAULT_TRACK;
 
-        const trackResponse = await this.apiEndpoints.getTrack(
-          session,
-          trackName
-        );
+        const trackResponse = await this.getTrack(session, trackName);
 
         const releases = trackResponse.data.releases || [];
 
@@ -772,12 +731,179 @@ export class GooglePlayClient {
 
       return releaseNotes;
     } finally {
-      await this.apiEndpoints.deleteEdit(session);
+      await this.deleteEdit(session);
     }
   }
 
   async pullProductionReleaseNotes(): Promise<GooglePlayReleaseNote[]> {
     const allReleaseNotes = await this.pullReleaseNotes();
     return allReleaseNotes.filter((rn) => rn.track === DEFAULT_TRACK);
+  }
+
+  private async createEdit(
+    auth: EditSession["auth"],
+    packageName: string
+  ): Promise<{ data: AppEdit }> {
+    const response = await this.androidPublisher.edits.insert({
+      auth,
+      packageName,
+    });
+    return { data: response.data };
+  }
+
+  private async deleteEdit(session: EditSession): Promise<{ data: void }> {
+    await this.androidPublisher.edits.delete({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+    });
+    return { data: undefined };
+  }
+
+  private async commitEdit(session: EditSession): Promise<{ data: AppEdit }> {
+    const response = await this.androidPublisher.edits.commit({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+    });
+    return { data: response.data };
+  }
+
+  private async getAppDetails(
+    session: EditSession
+  ): Promise<{ data: AppDetails }> {
+    const response = await this.androidPublisher.edits.details.get({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+    });
+    return { data: response.data };
+  }
+
+  private async updateAppDetails(
+    session: EditSession,
+    requestBody: AppDetailsUpdateAttributes
+  ): Promise<{ data: AppDetails }> {
+    const response = await this.androidPublisher.edits.details.update({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      requestBody,
+    });
+    return { data: response.data };
+  }
+
+  private async listListings(
+    session: EditSession
+  ): Promise<{ data: ListingsListResponse }> {
+    const response = await this.androidPublisher.edits.listings.list({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+    });
+    return { data: response.data };
+  }
+
+  private async getListing(
+    session: EditSession,
+    language: string
+  ): Promise<{ data: Listing }> {
+    const response = await this.androidPublisher.edits.listings.get({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      language,
+    });
+    return { data: response.data };
+  }
+
+  private async updateListing(
+    session: EditSession,
+    language: string,
+    requestBody: ListingUpdateAttributes
+  ): Promise<{ data: Listing }> {
+    const response = await this.androidPublisher.edits.listings.update({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      language,
+      requestBody,
+    });
+    return { data: response.data };
+  }
+
+  private async listImages(
+    session: EditSession,
+    language: string,
+    imageType: ImageType
+  ): Promise<{ data: ImagesListResponse }> {
+    const response = await this.androidPublisher.edits.images.list({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      language,
+      imageType,
+    });
+    return { data: response.data };
+  }
+
+  private async uploadImage(
+    session: EditSession,
+    language: string,
+    imageType: ImageType,
+    media: { mimeType: string; body: Buffer }
+  ): Promise<{ data: Image }> {
+    const response = await this.androidPublisher.edits.images.upload({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      language,
+      imageType,
+      media,
+    });
+    const uploadData: ImagesUploadResponse = response.data;
+    if (!uploadData?.image) {
+      throw new Error("Image upload failed: no image data returned");
+    }
+    return { data: uploadData.image };
+  }
+
+  private async getTrack(
+    session: EditSession,
+    track: string
+  ): Promise<{ data: Track }> {
+    const response = await this.androidPublisher.edits.tracks.get({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      track,
+    });
+    return { data: response.data };
+  }
+
+  private async updateTrack(
+    session: EditSession,
+    track: string,
+    requestBody: TrackUpdateAttributes
+  ): Promise<{ data: Track }> {
+    const response = await this.androidPublisher.edits.tracks.update({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+      track,
+      requestBody,
+    });
+    return { data: response.data };
+  }
+
+  private async listTracks(
+    session: EditSession
+  ): Promise<{ data: TracksListResponse }> {
+    const response = await this.androidPublisher.edits.tracks.list({
+      auth: session.auth,
+      packageName: session.packageName,
+      editId: session.editId,
+    });
+    return { data: response.data };
   }
 }
