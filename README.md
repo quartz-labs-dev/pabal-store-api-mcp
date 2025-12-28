@@ -2,7 +2,7 @@
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
 
-[![Pabal Web MCP (English)](https://img.shields.io/badge/Pabal%20Web%20MCP-English-blue)](https://pabal.quartz.best/docs/en/pabal-web-mcp/README) [![Pabal Web MCP (한국어)](https://img.shields.io/badge/Pabal%20Web%20MCP-한국어-green)](https://pabal.quartz.best/docs/ko/pabal-web-mcp/README)
+[![Pabal Web MCP (English)](https://img.shields.io/badge/Pabal%20Web%20MCP-English-blue)](https://pabal.quartz.best/docs/en-US/pabal-web-mcp/README) [![Pabal Web MCP (한국어)](https://img.shields.io/badge/Pabal%20Web%20MCP-한국어-green)](https://pabal.quartz.best/docs/ko-KR/pabal-web-mcp/README)
 
 # MCP server for App Store Connect & Play Console API
 
@@ -58,8 +58,8 @@ chmod 700 ~/.config/pabal-mcp
 
 ## Documentation
 
-📖 **[Pabal Web MCP Documentation (English)](https://pabal.quartz.best/docs/en/pabal-web-mcp/README)**
-📖 **[Pabal Web MCP 문서 (한국어)](https://pabal.quartz.best/docs/ko/pabal-web-mcp/README)**
+📖 **[Pabal Web MCP Documentation (English)](https://pabal.quartz.best/docs/en-US/pabal-web-mcp/README)**
+📖 **[Pabal Web MCP 문서 (한국어)](https://pabal.quartz.best/docs/ko-KR/pabal-web-mcp/README)**
 
 <br>
 
