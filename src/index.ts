@@ -18,7 +18,7 @@ import { handleCheckLatestVersions } from "./tools/release/check-versions";
 console.error(`[MCP] 📂 Working directory: ${process.cwd()}`);
 
 const server = new McpServer(
-  { name: "pabal-mcp", version: "0.0.1" },
+  { name: "pabal-store-api-mcp", version: "0.0.1" },
   {
     instructions: "Provides tools for App Store/Play Store ASO.",
   }
@@ -380,13 +380,13 @@ registerToolWithInfo(
 );
 
 async function main() {
-  console.error("[MCP] 🚀 Starting pabal-mcp server...");
+  console.error("[MCP] 🚀 Starting pabal-store-api-mcp server...");
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("[MCP] ✅ Server connected and ready");
 }
 
-// Exported for CLI entrypoint (bin/pabal-mcp.js) so npx can start the server
+// Exported for CLI entrypoint (bin/pabal-store-api-mcp.js) so npx can start the server
 export async function startServer() {
   return main();
 }

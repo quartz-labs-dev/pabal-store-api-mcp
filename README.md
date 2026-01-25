@@ -1,8 +1,8 @@
 ![Cover](public/cover.gif)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-store-api-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
 
-[![Pabal Web MCP (English)](https://img.shields.io/badge/Pabal%20Web%20MCP-English-blue)](https://pabal.quartz.best/docs/en-US/pabal-web-mcp/README) [![Pabal Web MCP (한국어)](https://img.shields.io/badge/Pabal%20Web%20MCP-한국어-green)](https://pabal.quartz.best/docs/ko-KR/pabal-web-mcp/README)
+[![Pabal Web MCP (English)](https://img.shields.io/badge/Pabal%20Web%20MCP-English-blue)](https://pabal.quartz.best/docs/en-US/pabal-resource-mcp/README) [![Pabal Web MCP (한국어)](https://img.shields.io/badge/Pabal%20Web%20MCP-한국어-green)](https://pabal.quartz.best/docs/ko-KR/pabal-resource-mcp/README)
 
 # MCP server for App Store Connect & Play Console API
 
@@ -18,7 +18,7 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
 ### Install
 
 ```bash
-npm install -g pabal-mcp
+npm install -g pabal-store-api-mcp
 ```
 
 ### Configure
@@ -34,7 +34,7 @@ chmod 700 ~/.config/pabal-mcp
    - **App Store Connect**: API key (`.p8` file) with `issuerId` and `keyId`
    - **Google Play**: Service account JSON key
 
-3. Set up MCP client (Cursor, VS Code, Claude Code, etc.) to use `pabal-mcp`
+3. Set up MCP client (Cursor, VS Code, Claude Code, etc.) to use `pabal-store-api-mcp`
 
 <br>
 
@@ -58,16 +58,16 @@ chmod 700 ~/.config/pabal-mcp
 
 ## Documentation
 
-📖 **[Pabal Web MCP Documentation (English)](https://pabal.quartz.best/docs/en-US/pabal-web-mcp/README)**
-📖 **[Pabal Web MCP 문서 (한국어)](https://pabal.quartz.best/docs/ko-KR/pabal-web-mcp/README)**
+📖 **[Pabal Web MCP Documentation (English)](https://pabal.quartz.best/docs/en-US/pabal-resource-mcp/README)**
+📖 **[Pabal Web MCP 문서 (한국어)](https://pabal.quartz.best/docs/ko-KR/pabal-resource-mcp/README)**
 
 <br>
 
 ## Development
 
 ```bash
-git clone https://github.com/quartz-labs-dev/pabal-mcp.git
-cd pabal-mcp
+git clone https://github.com/quartz-labs-dev/pabal-store-api-mcp.git
+cd pabal-store-api-mcp
 yarn install
 yarn dev:mcp
 ```

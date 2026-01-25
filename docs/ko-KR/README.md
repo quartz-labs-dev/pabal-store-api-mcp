@@ -1,10 +1,10 @@
 ![Cover](../../public/cover.gif)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-store-api-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
 
 [![English docs](https://img.shields.io/badge/docs-English-blue)](../en/README.md)
 
-# pabal-mcp — App Store / Play Store ASO용 MCP 서버
+# pabal-store-api-mcp — App Store / Play Store ASO용 MCP 서버
 
 앱스토어/플레이스토어 메타데이터, 릴리스, ASO 동기화를 MCP 도구로 제공합니다. Claude Code, Cursor, MCP Inspector 등 MCP 클라이언트에서 stdio 서버로 실행해 바로 사용할 수 있습니다.
 
@@ -13,7 +13,7 @@
 
 <br>
 
-## ❌ pabal-mcp 없이
+## ❌ pabal-store-api-mcp 없이
 
 - 스토어마다 클릭하며 업데이트
 - 로캘·릴리스 노트 복붙 오류
@@ -37,17 +37,17 @@
 - MCP 클라이언트: Cursor, Claude Code, VS Code, Windsurf
 
 > [!TIP]
-> ASO/스토어 작업을 자주 한다면 MCP 규칙에 "항상 pabal-mcp 사용" 같은 자동 호출 규칙을 추가하세요.
+> ASO/스토어 작업을 자주 한다면 MCP 규칙에 "항상 pabal-store-api-mcp 사용" 같은 자동 호출 규칙을 추가하세요.
 
 ### 전역 설치(권장)
 
 ```bash
-npm install -g pabal-mcp
+npm install -g pabal-store-api-mcp
 # 또는
-yarn global add pabal-mcp
+yarn global add pabal-store-api-mcp
 ```
 
-전역 설치를 먼저 권장합니다. 프록시/방화벽·오프라인 환경에서 npm 다운로드 문제를 피하고 더 빨리 시작할 수 있습니다. `npx -y pabal-mcp`도 가능하지만 전역 설치가 기본 권장 경로입니다. 전역 설치 후 MCP 설정에서는 `command: "pabal-mcp"`로 바로 사용할 수 있습니다(`npx` 불필요).
+전역 설치를 먼저 권장합니다. 프록시/방화벽·오프라인 환경에서 npm 다운로드 문제를 피하고 더 빨리 시작할 수 있습니다. `npx -y pabal-store-api-mcp`도 가능하지만 전역 설치가 기본 권장 경로입니다. 전역 설치 후 MCP 설정에서는 `command: "pabal-store-api-mcp"`로 바로 사용할 수 있습니다(`npx` 불필요).
 
 ### Cursor
 
@@ -56,9 +56,9 @@ yarn global add pabal-mcp
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
@@ -71,10 +71,10 @@ yarn global add pabal-mcp
 ```json
 "mcp": {
   "servers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
@@ -90,21 +90,21 @@ Claude Code MCP 설정에 추가 (JSON 형식):
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
 ```
 
-전역 설치(`npm install -g pabal-mcp`) 후에는:
+전역 설치(`npm install -g pabal-store-api-mcp`) 후에는:
 
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
-      "command": "pabal-mcp"
+    "pabal-store-api-mcp": {
+      "command": "pabal-store-api-mcp"
     }
   }
 }
@@ -115,9 +115,9 @@ Claude Code MCP 설정에 추가 (JSON 형식):
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
@@ -229,8 +229,8 @@ chmod 600 ~/.config/pabal-mcp/*
 ### 소스에서 실행
 
 ```bash
-git clone https://github.com/quartz-labs-dev/pabal-mcp.git
-cd pabal-mcp
+git clone https://github.com/quartz-labs-dev/pabal-store-api-mcp.git
+cd pabal-store-api-mcp
 yarn install
 yarn dev:mcp
 ```

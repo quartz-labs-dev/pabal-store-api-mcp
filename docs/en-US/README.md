@@ -1,6 +1,6 @@
 ![Cover](../../public/cover.gif)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=pabal-store-api-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhYmFsLW1jcCJdfQ%3D%3D)
 
 [![한국어 docs](https://img.shields.io/badge/docs-Korean-green)](../ko/README.md)
 
@@ -13,7 +13,7 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
 
 <br>
 
-## ❌ Without pabal-mcp
+## ❌ Without pabal-store-api-mcp
 
 - Manual App Store Connect and Google Play Console clicks for every update
 - Copy-paste errors across locales and release notes
@@ -21,7 +21,7 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
 
 <br>
 
-## ✅ With pabal-mcp
+## ✅ With pabal-store-api-mcp
 
 - One MCP server that handles ASO pulls/pushes for both stores
 - Consistent release note updates and version checks from your AI client
@@ -37,17 +37,17 @@ Up-to-date ASO workflows exposed as MCP tools. Run it as a stdio MCP server (Cla
 - MCP client: Cursor, Claude Code, VS Code, Windsurf, etc.
 
 > [!TIP]
-> If you repeatedly do ASO/store tasks, add a client rule like "always use pabal-mcp" so the MCP server auto-invokes without typing it every time.
+> If you repeatedly do ASO/store tasks, add a client rule like "always use pabal-store-api-mcp" so the MCP server auto-invokes without typing it every time.
 
 ### Global install (recommended)
 
 ```bash
-npm install -g pabal-mcp
+npm install -g pabal-store-api-mcp
 # or
-yarn global add pabal-mcp
+yarn global add pabal-store-api-mcp
 ```
 
-Install globally first for fastest starts and to avoid npm download issues (proxy/firewall/offline). You can still use `npx -y pabal-mcp`, but global install is recommended. After global install, set your MCP config to `command: "pabal-mcp"` (no `npx` needed).
+Install globally first for fastest starts and to avoid npm download issues (proxy/firewall/offline). You can still use `npx -y pabal-store-api-mcp`, but global install is recommended. After global install, set your MCP config to `command: "pabal-store-api-mcp"` (no `npx` needed).
 
 <details>
 <summary><b>Install in Cursor</b></summary>
@@ -57,9 +57,9 @@ Add to `~/.cursor/mcp.json` (global) or project `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
@@ -75,10 +75,10 @@ Example `settings.json` MCP section:
 ```json
 "mcp": {
   "servers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
@@ -97,21 +97,21 @@ Add to Claude Code MCP settings (JSON format):
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
 ```
 
-Or if installed globally (`npm install -g pabal-mcp`):
+Or if installed globally (`npm install -g pabal-store-api-mcp`):
 
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
-      "command": "pabal-mcp"
+    "pabal-store-api-mcp": {
+      "command": "pabal-store-api-mcp"
     }
   }
 }
@@ -125,9 +125,9 @@ Or if installed globally (`npm install -g pabal-mcp`):
 ```json
 {
   "mcpServers": {
-    "pabal-mcp": {
+    "pabal-store-api-mcp": {
       "command": "npx",
-      "args": ["-y", "pabal-mcp"]
+      "args": ["-y", "pabal-store-api-mcp"]
     }
   }
 }
@@ -240,8 +240,8 @@ This applies to every file under `~/.config/pabal-mcp/`; rerun after adding any 
 ### From source
 
 ```bash
-git clone https://github.com/quartz-labs-dev/pabal-mcp.git
-cd pabal-mcp
+git clone https://github.com/quartz-labs-dev/pabal-store-api-mcp.git
+cd pabal-store-api-mcp
 yarn install
 yarn dev:mcp
 ```
