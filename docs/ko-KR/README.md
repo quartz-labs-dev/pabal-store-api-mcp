@@ -47,6 +47,14 @@ npm install -g pabal-store-api-mcp
 yarn global add pabal-store-api-mcp
 ```
 
+최신 버전으로 업데이트하려면:
+
+```bash
+npm install -g pabal-store-api-mcp@latest
+# 또는
+yarn global add pabal-store-api-mcp@latest
+```
+
 전역 설치를 먼저 권장합니다. 프록시/방화벽·오프라인 환경에서 npm 다운로드 문제를 피하고 더 빨리 시작할 수 있습니다. `npx -y pabal-store-api-mcp`도 가능하지만 전역 설치가 기본 권장 경로입니다. 전역 설치 후 MCP 설정에서는 `command: "pabal-store-api-mcp"`로 바로 사용할 수 있습니다(`npx` 불필요).
 
 ### Cursor

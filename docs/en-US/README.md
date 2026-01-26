@@ -47,6 +47,14 @@ npm install -g pabal-store-api-mcp
 yarn global add pabal-store-api-mcp
 ```
 
+To update to the latest version:
+
+```bash
+npm install -g pabal-store-api-mcp@latest
+# or
+yarn global add pabal-store-api-mcp@latest
+```
+
 Install globally first for fastest starts and to avoid npm download issues (proxy/firewall/offline). You can still use `npx -y pabal-store-api-mcp`, but global install is recommended. After global install, set your MCP config to `command: "pabal-store-api-mcp"` (no `npx` needed).
 
 <details>
