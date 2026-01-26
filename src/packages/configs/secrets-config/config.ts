@@ -9,7 +9,7 @@ import { appStoreSchema, playStoreSchema } from "./schemas";
 import type { EnvConfig } from "./types";
 
 // Config paths
-const CONFIG_DIR = join(homedir(), ".config", "pabal-store-api-mcp");
+const CONFIG_DIR = join(homedir(), ".config", "pabal-mcp");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
 // Security: recommended permissions
