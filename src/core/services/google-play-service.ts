@@ -6,10 +6,15 @@ import type {
   GooglePlayReleaseNote,
 } from "@/packages/configs/aso-config/types";
 import type { PreparedAsoData } from "@/packages/configs/aso-config/utils";
+import { getAsoPushDir } from "@/packages/configs/aso-config/utils";
 import type { EnvConfig } from "@/packages/configs/secrets-config/types";
 import type { GooglePlayClient } from "@/packages/stores/play-store/client";
 import { verifyPlayStoreAuth } from "@/packages/stores/play-store/verify-auth";
 import { createGooglePlayClient } from "@/core/clients/google-play-factory";
+import {
+  parseGooglePlayScreenshots,
+  hasScreenshots,
+} from "@/core/helpers/screenshot-helpers";
 import {
   checkPushPrerequisites,
   serviceFailure,
@@ -304,12 +309,8 @@ export class GooglePlayService {
       // Upload screenshots if enabled
       if (uploadImages && slug) {
         console.error(`[GooglePlay]   📤 Uploading screenshots...`);
-        const { getAsoPushDir } =
-          await import("@/packages/configs/aso-config/utils");
-        const { parseGooglePlayScreenshots, hasScreenshots } =
-          await import("@/core/helpers/screenshot-helpers");
         const pushDataDir = getAsoPushDir();
-        const screenshotsBaseDir = `${pushDataDir}/products/${slug}/store/google-play/screenshots`;
+        const screenshotsBaseDir = `${pushDataDir}/products/${slug}/store`;
 
         const uploadedLocales: string[] = [];
         const skippedLocales: string[] = [];
@@ -317,18 +318,64 @@ export class GooglePlayService {
 
         for (const locale of localesToPush) {
           try {
-            if (!hasScreenshots(screenshotsBaseDir, locale)) {
-              console.error(
-                `[GooglePlay]   ⏭️  Skipping ${locale} - no screenshots directory`
-              );
-              skippedLocales.push(locale);
-              continue;
-            }
+            const localeData = googlePlayData.locales[locale];
 
-            const screenshots = parseGooglePlayScreenshots(
-              screenshotsBaseDir,
-              locale
-            );
+            // Check if screenshots are defined in aso-data.json
+            const hasScreenshotsInJson =
+              localeData?.screenshots &&
+              ((localeData.screenshots.phone &&
+                localeData.screenshots.phone.length > 0) ||
+                (localeData.screenshots.tablet7 &&
+                  localeData.screenshots.tablet7.length > 0) ||
+                (localeData.screenshots.tablet10 &&
+                  localeData.screenshots.tablet10.length > 0));
+
+            let screenshots: {
+              phone: string[];
+              tablet7: string[];
+              tablet10: string[];
+              featureGraphic: string | null;
+            };
+
+            if (hasScreenshotsInJson) {
+              // Use screenshots from aso-data.json (relative paths)
+              console.error(
+                `[GooglePlay]   📋 Using screenshots from aso-data.json for ${locale}`
+              );
+              const relativePaths = localeData.screenshots;
+              screenshots = {
+                phone: (relativePaths.phone || []).map(
+                  (p) => `${screenshotsBaseDir}/${p}`
+                ),
+                tablet7: (relativePaths.tablet7 || []).map(
+                  (p) => `${screenshotsBaseDir}/${p}`
+                ),
+                tablet10: (relativePaths.tablet10 || []).map(
+                  (p) => `${screenshotsBaseDir}/${p}`
+                ),
+                featureGraphic: localeData.featureGraphic
+                  ? `${screenshotsBaseDir}/${localeData.featureGraphic}`
+                  : null,
+              };
+            } else {
+              // Fallback: Parse from file system (backward compatibility)
+              const screenshotsFsDir = `${screenshotsBaseDir}/google-play/screenshots`;
+              if (!hasScreenshots(screenshotsFsDir, locale)) {
+                console.error(
+                  `[GooglePlay]   ⏭️  Skipping ${locale} - no screenshots in aso-data.json or file system`
+                );
+                skippedLocales.push(locale);
+                continue;
+              }
+
+              console.error(
+                `[GooglePlay]   📂 Parsing screenshots from file system for ${locale}`
+              );
+              screenshots = parseGooglePlayScreenshots(
+                screenshotsFsDir,
+                locale
+              );
+            }
 
             // Google Play requires minimum 2 phone screenshots
             const phoneCount =
