@@ -11,6 +11,7 @@ import {
   AppInfosApi,
   AppInfoLocalizationsApi,
   AppScreenshotSetsApi,
+  AppScreenshotsApi,
   AppStoreVersionLocalizationsApi,
   AppStoreVersionsApi,
   AppsAppStoreVersionsGetToManyRelatedFilterAppStoreStateEnum,
@@ -851,6 +852,253 @@ export class AppStoreClient {
       return await appScreenshotSetsApi.appScreenshotSetsAppScreenshotsGetToManyRelated(
         { id: screenshotSetId }
       );
+    } catch (error) {
+      return await this.handleSdkError(error);
+    }
+  }
+
+  /**
+   * Upload a screenshot to App Store Connect
+   * Full implementation with 4-step process:
+   * 1. Find or create Screenshot Set for display type and locale
+   * 2. Create AppScreenshot with upload operation
+   * 3. Upload file to reserved URL
+   * 4. Commit upload operation
+   */
+  async uploadScreenshot(options: {
+    imagePath: string;
+    screenshotDisplayType: string;
+    locale: string;
+  }): Promise<void> {
+    const { imagePath, screenshotDisplayType, locale } = options;
+    const { readFileSync, statSync } = await import("node:fs");
+    const { basename } = await import("node:path");
+
+    try {
+      // Get app and version info
+      const appId = await this.findAppId();
+      const versionsResponse = await this.listAppStoreVersions(appId, {
+        platform: APP_STORE_PLATFORM,
+        limit: DEFAULT_VERSIONS_FETCH_LIMIT,
+      });
+      const version = sortVersions(versionsResponse.data || [])[0];
+      if (!version) throw new Error("App Store version not found.");
+
+      // Find localization for this locale
+      const localizationsResponse = await this.listAppStoreVersionLocalizations(
+        version.id,
+        locale
+      );
+      let localizationId: string;
+
+      if (localizationsResponse.data?.[0]) {
+        localizationId = localizationsResponse.data[0].id;
+      } else {
+        // Create localization if it doesn't exist
+        const createResponse = await this.createAppStoreVersionLocalization(
+          version.id,
+          locale,
+          {}
+        );
+        localizationId = createResponse.data.id;
+      }
+
+      // Step 1: Find or create Screenshot Set
+      const screenshotSetId = await this.findOrCreateScreenshotSet(
+        localizationId,
+        screenshotDisplayType
+      );
+
+      // Get file info
+      const fileBuffer = readFileSync(imagePath);
+      const fileSize = statSync(imagePath).size;
+      const fileName = basename(imagePath);
+
+      // Step 2: Create AppScreenshot with upload operation
+      const screenshot = await this.createAppScreenshot(
+        screenshotSetId,
+        fileName,
+        fileSize
+      );
+
+      // Step 3: Upload file to reserved URL
+      if (
+        screenshot.uploadOperations &&
+        screenshot.uploadOperations.length > 0
+      ) {
+        const uploadOp = screenshot.uploadOperations[0];
+        await this.uploadFileToUrl(uploadOp.url, fileBuffer, uploadOp.method);
+      }
+
+      // Step 4: Commit screenshot
+      await this.commitAppScreenshot(screenshot.id);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(
+        `[AppStore] ❌ Screenshot upload failed for ${basename(imagePath)}: ${msg}`
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Find or create Screenshot Set for a specific display type
+   */
+  private async findOrCreateScreenshotSet(
+    localizationId: string,
+    screenshotDisplayType: string
+  ): Promise<string> {
+    // List existing screenshot sets
+    const setsResponse = await this.listScreenshotSets(localizationId);
+    const existingSet = (setsResponse.data || []).find(
+      (set) => set.attributes?.screenshotDisplayType === screenshotDisplayType
+    );
+
+    if (existingSet) {
+      return existingSet.id;
+    }
+
+    // Create new screenshot set
+    const appScreenshotSetsApi = await this.getApi(AppScreenshotSetsApi);
+    try {
+      const response =
+        await appScreenshotSetsApi.appScreenshotSetsCreateInstance({
+          appScreenshotSetCreateRequest: {
+            data: {
+              type: "appScreenshotSets",
+              attributes: {
+                screenshotDisplayType: screenshotDisplayType as any,
+              },
+              relationships: {
+                appStoreVersionLocalization: {
+                  data: {
+                    type: "appStoreVersionLocalizations",
+                    id: localizationId,
+                  },
+                },
+              },
+            },
+          },
+        });
+      return response.data.id;
+    } catch (error) {
+      return await this.handleSdkError(error);
+    }
+  }
+
+  /**
+   * Create AppScreenshot with upload operation
+   */
+  private async createAppScreenshot(
+    screenshotSetId: string,
+    fileName: string,
+    fileSize: number
+  ): Promise<{
+    id: string;
+    uploadOperations: Array<{
+      url: string;
+      method: string;
+      length?: number;
+      offset?: number;
+    }>;
+  }> {
+    const appScreenshotsApi = await this.getApi(AppScreenshotsApi);
+
+    try {
+      const response = await appScreenshotsApi.appScreenshotsCreateInstance({
+        appScreenshotCreateRequest: {
+          data: {
+            type: "appScreenshots",
+            attributes: {
+              fileName,
+              fileSize,
+            },
+            relationships: {
+              appScreenshotSet: {
+                data: {
+                  type: "appScreenshotSets",
+                  id: screenshotSetId,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const screenshot = response.data;
+      const uploadOps = screenshot.attributes?.uploadOperations || [];
+
+      return {
+        id: screenshot.id,
+        uploadOperations: uploadOps.map((op: any) => ({
+          url: op.url,
+          method: op.method || "PUT",
+          length: op.length,
+          offset: op.offset,
+        })),
+      };
+    } catch (error) {
+      return await this.handleSdkError(error);
+    }
+  }
+
+  /**
+   * Upload file to reserved URL
+   */
+  private async uploadFileToUrl(
+    url: string,
+    fileBuffer: Buffer,
+    method: string = "PUT"
+  ): Promise<void> {
+    const https = await import("node:https");
+    const { URL } = await import("node:url");
+
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method,
+        headers: {
+          "Content-Type": "image/png",
+          "Content-Length": fileBuffer.length,
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${res.statusCode}`));
+        }
+      });
+
+      req.on("error", reject);
+      req.write(fileBuffer);
+      req.end();
+    });
+  }
+
+  /**
+   * Commit AppScreenshot after upload
+   */
+  private async commitAppScreenshot(screenshotId: string): Promise<void> {
+    const appScreenshotsApi = await this.getApi(AppScreenshotsApi);
+
+    try {
+      await appScreenshotsApi.appScreenshotsUpdateInstance({
+        id: screenshotId,
+        appScreenshotUpdateRequest: {
+          data: {
+            type: "appScreenshots",
+            id: screenshotId,
+            attributes: {
+              uploaded: true,
+            },
+          },
+        },
+      });
     } catch (error) {
       return await this.handleSdkError(error);
     }

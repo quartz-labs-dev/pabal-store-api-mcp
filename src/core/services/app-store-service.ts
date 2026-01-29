@@ -283,11 +283,15 @@ export class AppStoreService {
     bundleId,
     localAsoData,
     appStoreDataPath,
+    uploadImages = false,
+    slug,
   }: {
     config: EnvConfig;
     bundleId?: string;
     localAsoData: PreparedAsoData;
     appStoreDataPath: string;
+    uploadImages?: boolean;
+    slug?: string;
   }): Promise<PushAsoResult> {
     const skip = checkPushPrerequisites({
       storeLabel: "App Store",
@@ -323,6 +327,72 @@ export class AppStoreService {
           );
         } else {
           console.error(`[AppStore]   ✅ ${locale} uploaded successfully`);
+        }
+      }
+
+      // Upload screenshots if enabled
+      if (uploadImages && slug) {
+        console.error(`[AppStore]   📤 Uploading screenshots...`);
+        const { getAsoPushDir } =
+          await import("@/packages/configs/aso-config/utils");
+        const { parseAppStoreScreenshots, hasScreenshots } =
+          await import("@/core/helpers/screenshot-helpers");
+        const pushDataDir = getAsoPushDir();
+        const screenshotsBaseDir = `${pushDataDir}/products/${slug}/store/app-store/screenshots`;
+
+        for (const locale of localesToPush) {
+          if (!hasScreenshots(screenshotsBaseDir, locale)) {
+            console.error(
+              `[AppStore]   ⏭️  Skipping ${locale} - no screenshots directory`
+            );
+            continue;
+          }
+
+          console.error(
+            `[AppStore]   📤 Uploading screenshots for ${locale}...`
+          );
+          const result = parseAppStoreScreenshots(screenshotsBaseDir, locale);
+
+          // Report parsing issues
+          if (result.invalid.length > 0) {
+            console.error(
+              `[AppStore]     ⚠️  Invalid filenames: ${result.invalid.join(", ")}`
+            );
+          }
+          if (result.unknown.length > 0) {
+            console.error(
+              `[AppStore]     ⚠️  Unknown device types: ${result.unknown.join(", ")}`
+            );
+          }
+
+          // Upload screenshots for each device type
+          for (const [displayType, screenshots] of Object.entries(
+            result.valid
+          )) {
+            console.error(
+              `[AppStore]     📱 Uploading ${screenshots.length} screenshots for ${displayType}...`
+            );
+            for (const screenshot of screenshots) {
+              try {
+                await client.uploadScreenshot({
+                  imagePath: screenshot.path,
+                  screenshotDisplayType: displayType,
+                  locale,
+                });
+                console.error(`[AppStore]       ✅ ${screenshot.filename}`);
+              } catch (uploadError) {
+                const msg =
+                  uploadError instanceof Error
+                    ? uploadError.message
+                    : String(uploadError);
+                console.error(
+                  `[AppStore]       ❌ ${screenshot.filename}: ${msg}`
+                );
+              }
+            }
+          }
+
+          console.error(`[AppStore]   ✅ Screenshots uploaded for ${locale}`);
         }
       }
 
