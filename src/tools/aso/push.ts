@@ -228,6 +228,8 @@ export async function handleAsoPush(options: AsoPushOptions) {
         packageName,
         localAsoData,
         googlePlayDataPath,
+        uploadImages,
+        slug,
       });
       results.push(formatPushResult("Google Play", result));
     }
@@ -243,6 +245,8 @@ export async function handleAsoPush(options: AsoPushOptions) {
         bundleId,
         localAsoData,
         appStoreDataPath,
+        uploadImages,
+        slug,
       });
       results.push(formatPushResult("App Store", appStoreResult));
     }

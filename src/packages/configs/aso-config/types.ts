@@ -41,6 +41,9 @@ export interface GooglePlayAsoData {
 export interface GooglePlayMultilingualAsoData {
   locales: Record<string, GooglePlayAsoData>;
   defaultLocale?: string;
+  // App-level contact information (shared across all locales)
+  contactEmail?: string;
+  contactWebsite?: string;
 }
 
 export interface GooglePlayReleaseNote {
@@ -92,6 +95,12 @@ export interface AppStoreAsoData {
 export interface AppStoreMultilingualAsoData {
   locales: Record<string, AppStoreAsoData>;
   defaultLocale?: string;
+  // App-level contact information (shared across all locales)
+  contactEmail?: string;
+  supportUrl?: string;
+  marketingUrl?: string;
+  privacyPolicyUrl?: string;
+  termsUrl?: string;
 }
 
 export interface AppStoreReleaseNote {
