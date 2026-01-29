@@ -252,11 +252,15 @@ export class GooglePlayService {
     packageName,
     localAsoData,
     googlePlayDataPath,
+    uploadImages = false,
+    slug,
   }: {
     config: EnvConfig;
     packageName?: string;
     localAsoData: PreparedAsoData;
     googlePlayDataPath: string;
+    uploadImages?: boolean;
+    slug?: string;
   }): Promise<PushAsoResult> {
     const skip = checkPushPrerequisites({
       storeLabel: "Google Play",
@@ -284,6 +288,90 @@ export class GooglePlayService {
       }
 
       await client.pushMultilingualAsoData(googlePlayData);
+
+      // Push app-level contact information
+      if (googlePlayData.contactEmail || googlePlayData.contactWebsite) {
+        console.error(`[GooglePlay]   📤 Pushing app details...`);
+        await client.pushAppDetails({
+          contactEmail: googlePlayData.contactEmail,
+          contactWebsite: googlePlayData.contactWebsite,
+        });
+        console.error(`[GooglePlay]   ✅ App details uploaded successfully`);
+      }
+
+      // Upload screenshots if enabled
+      if (uploadImages && slug) {
+        console.error(`[GooglePlay]   📤 Uploading screenshots...`);
+        const { getAsoPushDir } =
+          await import("@/packages/configs/aso-config/utils");
+        const { parseGooglePlayScreenshots, hasScreenshots } =
+          await import("@/core/helpers/screenshot-helpers");
+        const pushDataDir = getAsoPushDir();
+        const screenshotsBaseDir = `${pushDataDir}/products/${slug}/store/google-play/screenshots`;
+
+        for (const locale of localesToPush) {
+          if (!hasScreenshots(screenshotsBaseDir, locale)) {
+            console.error(
+              `[GooglePlay]   ⏭️  Skipping ${locale} - no screenshots directory`
+            );
+            continue;
+          }
+
+          console.error(
+            `[GooglePlay]   📤 Uploading screenshots for ${locale}...`
+          );
+          const screenshots = parseGooglePlayScreenshots(
+            screenshotsBaseDir,
+            locale
+          );
+
+          // Upload phone screenshots (phone-*.png)
+          for (const imagePath of screenshots.phone) {
+            await client.uploadScreenshot({
+              imagePath,
+              imageType: "phoneScreenshots",
+              language: locale,
+            });
+            console.error(`[GooglePlay]     ✅ ${imagePath.split("/").pop()}`);
+          }
+
+          // Upload 7-inch tablet screenshots as phone
+          for (const imagePath of screenshots.tablet7) {
+            await client.uploadScreenshot({
+              imagePath,
+              imageType: "phoneScreenshots",
+              language: locale,
+            });
+            console.error(
+              `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as phone)`
+            );
+          }
+
+          // Upload 10-inch tablet screenshots as tablet
+          for (const imagePath of screenshots.tablet10) {
+            await client.uploadScreenshot({
+              imagePath,
+              imageType: "tenInchScreenshots",
+              language: locale,
+            });
+            console.error(
+              `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as tablet)`
+            );
+          }
+
+          // Upload feature graphic
+          if (screenshots.featureGraphic) {
+            await client.uploadScreenshot({
+              imagePath: screenshots.featureGraphic,
+              imageType: "featureGraphic",
+              language: locale,
+            });
+            console.error(`[GooglePlay]     ✅ feature-graphic.png`);
+          }
+
+          console.error(`[GooglePlay]   ✅ Screenshots uploaded for ${locale}`);
+        }
+      }
 
       try {
         const updated = updateRegisteredLocales(
