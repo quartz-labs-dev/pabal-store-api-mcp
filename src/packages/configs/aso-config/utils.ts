@@ -137,6 +137,11 @@ export function prepareAsoDataForPush(
       ? googlePlayData.locales
       : { [googlePlayData.defaultLanguage || DEFAULT_LOCALE]: googlePlayData };
 
+    // Get app-level youtubeUrl if available
+    const appLevelYoutubeUrl = isGooglePlayMultilingual(googlePlayData)
+      ? googlePlayData.youtubeUrl
+      : undefined;
+
     type CleanedGooglePlay = Omit<GooglePlayAsoData, "screenshots">;
     const cleanedLocales: Record<string, CleanedGooglePlay> = {};
 
@@ -145,6 +150,8 @@ export function prepareAsoDataForPush(
       cleanedLocales[locale] = {
         ...rest,
         contactWebsite: detailPageUrl,
+        // Apply app-level youtubeUrl to all locales if not already set
+        video: rest.video || appLevelYoutubeUrl,
       };
     }
 
@@ -155,6 +162,11 @@ export function prepareAsoDataForPush(
     storeData.googlePlay = {
       locales: cleanedLocales as unknown as Record<string, GooglePlayAsoData>,
       defaultLocale: gpDefaultLocale || DEFAULT_LOCALE,
+      contactEmail: isGooglePlayMultilingual(googlePlayData)
+        ? googlePlayData.contactEmail
+        : undefined,
+      contactWebsite: detailPageUrl,
+      youtubeUrl: appLevelYoutubeUrl,
     };
   }
 

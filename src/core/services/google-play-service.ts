@@ -299,6 +299,8 @@ export class GooglePlayService {
         console.error(`[GooglePlay]   ✅ App details uploaded successfully`);
       }
 
+      // Note: YouTube URL is pushed as part of listing data for each locale
+
       // Upload screenshots if enabled
       if (uploadImages && slug) {
         console.error(`[GooglePlay]   📤 Uploading screenshots...`);
@@ -309,67 +311,119 @@ export class GooglePlayService {
         const pushDataDir = getAsoPushDir();
         const screenshotsBaseDir = `${pushDataDir}/products/${slug}/store/google-play/screenshots`;
 
+        const uploadedLocales: string[] = [];
+        const skippedLocales: string[] = [];
+        const failedLocales: string[] = [];
+
         for (const locale of localesToPush) {
-          if (!hasScreenshots(screenshotsBaseDir, locale)) {
-            console.error(
-              `[GooglePlay]   ⏭️  Skipping ${locale} - no screenshots directory`
-            );
-            continue;
-          }
+          try {
+            if (!hasScreenshots(screenshotsBaseDir, locale)) {
+              console.error(
+                `[GooglePlay]   ⏭️  Skipping ${locale} - no screenshots directory`
+              );
+              skippedLocales.push(locale);
+              continue;
+            }
 
+            const screenshots = parseGooglePlayScreenshots(
+              screenshotsBaseDir,
+              locale
+            );
+
+            // Google Play requires minimum 2 phone screenshots
+            const phoneCount =
+              screenshots.phone.length + screenshots.tablet7.length;
+            if (phoneCount < 2) {
+              console.error(
+                `[GooglePlay]   ⚠️  Skipping ${locale} - needs at least 2 phone/tablet7 screenshots (found ${phoneCount})`
+              );
+              skippedLocales.push(locale);
+              continue;
+            }
+
+            console.error(
+              `[GooglePlay]   📤 Uploading screenshots for ${locale}...`
+            );
+
+            // Upload phone screenshots (phone-*.png)
+            for (const imagePath of screenshots.phone) {
+              await client.uploadScreenshot({
+                imagePath,
+                imageType: "phoneScreenshots",
+                language: locale,
+              });
+              console.error(
+                `[GooglePlay]     ✅ ${imagePath.split("/").pop()}`
+              );
+            }
+
+            // Upload 7-inch tablet screenshots as phone
+            for (const imagePath of screenshots.tablet7) {
+              await client.uploadScreenshot({
+                imagePath,
+                imageType: "phoneScreenshots",
+                language: locale,
+              });
+              console.error(
+                `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as phone)`
+              );
+            }
+
+            // Upload 10-inch tablet screenshots as tablet (optional)
+            if (screenshots.tablet10.length > 0) {
+              for (const imagePath of screenshots.tablet10) {
+                await client.uploadScreenshot({
+                  imagePath,
+                  imageType: "tenInchScreenshots",
+                  language: locale,
+                });
+                console.error(
+                  `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as tablet)`
+                );
+              }
+            }
+
+            // Upload feature graphic (optional)
+            if (screenshots.featureGraphic) {
+              await client.uploadScreenshot({
+                imagePath: screenshots.featureGraphic,
+                imageType: "featureGraphic",
+                language: locale,
+              });
+              console.error(`[GooglePlay]     ✅ feature-graphic.png`);
+            }
+
+            uploadedLocales.push(locale);
+            console.error(
+              `[GooglePlay]   ✅ Screenshots uploaded for ${locale}`
+            );
+          } catch (error) {
+            console.error(
+              `[GooglePlay]   ❌ Failed to upload screenshots for ${locale}: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+            failedLocales.push(locale);
+          }
+        }
+
+        console.error(
+          `[GooglePlay]   📊 Screenshot upload summary: ${uploadedLocales.length} succeeded, ${skippedLocales.length} skipped, ${failedLocales.length} failed`
+        );
+        if (uploadedLocales.length > 0) {
           console.error(
-            `[GooglePlay]   📤 Uploading screenshots for ${locale}...`
+            `[GooglePlay]     ✅ Uploaded: ${uploadedLocales.join(", ")}`
           );
-          const screenshots = parseGooglePlayScreenshots(
-            screenshotsBaseDir,
-            locale
+        }
+        if (skippedLocales.length > 0) {
+          console.error(
+            `[GooglePlay]     ⏭️  Skipped: ${skippedLocales.join(", ")}`
           );
-
-          // Upload phone screenshots (phone-*.png)
-          for (const imagePath of screenshots.phone) {
-            await client.uploadScreenshot({
-              imagePath,
-              imageType: "phoneScreenshots",
-              language: locale,
-            });
-            console.error(`[GooglePlay]     ✅ ${imagePath.split("/").pop()}`);
-          }
-
-          // Upload 7-inch tablet screenshots as phone
-          for (const imagePath of screenshots.tablet7) {
-            await client.uploadScreenshot({
-              imagePath,
-              imageType: "phoneScreenshots",
-              language: locale,
-            });
-            console.error(
-              `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as phone)`
-            );
-          }
-
-          // Upload 10-inch tablet screenshots as tablet
-          for (const imagePath of screenshots.tablet10) {
-            await client.uploadScreenshot({
-              imagePath,
-              imageType: "tenInchScreenshots",
-              language: locale,
-            });
-            console.error(
-              `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as tablet)`
-            );
-          }
-
-          // Upload feature graphic
-          if (screenshots.featureGraphic) {
-            await client.uploadScreenshot({
-              imagePath: screenshots.featureGraphic,
-              imageType: "featureGraphic",
-              language: locale,
-            });
-            console.error(`[GooglePlay]     ✅ feature-graphic.png`);
-          }
-
-          console.error(`[GooglePlay]   ✅ Screenshots uploaded for ${locale}`);
+        }
+        if (failedLocales.length > 0) {
+          console.error(
+            `[GooglePlay]     ❌ Failed: ${failedLocales.join(", ")}`
+          );
         }
       }
 

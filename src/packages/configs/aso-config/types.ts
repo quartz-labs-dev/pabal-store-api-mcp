@@ -28,6 +28,7 @@ export interface GooglePlayAsoData {
   screenshots: GooglePlayScreenshots;
   featureGraphic?: string;
   promoGraphic?: string;
+  video?: string;
   category?: string;
   contentRating?: string;
   keywords?: string[];
@@ -44,6 +45,7 @@ export interface GooglePlayMultilingualAsoData {
   // App-level contact information (shared across all locales)
   contactEmail?: string;
   contactWebsite?: string;
+  youtubeUrl?: string;
 }
 
 export interface GooglePlayReleaseNote {

@@ -340,59 +340,110 @@ export class AppStoreService {
         const pushDataDir = getAsoPushDir();
         const screenshotsBaseDir = `${pushDataDir}/products/${slug}/store/app-store/screenshots`;
 
+        const uploadedLocales: string[] = [];
+        const skippedLocales: string[] = [];
+        const failedLocales: string[] = [];
+
         for (const locale of localesToPush) {
-          if (!hasScreenshots(screenshotsBaseDir, locale)) {
-            console.error(
-              `[AppStore]   ⏭️  Skipping ${locale} - no screenshots directory`
-            );
-            continue;
-          }
+          try {
+            if (!hasScreenshots(screenshotsBaseDir, locale)) {
+              console.error(
+                `[AppStore]   ⏭️  Skipping ${locale} - no screenshots directory`
+              );
+              skippedLocales.push(locale);
+              continue;
+            }
 
-          console.error(
-            `[AppStore]   📤 Uploading screenshots for ${locale}...`
-          );
-          const result = parseAppStoreScreenshots(screenshotsBaseDir, locale);
+            const result = parseAppStoreScreenshots(screenshotsBaseDir, locale);
 
-          // Report parsing issues
-          if (result.invalid.length > 0) {
-            console.error(
-              `[AppStore]     ⚠️  Invalid filenames: ${result.invalid.join(", ")}`
+            // Check if there are any valid screenshots
+            const totalScreenshots = Object.values(result.valid).reduce(
+              (sum, screenshots) => sum + screenshots.length,
+              0
             );
-          }
-          if (result.unknown.length > 0) {
-            console.error(
-              `[AppStore]     ⚠️  Unknown device types: ${result.unknown.join(", ")}`
-            );
-          }
 
-          // Upload screenshots for each device type
-          for (const [displayType, screenshots] of Object.entries(
-            result.valid
-          )) {
+            if (totalScreenshots === 0) {
+              console.error(
+                `[AppStore]   ⚠️  Skipping ${locale} - no valid screenshots found`
+              );
+              skippedLocales.push(locale);
+              continue;
+            }
+
             console.error(
-              `[AppStore]     📱 Uploading ${screenshots.length} screenshots for ${displayType}...`
+              `[AppStore]   📤 Uploading screenshots for ${locale}...`
             );
-            for (const screenshot of screenshots) {
-              try {
-                await client.uploadScreenshot({
-                  imagePath: screenshot.path,
-                  screenshotDisplayType: displayType,
-                  locale,
-                });
-                console.error(`[AppStore]       ✅ ${screenshot.filename}`);
-              } catch (uploadError) {
-                const msg =
-                  uploadError instanceof Error
-                    ? uploadError.message
-                    : String(uploadError);
-                console.error(
-                  `[AppStore]       ❌ ${screenshot.filename}: ${msg}`
-                );
+
+            // Report parsing issues
+            if (result.invalid.length > 0) {
+              console.error(
+                `[AppStore]     ⚠️  Invalid filenames: ${result.invalid.join(", ")}`
+              );
+            }
+            if (result.unknown.length > 0) {
+              console.error(
+                `[AppStore]     ⚠️  Unknown device types: ${result.unknown.join(", ")}`
+              );
+            }
+
+            // Upload screenshots for each device type
+            for (const [displayType, screenshots] of Object.entries(
+              result.valid
+            )) {
+              if (screenshots.length === 0) continue;
+
+              console.error(
+                `[AppStore]     📱 Uploading ${screenshots.length} screenshots for ${displayType}...`
+              );
+              for (const screenshot of screenshots) {
+                try {
+                  await client.uploadScreenshot({
+                    imagePath: screenshot.path,
+                    screenshotDisplayType: displayType,
+                    locale,
+                  });
+                  console.error(`[AppStore]       ✅ ${screenshot.filename}`);
+                } catch (uploadError) {
+                  const msg =
+                    uploadError instanceof Error
+                      ? uploadError.message
+                      : String(uploadError);
+                  console.error(
+                    `[AppStore]       ❌ ${screenshot.filename}: ${msg}`
+                  );
+                }
               }
             }
-          }
 
-          console.error(`[AppStore]   ✅ Screenshots uploaded for ${locale}`);
+            uploadedLocales.push(locale);
+            console.error(`[AppStore]   ✅ Screenshots uploaded for ${locale}`);
+          } catch (error) {
+            console.error(
+              `[AppStore]   ❌ Failed to upload screenshots for ${locale}: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+            failedLocales.push(locale);
+          }
+        }
+
+        console.error(
+          `[AppStore]   📊 Screenshot upload summary: ${uploadedLocales.length} succeeded, ${skippedLocales.length} skipped, ${failedLocales.length} failed`
+        );
+        if (uploadedLocales.length > 0) {
+          console.error(
+            `[AppStore]     ✅ Uploaded: ${uploadedLocales.join(", ")}`
+          );
+        }
+        if (skippedLocales.length > 0) {
+          console.error(
+            `[AppStore]     ⏭️  Skipped: ${skippedLocales.join(", ")}`
+          );
+        }
+        if (failedLocales.length > 0) {
+          console.error(
+            `[AppStore]     ❌ Failed: ${failedLocales.join(", ")}`
+          );
         }
       }
 

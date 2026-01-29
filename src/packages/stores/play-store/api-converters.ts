@@ -163,12 +163,14 @@ export function buildListingRequestBody(data: {
   title?: string;
   shortDescription?: string;
   fullDescription?: string;
+  video?: string;
 }): ListingUpdateAttributes {
   const body: ListingUpdateAttributes = {};
 
   if (data.title) body.title = data.title;
   if (data.shortDescription) body.shortDescription = data.shortDescription;
   if (data.fullDescription) body.fullDescription = data.fullDescription;
+  if (data.video) body.video = data.video;
 
   return body;
 }

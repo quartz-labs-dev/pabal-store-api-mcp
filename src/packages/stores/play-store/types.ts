@@ -146,6 +146,7 @@ export interface UpdateReleaseNotesOptions {
  * App Details Data
  * Internal type for app details update operations
  * Based on AppDetails but with optional fields for partial updates
+ * Note: YouTube URLs are managed at listing level, not app details level
  */
 export interface AppDetailsData {
   contactEmail?: NonNullable<AppDetails["contactEmail"]>;

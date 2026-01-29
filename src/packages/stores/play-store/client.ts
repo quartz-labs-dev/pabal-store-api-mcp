@@ -236,11 +236,17 @@ export class GooglePlayClient {
     try {
       const language = data.defaultLanguage || DEFAULT_LANGUAGE;
 
-      if (data.title || data.shortDescription || data.fullDescription) {
+      if (
+        data.title ||
+        data.shortDescription ||
+        data.fullDescription ||
+        data.video
+      ) {
         const listingBody = buildListingRequestBody({
           title: data.title,
           shortDescription: data.shortDescription,
           fullDescription: data.fullDescription,
+          video: data.video,
         });
 
         console.error(
@@ -355,12 +361,14 @@ export class GooglePlayClient {
         if (
           localeData.title ||
           localeData.shortDescription ||
-          localeData.fullDescription
+          localeData.fullDescription ||
+          localeData.video
         ) {
           const listingBody = buildListingRequestBody({
             title: localeData.title,
             shortDescription: localeData.shortDescription,
             fullDescription: localeData.fullDescription,
+            video: localeData.video,
           });
 
           console.error(
@@ -470,6 +478,9 @@ export class GooglePlayClient {
       console.error(`[GooglePlayClient] No app details to update, skipping`);
       return;
     }
+
+    // Note: youtubeUrl is not part of AppDetails API
+    // YouTube URLs are managed at listing level (see pushMultilingualAsoData)
 
     const authClient = await this.auth.getClient();
     const editResponse = await this.createEdit(authClient, this.packageName);
