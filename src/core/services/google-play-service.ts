@@ -389,61 +389,27 @@ export class GooglePlayService {
             }
 
             console.error(
-              `[GooglePlay]   📤 Uploading screenshots for ${locale}...`
+              `[GooglePlay]   📤 Uploading screenshots for ${locale} (batch mode - will replace existing)...`
             );
 
-            // Upload phone screenshots (phone-*.png)
-            for (const imagePath of screenshots.phone) {
-              await client.uploadScreenshot({
-                imagePath,
-                imageType: "phoneScreenshots",
-                language: locale,
-              });
-              console.error(
-                `[GooglePlay]     ✅ ${imagePath.split("/").pop()}`
-              );
-            }
+            // Use batch upload method - deletes existing and uploads new in single edit session
+            // Combine phone and tablet7 screenshots as phoneScreenshots (Google Play accepts both sizes)
+            const phoneScreenshotPaths = [
+              ...screenshots.phone,
+              ...screenshots.tablet7,
+            ];
 
-            // Upload 7-inch tablet screenshots as phone
-            for (const imagePath of screenshots.tablet7) {
-              await client.uploadScreenshot({
-                imagePath,
-                imageType: "phoneScreenshots",
-                language: locale,
-              });
-              console.error(
-                `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as phone)`
-              );
-            }
+            const uploadResult = await client.uploadScreenshotsForLocale({
+              language: locale,
+              phoneScreenshots: phoneScreenshotPaths,
+              tenInchScreenshots: screenshots.tablet10,
+              featureGraphic: screenshots.featureGraphic || undefined,
+            });
 
-            // Upload 10-inch tablet screenshots as tablet (optional)
-            if (screenshots.tablet10.length > 0) {
-              for (const imagePath of screenshots.tablet10) {
-                await client.uploadScreenshot({
-                  imagePath,
-                  imageType: "tenInchScreenshots",
-                  language: locale,
-                });
-                console.error(
-                  `[GooglePlay]     ✅ ${imagePath.split("/").pop()} (as tablet)`
-                );
-              }
-            }
-
-            // Upload feature graphic (optional)
-            if (screenshots.featureGraphic) {
-              await client.uploadScreenshot({
-                imagePath: screenshots.featureGraphic,
-                imageType: "featureGraphic",
-                language: locale,
-              });
-              console.error(`[GooglePlay]     ✅ feature-graphic.png`);
-            }
-
-            uploadedLocales.push(locale);
             console.error(
-              `[GooglePlay]   ✅ Screenshots uploaded for ${locale}`
+              `[GooglePlay]   ✅ Screenshots uploaded for ${locale}: ${uploadResult.uploaded.phoneScreenshots} phone, ${uploadResult.uploaded.tenInchScreenshots} tablet`
             );
+            uploadedLocales.push(locale);
           } catch (error) {
             console.error(
               `[GooglePlay]   ❌ Failed to upload screenshots for ${locale}: ${

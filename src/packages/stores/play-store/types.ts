@@ -134,6 +134,33 @@ export interface UploadScreenshotOptions {
 }
 
 /**
+ * Batch Upload Screenshots Options
+ * Internal type for uploading multiple screenshots in a single edit session
+ * Replaces existing screenshots (deletes all before upload)
+ */
+export interface BatchUploadScreenshotsOptions {
+  language: string;
+  phoneScreenshots?: string[];
+  sevenInchScreenshots?: string[];
+  tenInchScreenshots?: string[];
+  featureGraphic?: string;
+}
+
+/**
+ * Batch Upload Screenshots Result
+ * Internal type for tracking batch upload results
+ */
+export interface BatchUploadScreenshotsResult {
+  language: string;
+  uploaded: {
+    phoneScreenshots: number;
+    sevenInchScreenshots: number;
+    tenInchScreenshots: number;
+    featureGraphic: boolean;
+  };
+}
+
+/**
  * Update Release Notes Options
  * Internal type for updating release notes
  */

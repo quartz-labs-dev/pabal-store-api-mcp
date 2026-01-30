@@ -166,6 +166,18 @@ export interface GooglePlayScreenshotFiles {
   featureGraphic: string | null;
 }
 
+/**
+ * Sort screenshot filenames by numeric order
+ * e.g., phone-1.png, phone-2.png, phone-10.png (not phone-1, phone-10, phone-2)
+ */
+function sortByNumericOrder(files: string[], prefix: string): string[] {
+  return files.sort((a, b) => {
+    const numA = parseInt(a.replace(prefix, "").replace(".png", ""), 10);
+    const numB = parseInt(b.replace(prefix, "").replace(".png", ""), 10);
+    return numA - numB;
+  });
+}
+
 export function parseGooglePlayScreenshots(
   screenshotsBaseDir: string,
   locale: string
@@ -173,16 +185,26 @@ export function parseGooglePlayScreenshots(
   const localeDir = `${screenshotsBaseDir}/${locale}`;
   const files = getLocaleScreenshotFiles(screenshotsBaseDir, locale);
 
+  const phoneFiles = files.filter(
+    (f) => f.startsWith("phone-") && f.endsWith(".png")
+  );
+  const tablet7Files = files.filter(
+    (f) => f.startsWith("tablet7-") && f.endsWith(".png")
+  );
+  const tablet10Files = files.filter(
+    (f) => f.startsWith("tablet10-") && f.endsWith(".png")
+  );
+
   return {
-    phone: files
-      .filter((f) => f.startsWith("phone-") && f.endsWith(".png"))
-      .map((f) => `${localeDir}/${f}`),
-    tablet7: files
-      .filter((f) => f.startsWith("tablet7-") && f.endsWith(".png"))
-      .map((f) => `${localeDir}/${f}`),
-    tablet10: files
-      .filter((f) => f.startsWith("tablet10-") && f.endsWith(".png"))
-      .map((f) => `${localeDir}/${f}`),
+    phone: sortByNumericOrder(phoneFiles, "phone-").map(
+      (f) => `${localeDir}/${f}`
+    ),
+    tablet7: sortByNumericOrder(tablet7Files, "tablet7-").map(
+      (f) => `${localeDir}/${f}`
+    ),
+    tablet10: sortByNumericOrder(tablet10Files, "tablet10-").map(
+      (f) => `${localeDir}/${f}`
+    ),
     featureGraphic: files.includes("feature-graphic.png")
       ? `${localeDir}/feature-graphic.png`
       : null,

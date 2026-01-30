@@ -1104,6 +1104,200 @@ export class AppStoreClient {
     }
   }
 
+  /**
+   * Delete a single screenshot
+   */
+  private async deleteScreenshot(screenshotId: string): Promise<void> {
+    const appScreenshotsApi = await this.getApi(AppScreenshotsApi);
+
+    try {
+      await appScreenshotsApi.appScreenshotsDeleteInstance({
+        id: screenshotId,
+      });
+    } catch (error) {
+      return await this.handleSdkError(error);
+    }
+  }
+
+  /**
+   * Delete all screenshots in a screenshot set
+   */
+  private async deleteAllScreenshotsInSet(
+    screenshotSetId: string
+  ): Promise<number> {
+    const screenshotsResponse = await this.listScreenshots(screenshotSetId);
+    const screenshots = screenshotsResponse.data || [];
+
+    let deletedCount = 0;
+    for (const screenshot of screenshots) {
+      try {
+        await this.deleteScreenshot(screenshot.id);
+        deletedCount++;
+      } catch (error) {
+        console.error(
+          `[AppStore] Warning: Failed to delete screenshot ${screenshot.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+    }
+
+    return deletedCount;
+  }
+
+  /**
+   * Upload multiple screenshots for a locale, replacing existing ones
+   * 1. Find or create screenshot sets for each display type
+   * 2. Delete existing screenshots in each set
+   * 3. Upload new screenshots in order
+   */
+  async uploadScreenshotsForLocale(options: {
+    locale: string;
+    screenshots: Array<{
+      path: string;
+      displayType: string;
+      filename: string;
+    }>;
+  }): Promise<{
+    uploaded: number;
+    deleted: number;
+    failed: number;
+  }> {
+    const { locale, screenshots } = options;
+    const { readFileSync, statSync, existsSync } = await import("node:fs");
+    const { basename } = await import("node:path");
+
+    const result = { uploaded: 0, deleted: 0, failed: 0 };
+
+    if (screenshots.length === 0) {
+      return result;
+    }
+
+    try {
+      // Get app and version info
+      const appId = await this.findAppId();
+      const versionsResponse = await this.listAppStoreVersions(appId, {
+        platform: APP_STORE_PLATFORM,
+        limit: DEFAULT_VERSIONS_FETCH_LIMIT,
+      });
+      const version = sortVersions(versionsResponse.data || [])[0];
+      if (!version) throw new Error("App Store version not found.");
+
+      // Find or create localization
+      const localizationsResponse = await this.listAppStoreVersionLocalizations(
+        version.id,
+        locale
+      );
+      let localizationId: string;
+
+      if (localizationsResponse.data?.[0]) {
+        localizationId = localizationsResponse.data[0].id;
+      } else {
+        const createResponse = await this.createAppStoreVersionLocalization(
+          version.id,
+          locale,
+          {}
+        );
+        localizationId = createResponse.data.id;
+      }
+
+      // Group screenshots by display type
+      const byDisplayType = new Map<
+        string,
+        Array<{ path: string; filename: string }>
+      >();
+      for (const screenshot of screenshots) {
+        if (!byDisplayType.has(screenshot.displayType)) {
+          byDisplayType.set(screenshot.displayType, []);
+        }
+        byDisplayType.get(screenshot.displayType)!.push({
+          path: screenshot.path,
+          filename: screenshot.filename,
+        });
+      }
+
+      // Process each display type
+      for (const [displayType, screenshotList] of byDisplayType) {
+        console.error(
+          `[AppStore]     Processing ${displayType} (${screenshotList.length} screenshots)...`
+        );
+
+        // Find or create screenshot set
+        const screenshotSetId = await this.findOrCreateScreenshotSet(
+          localizationId,
+          displayType
+        );
+
+        // Delete existing screenshots in this set
+        const deletedCount =
+          await this.deleteAllScreenshotsInSet(screenshotSetId);
+        if (deletedCount > 0) {
+          console.error(
+            `[AppStore]       🗑️  Deleted ${deletedCount} existing screenshots`
+          );
+          result.deleted += deletedCount;
+        }
+
+        // Upload new screenshots in order
+        for (const screenshot of screenshotList) {
+          if (!existsSync(screenshot.path)) {
+            console.error(
+              `[AppStore]       ⚠️  File not found: ${screenshot.filename}`
+            );
+            result.failed++;
+            continue;
+          }
+
+          try {
+            const fileBuffer = readFileSync(screenshot.path);
+            const fileSize = statSync(screenshot.path).size;
+
+            // Create screenshot with upload operation
+            const screenshotData = await this.createAppScreenshot(
+              screenshotSetId,
+              screenshot.filename,
+              fileSize
+            );
+
+            // Upload file
+            if (
+              screenshotData.uploadOperations &&
+              screenshotData.uploadOperations.length > 0
+            ) {
+              const uploadOp = screenshotData.uploadOperations[0];
+              await this.uploadFileToUrl(
+                uploadOp.url,
+                fileBuffer,
+                uploadOp.method
+              );
+            }
+
+            // Commit screenshot
+            await this.commitAppScreenshot(screenshotData.id);
+            console.error(`[AppStore]       ✅ ${screenshot.filename}`);
+            result.uploaded++;
+          } catch (error) {
+            console.error(
+              `[AppStore]       ❌ ${screenshot.filename}: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+            result.failed++;
+          }
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error(
+        `[AppStore] Screenshot upload failed for ${locale}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      throw error;
+    }
+  }
+
   private async getApi<T extends BaseAPI>(apiClass: ApiClass<T>): Promise<T> {
     if (!this.apiCache.has(apiClass)) {
       this.apiCache.set(apiClass, this.sdk.create(apiClass));

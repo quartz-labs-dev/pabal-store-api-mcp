@@ -446,31 +446,19 @@ export class AppStoreService {
             }
 
             console.error(
-              `[AppStore]   📤 Uploading screenshots for ${locale}...`
+              `[AppStore]   📤 Uploading screenshots for ${locale} (batch mode - will replace existing)...`
             );
 
-            // Upload screenshots
-            for (const screenshot of screenshotsToUpload) {
-              try {
-                await client.uploadScreenshot({
-                  imagePath: screenshot.path,
-                  screenshotDisplayType: screenshot.displayType,
-                  locale,
-                });
-                console.error(`[AppStore]       ✅ ${screenshot.filename}`);
-              } catch (uploadError) {
-                const msg =
-                  uploadError instanceof Error
-                    ? uploadError.message
-                    : String(uploadError);
-                console.error(
-                  `[AppStore]       ❌ ${screenshot.filename}: ${msg}`
-                );
-              }
-            }
+            // Use batch upload method - deletes existing and uploads new
+            const uploadResult = await client.uploadScreenshotsForLocale({
+              locale,
+              screenshots: screenshotsToUpload,
+            });
 
+            console.error(
+              `[AppStore]   ✅ Screenshots for ${locale}: ${uploadResult.uploaded} uploaded, ${uploadResult.deleted} deleted, ${uploadResult.failed} failed`
+            );
             uploadedLocales.push(locale);
-            console.error(`[AppStore]   ✅ Screenshots uploaded for ${locale}`);
           } catch (error) {
             console.error(
               `[AppStore]   ❌ Failed to upload screenshots for ${locale}: ${
