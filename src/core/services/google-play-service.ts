@@ -325,16 +325,11 @@ export class GooglePlayService {
               ((localeData.screenshots.phone &&
                 localeData.screenshots.phone.length > 0) ||
                 (localeData.screenshots.tablet &&
-                  localeData.screenshots.tablet.length > 0) ||
-                (localeData.screenshots.tablet7 &&
-                  localeData.screenshots.tablet7.length > 0) ||
-                (localeData.screenshots.tablet10 &&
-                  localeData.screenshots.tablet10.length > 0));
+                  localeData.screenshots.tablet.length > 0));
 
             let screenshots: {
               phone: string[];
-              tablet7: string[];
-              tablet10: string[];
+              tablet: string[];
               featureGraphic: string | null;
             };
 
@@ -344,24 +339,16 @@ export class GooglePlayService {
                 `[GooglePlay]   📋 Using screenshots from aso-data.json for ${locale}`
               );
               const relativePaths = localeData.screenshots;
-              // If 'tablet' array exists (generic), use it for both 7-inch and 10-inch
-              const genericTablet = (relativePaths.tablet || []).map(
-                (p) => `${screenshotsBaseDir}/${p}`
-              );
+              // Google Play upload strategy:
+              // - phone array → uploads to both phoneScreenshots AND sevenInchScreenshots
+              // - tablet array → uploads to tenInchScreenshots only
               screenshots = {
                 phone: (relativePaths.phone || []).map(
                   (p) => `${screenshotsBaseDir}/${p}`
                 ),
-                tablet7: relativePaths.tablet7?.length
-                  ? relativePaths.tablet7.map(
-                      (p) => `${screenshotsBaseDir}/${p}`
-                    )
-                  : genericTablet,
-                tablet10: relativePaths.tablet10?.length
-                  ? relativePaths.tablet10.map(
-                      (p) => `${screenshotsBaseDir}/${p}`
-                    )
-                  : genericTablet,
+                tablet: (relativePaths.tablet || []).map(
+                  (p) => `${screenshotsBaseDir}/${p}`
+                ),
                 featureGraphic: localeData.featureGraphic
                   ? `${screenshotsBaseDir}/${localeData.featureGraphic}`
                   : null,
@@ -380,18 +367,23 @@ export class GooglePlayService {
               console.error(
                 `[GooglePlay]   📂 Parsing screenshots from file system for ${locale}`
               );
-              screenshots = parseGooglePlayScreenshots(
+              const fsScreenshots = parseGooglePlayScreenshots(
                 screenshotsFsDir,
                 locale
               );
+              // File system fallback: use tablet10 as tablet
+              screenshots = {
+                phone: fsScreenshots.phone,
+                tablet: fsScreenshots.tablet10,
+                featureGraphic: fsScreenshots.featureGraphic,
+              };
             }
 
             // Google Play requires minimum 2 phone screenshots
-            const phoneCount =
-              screenshots.phone.length + screenshots.tablet7.length;
+            const phoneCount = screenshots.phone.length;
             if (phoneCount < 2) {
               console.error(
-                `[GooglePlay]   ⚠️  Skipping ${locale} - needs at least 2 phone/tablet7 screenshots (found ${phoneCount})`
+                `[GooglePlay]   ⚠️  Skipping ${locale} - needs at least 2 phone screenshots (found ${phoneCount})`
               );
               skippedLocales.push(locale);
               continue;
@@ -401,22 +393,19 @@ export class GooglePlayService {
               `[GooglePlay]   📤 Uploading screenshots for ${locale} (batch mode - will replace existing)...`
             );
 
-            // Use batch upload method - deletes existing and uploads new in single edit session
-            // Combine phone and tablet7 screenshots as phoneScreenshots (Google Play accepts both sizes)
-            const phoneScreenshotPaths = [
-              ...screenshots.phone,
-              ...screenshots.tablet7,
-            ];
-
+            // Google Play upload strategy:
+            // - phone → uploads to phoneScreenshots AND sevenInchScreenshots (both use same images)
+            // - tablet → uploads to tenInchScreenshots only
             const uploadResult = await client.uploadScreenshotsForLocale({
               language: locale,
-              phoneScreenshots: phoneScreenshotPaths,
-              tenInchScreenshots: screenshots.tablet10,
+              phoneScreenshots: screenshots.phone,
+              sevenInchScreenshots: screenshots.phone,
+              tenInchScreenshots: screenshots.tablet,
               featureGraphic: screenshots.featureGraphic || undefined,
             });
 
             console.error(
-              `[GooglePlay]   ✅ Screenshots uploaded for ${locale}: ${uploadResult.uploaded.phoneScreenshots} phone, ${uploadResult.uploaded.tenInchScreenshots} tablet`
+              `[GooglePlay]   ✅ Screenshots uploaded for ${locale}: ${uploadResult.uploaded.phoneScreenshots} phone, ${uploadResult.uploaded.sevenInchScreenshots} 7-inch, ${uploadResult.uploaded.tenInchScreenshots} 10-inch`
             );
             uploadedLocales.push(locale);
           } catch (error) {
