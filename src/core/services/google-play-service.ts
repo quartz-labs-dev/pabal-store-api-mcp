@@ -292,6 +292,7 @@ export class GooglePlayService {
         console.error(`[GooglePlay]   📤 Preparing locale: ${locale}`);
       }
 
+      // Push locale data as-is from aso-data.json
       await client.pushMultilingualAsoData(googlePlayData);
 
       // Push app-level contact information
@@ -303,8 +304,6 @@ export class GooglePlayService {
         });
         console.error(`[GooglePlay]   ✅ App details uploaded successfully`);
       }
-
-      // Note: YouTube URL is pushed as part of listing data for each locale
 
       // Upload screenshots if enabled
       if (uploadImages && slug) {

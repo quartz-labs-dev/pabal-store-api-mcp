@@ -317,6 +317,7 @@ export class AppStoreService {
     console.error(`[MCP]     Bundle ID: ${bundleId}`);
 
     try {
+      // Push locale data (supportUrl/marketingUrl already set by prepareAsoDataForPush)
       const localesToPush = Object.keys(appStoreData.locales);
       const failedFieldsList: { locale: string; fields: string[] }[] = [];
 
