@@ -324,6 +324,8 @@ export class GooglePlayService {
               localeData?.screenshots &&
               ((localeData.screenshots.phone &&
                 localeData.screenshots.phone.length > 0) ||
+                (localeData.screenshots.tablet &&
+                  localeData.screenshots.tablet.length > 0) ||
                 (localeData.screenshots.tablet7 &&
                   localeData.screenshots.tablet7.length > 0) ||
                 (localeData.screenshots.tablet10 &&
@@ -342,16 +344,24 @@ export class GooglePlayService {
                 `[GooglePlay]   📋 Using screenshots from aso-data.json for ${locale}`
               );
               const relativePaths = localeData.screenshots;
+              // If 'tablet' array exists (generic), use it for both 7-inch and 10-inch
+              const genericTablet = (relativePaths.tablet || []).map(
+                (p) => `${screenshotsBaseDir}/${p}`
+              );
               screenshots = {
                 phone: (relativePaths.phone || []).map(
                   (p) => `${screenshotsBaseDir}/${p}`
                 ),
-                tablet7: (relativePaths.tablet7 || []).map(
-                  (p) => `${screenshotsBaseDir}/${p}`
-                ),
-                tablet10: (relativePaths.tablet10 || []).map(
-                  (p) => `${screenshotsBaseDir}/${p}`
-                ),
+                tablet7: relativePaths.tablet7?.length
+                  ? relativePaths.tablet7.map(
+                      (p) => `${screenshotsBaseDir}/${p}`
+                    )
+                  : genericTablet,
+                tablet10: relativePaths.tablet10?.length
+                  ? relativePaths.tablet10.map(
+                      (p) => `${screenshotsBaseDir}/${p}`
+                    )
+                  : genericTablet,
                 featureGraphic: localeData.featureGraphic
                   ? `${screenshotsBaseDir}/${localeData.featureGraphic}`
                   : null,
