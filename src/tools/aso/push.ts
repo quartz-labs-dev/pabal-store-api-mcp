@@ -3,8 +3,6 @@ import {
   isGooglePlayMultilingual,
   isAppStoreMultilingual,
   loadAsoData,
-  saveAsoData,
-  prepareAsoDataForPush,
   getAsoDir,
   getAsoDataPaths,
   getAsoPushDir,
@@ -158,62 +156,19 @@ export async function handleAsoPush(options: AsoPushOptions) {
     };
   }
 
-  // Prepare data for push
-  console.error(`[MCP]   🔄 Preparing data for push...`);
-  const localAsoData = prepareAsoDataForPush(slug, configData);
-
-  console.error(`[MCP]   📊 Prepared data status:`);
-  console.error(
-    `[MCP]     Google Play: ${
-      localAsoData.googlePlay ? "✅ Ready" : "❌ Not available"
-    }`
-  );
-  if (localAsoData.googlePlay) {
-    const gpData = localAsoData.googlePlay;
-    if (isGooglePlayMultilingual(gpData)) {
-      const locales = Object.keys(gpData.locales);
-      console.error(
-        `[MCP]       Locales to push: ${locales.join(", ")} (${
-          locales.length
-        } total)`
-      );
-    }
-  }
-  console.error(
-    `[MCP]     App Store: ${
-      localAsoData.appStore ? "✅ Ready" : "❌ Not available"
-    }`
-  );
-  if (localAsoData.appStore) {
-    const asData = localAsoData.appStore;
-    if (isAppStoreMultilingual(asData)) {
-      const locales = Object.keys(asData.locales);
-      console.error(
-        `[MCP]       Locales to push: ${locales.join(", ")} (${
-          locales.length
-        } total)`
-      );
-    }
-  }
-
   if (dryRun) {
     return {
       content: [
         {
           type: "text" as const,
           text: `📋 Dry run - Data that would be pushed:\n${JSON.stringify(
-            localAsoData,
+            configData,
             null,
             2
           )}`,
         },
       ],
     };
-  }
-
-  // Save to ASO directory before pushing
-  if (localAsoData.googlePlay || localAsoData.appStore) {
-    saveAsoData(slug, localAsoData, { asoDir });
   }
 
   const results: string[] = [];
@@ -226,7 +181,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
       const result = await googlePlayService.pushAsoData({
         config,
         packageName,
-        localAsoData,
+        localAsoData: configData,
         googlePlayDataPath,
         uploadImages,
         slug,
@@ -243,7 +198,7 @@ export async function handleAsoPush(options: AsoPushOptions) {
       const appStoreResult = await appStoreService.pushAsoData({
         config,
         bundleId,
-        localAsoData,
+        localAsoData: configData,
         appStoreDataPath,
         uploadImages,
         slug,

@@ -2,10 +2,10 @@ import { AppError } from "@/packages/common/errors/app-error";
 import { ERROR_CODES } from "@/packages/common/errors/error-codes";
 import { HTTP_STATUS } from "@/packages/common/errors/status-codes";
 import type {
+  AsoData,
   GooglePlayMultilingualAsoData,
   GooglePlayReleaseNote,
 } from "@/packages/configs/aso-config/types";
-import type { PreparedAsoData } from "@/packages/configs/aso-config/utils";
 import { getAsoPushDir } from "@/packages/configs/aso-config/utils";
 import type { EnvConfig } from "@/packages/configs/secrets-config/types";
 import type { GooglePlayClient } from "@/packages/stores/play-store/client";
@@ -262,7 +262,7 @@ export class GooglePlayService {
   }: {
     config: EnvConfig;
     packageName?: string;
-    localAsoData: PreparedAsoData;
+    localAsoData: AsoData;
     googlePlayDataPath: string;
     uploadImages?: boolean;
     slug?: string;

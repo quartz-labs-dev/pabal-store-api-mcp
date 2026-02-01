@@ -88,11 +88,6 @@ export function ensureDir(dirPath: string): void {
 // Data Conversion
 // ============================================================================
 
-export interface PreparedAsoData {
-  googlePlay?: GooglePlayMultilingualAsoData;
-  appStore?: AppStoreMultilingualAsoData;
-}
-
 export function convertToMultilingual<
   T extends { locale?: string; defaultLanguage?: string },
 >(
@@ -117,87 +112,6 @@ export function isAppStoreMultilingual(
   data: AppStoreAsoData | AppStoreMultilingualAsoData | undefined
 ): data is AppStoreMultilingualAsoData {
   return data !== undefined && "locales" in data;
-}
-
-export function prepareAsoDataForPush(
-  slug: string,
-  configData: AsoData,
-  options?: { baseUrl?: string }
-): PreparedAsoData {
-  const storeData: PreparedAsoData = {};
-  const baseUrl =
-    options?.baseUrl ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    "https://labs.quartz.best";
-  const detailPageUrl = `${baseUrl}/${slug}`;
-
-  if (configData.googlePlay) {
-    const googlePlayData = configData.googlePlay;
-    const locales = isGooglePlayMultilingual(googlePlayData)
-      ? googlePlayData.locales
-      : { [googlePlayData.defaultLanguage || DEFAULT_LOCALE]: googlePlayData };
-
-    // Get app-level youtubeUrl if available
-    const appLevelYoutubeUrl = isGooglePlayMultilingual(googlePlayData)
-      ? googlePlayData.youtubeUrl
-      : undefined;
-
-    type CleanedGooglePlay = Omit<GooglePlayAsoData, "screenshots">;
-    const cleanedLocales: Record<string, CleanedGooglePlay> = {};
-
-    for (const [locale, localeData] of Object.entries(locales)) {
-      const { screenshots, featureGraphic, ...rest } = localeData;
-      cleanedLocales[locale] = {
-        ...rest,
-        contactWebsite: detailPageUrl,
-        // Apply app-level youtubeUrl to all locales if not already set
-        video: rest.video || appLevelYoutubeUrl,
-      };
-    }
-
-    const gpDefaultLocale = isGooglePlayMultilingual(googlePlayData)
-      ? googlePlayData.defaultLocale
-      : googlePlayData.defaultLanguage;
-
-    storeData.googlePlay = {
-      locales: cleanedLocales as unknown as Record<string, GooglePlayAsoData>,
-      defaultLocale: gpDefaultLocale || DEFAULT_LOCALE,
-      contactEmail: isGooglePlayMultilingual(googlePlayData)
-        ? googlePlayData.contactEmail
-        : undefined,
-      contactWebsite: detailPageUrl,
-      youtubeUrl: appLevelYoutubeUrl,
-    };
-  }
-
-  if (configData.appStore) {
-    const appStoreData = configData.appStore;
-    const locales = isAppStoreMultilingual(appStoreData)
-      ? appStoreData.locales
-      : { [appStoreData.locale || DEFAULT_LOCALE]: appStoreData };
-
-    type CleanedAppStore = Omit<AppStoreAsoData, "screenshots">;
-    const cleanedLocales: Record<string, CleanedAppStore> = {};
-
-    for (const [locale, localeData] of Object.entries(locales)) {
-      const { screenshots, ...rest } = localeData;
-      cleanedLocales[locale] = {
-        ...rest,
-        marketingUrl: detailPageUrl,
-      };
-    }
-
-    const asDefaultLocale = isAppStoreMultilingual(appStoreData)
-      ? appStoreData.defaultLocale
-      : appStoreData.locale;
-
-    storeData.appStore = {
-      locales: cleanedLocales as unknown as Record<string, AppStoreAsoData>,
-      defaultLocale: asDefaultLocale || DEFAULT_LOCALE,
-    };
-  }
-
-  return storeData;
 }
 
 // ============================================================================
